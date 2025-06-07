@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { Story } from "inkjs/engine/Story";
-import path from "path";
+import * as path from "path";
+import * as fs from "fs";
 
 export class InkPreviewPanel {
   public static currentPanel: InkPreviewPanel | undefined;
@@ -13,6 +14,14 @@ export class InkPreviewPanel {
   private _processingChoice: boolean = false;
   private _storyLoaded: boolean = false;
   private _webviewInitialized: boolean = false;
+  private _mockFunctions: any = {};
+  private _mockFilePath: string = "";
+  private _functionCalls: Array<{
+    functionName: string;
+    args: any[];
+    result: any;
+    timestamp: number;
+  }> = [];
 
   public static createOrShow(extensionUri: vscode.Uri) {
     const column = vscode.window.activeTextEditor
@@ -104,7 +113,11 @@ export class InkPreviewPanel {
     );
   }
 
-  public loadStory(jsonData: string, fileName?: string) {
+  public loadStory(
+    jsonData: string,
+    fileName?: string,
+    sourceContent?: string
+  ) {
     console.log(
       "📖 InkPreviewPanel.loadStory called with data length:",
       jsonData.length
@@ -116,6 +129,11 @@ export class InkPreviewPanel {
     if (fileName) {
       this._currentFileName = fileName;
       this._updateTitle();
+
+      // Parse mock directive if source content is provided
+      if (sourceContent) {
+        this._parseMockDirective(sourceContent, fileName);
+      }
     }
 
     try {
@@ -128,8 +146,180 @@ export class InkPreviewPanel {
     }
   }
 
+  private _parseMockDirective(sourceContent: string, inkFileName: string) {
+    const lines = sourceContent.split("\n");
+    const firstLine = lines[0]?.trim();
+
+    if (firstLine && firstLine.startsWith("// MOCKS")) {
+      const mockPath = firstLine.substring(8).trim(); // Remove "// MOCKS" prefix
+      console.log(`🎭 Mock directive found: ${mockPath}`);
+
+      try {
+        this._loadMockFile(mockPath, inkFileName);
+      } catch (error) {
+        console.error(`❌ Failed to load mock file ${mockPath}:`, error);
+        vscode.window.showWarningMessage(
+          `Failed to load mock file: ${mockPath}`
+        );
+      }
+    } else {
+      // Clear any existing mocks
+      this._mockFunctions = {};
+      this._mockFilePath = "";
+    }
+  }
+
+  private _loadMockFile(mockPath: string, inkFileName: string) {
+    // Resolve mock file path relative to the ink file
+    const inkFileDir = path.dirname(inkFileName);
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(
+      vscode.Uri.file(inkFileName)
+    );
+
+    let mockFilePath: string;
+    if (workspaceFolder) {
+      // If in workspace, resolve relative to workspace root
+      mockFilePath = path.resolve(workspaceFolder.uri.fsPath, mockPath);
+    } else {
+      // Otherwise resolve relative to ink file
+      mockFilePath = path.resolve(inkFileDir, mockPath);
+    }
+
+    if (!fs.existsSync(mockFilePath)) {
+      throw new Error(`Mock file not found: ${mockFilePath}`);
+    }
+
+    const mockContent = fs.readFileSync(mockFilePath, "utf-8");
+    console.log(`📁 Loading mock file: ${mockFilePath}`);
+
+    try {
+      // Create a safe evaluation context
+      const mockContext = this._createMockContext();
+
+      // Execute mock content and capture function declarations
+      // We need to extract function names first, then execute and capture them
+      const functionNames = mockContent.match(
+        /function\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/g
+      );
+      console.log(`🔍 Found function declarations:`, functionNames);
+
+      if (functionNames) {
+        // Create a wrapper that will execute the mock content and return the functions
+        const funcNamesList = functionNames.map((match) =>
+          match.replace(/function\s+/, "")
+        );
+        console.log(`🔍 Extracting functions:`, funcNamesList);
+
+        const wrapper = `
+          // Set up context
+          var console = arguments[0];
+          var Math = arguments[1];
+          var Date = arguments[2];
+          var JSON = arguments[3];
+          var Object = arguments[4];
+          var Array = arguments[5];
+          var String = arguments[6];
+          var Number = arguments[7];
+          var Boolean = arguments[8];
+          
+          // Execute the mock content
+          ${mockContent}
+          
+          // Return an object with all the functions
+          return {
+            ${funcNamesList
+              .map(
+                (name) =>
+                  `${name}: typeof ${name} !== 'undefined' ? ${name} : null`
+              )
+              .join(",\n")}
+          };
+        `;
+
+        const extractorFunc = new Function(wrapper);
+        const extractedFunctions = extractorFunc(...Object.values(mockContext));
+
+        // Filter out null functions and store the valid ones
+        this._mockFunctions = {};
+        for (const [name, func] of Object.entries(extractedFunctions as any)) {
+          if (func && typeof func === "function") {
+            this._mockFunctions[name] = func as (...args: any[]) => any;
+          }
+        }
+      } else {
+        // Fallback to old method if no functions found
+        this._extractMockFunctions(mockContext);
+      }
+      this._mockFilePath = mockFilePath;
+
+      console.log(
+        `✅ Mock file loaded successfully. Functions available:`,
+        Object.keys(this._mockFunctions)
+      );
+    } catch (error) {
+      throw new Error(`Error executing mock file: ${error}`);
+    }
+  }
+
+  private _createMockContext() {
+    // Create a sandbox context for executing mock JavaScript
+    const context: any = {
+      console: console,
+      // Add other safe globals as needed
+      Math: Math,
+      Date: Date,
+      JSON: JSON,
+      Object: Object,
+      Array: Array,
+      String: String,
+      Number: Number,
+      Boolean: Boolean,
+    };
+    return context;
+  }
+
+  private _extractMockFunctions(context: any) {
+    this._mockFunctions = {};
+
+    // The current approach doesn't work because function declarations
+    // don't get attached to the context object. We need a different approach.
+    // This method is now called after executing the mock content, but
+    // the functions are not accessible through the context.
+
+    // For now, log that we couldn't extract functions this way
+    console.log(
+      "⚠️ _extractMockFunctions: Current method cannot capture function declarations"
+    );
+
+    // Find all functions in the context (this will only find built-in types)
+    for (const key in context) {
+      if (typeof context[key] === "function" && !key.startsWith("_")) {
+        console.log(`🔍 Found context function: ${key}`);
+        // Don't add built-in types to mock functions
+        if (
+          ![
+            "Date",
+            "Object",
+            "Array",
+            "String",
+            "Number",
+            "Boolean",
+            "console",
+            "Math",
+            "JSON",
+          ].includes(key)
+        ) {
+          this._mockFunctions[key] = context[key];
+        }
+      }
+    }
+  }
+
   private _loadStoryData(storyData: any) {
     console.log("🎮 Loading story data into Story object...");
+
+    // Clear function calls history when loading new story
+    this._functionCalls = [];
 
     // Clear previous story content first
     this._panel.webview.postMessage({
@@ -138,6 +328,10 @@ export class InkPreviewPanel {
 
     try {
       this._story = new Story(storyData);
+
+      // Bind external functions if available
+      this._bindExternalFunctions();
+
       this._storyLoaded = true; // Mark story as loaded
       console.log("✅ Story object created successfully");
       this._updateStoryDisplay();
@@ -146,6 +340,57 @@ export class InkPreviewPanel {
       this._panel.webview.postMessage({
         command: "showError",
         error: `Failed to initialize story: ${error}`,
+      });
+    }
+  }
+
+  private _bindExternalFunctions() {
+    if (!this._story || Object.keys(this._mockFunctions).length === 0) {
+      return;
+    }
+
+    console.log(
+      "🔗 Binding external functions:",
+      Object.keys(this._mockFunctions)
+    );
+
+    // Bind each mock function to the story
+    for (const functionName in this._mockFunctions) {
+      const mockFunction = this._mockFunctions[functionName];
+
+      this._story.BindExternalFunction(functionName, (...args: any[]) => {
+        try {
+          console.log(
+            `🎭 Calling external function: ${functionName}(${args.join(", ")})`
+          );
+          const result = mockFunction(...args);
+          console.log(`🎭 Function ${functionName} returned:`, result);
+
+          // Record the function call for display in preview
+          this._functionCalls.push({
+            functionName: functionName,
+            args: args,
+            result: result,
+            timestamp: Date.now(),
+          });
+
+          return result;
+        } catch (error) {
+          console.error(
+            `❌ Error in external function ${functionName}:`,
+            error
+          );
+
+          // Record the error as well
+          this._functionCalls.push({
+            functionName: functionName,
+            args: args,
+            result: `ERROR: ${error}`,
+            timestamp: Date.now(),
+          });
+
+          return null;
+        }
       });
     }
   }
@@ -200,6 +445,9 @@ export class InkPreviewPanel {
       return;
     }
 
+    // Clear function calls history
+    this._functionCalls = [];
+
     // Clear previous content before restarting
     this._panel.webview.postMessage({
       command: "clearStory",
@@ -207,6 +455,10 @@ export class InkPreviewPanel {
 
     try {
       this._story = new Story(this._storyData);
+
+      // Re-bind external functions
+      this._bindExternalFunctions();
+
       this._storyLoaded = true; // Mark as loaded after restart
       this._updateStoryDisplay();
     } catch (error) {
@@ -226,14 +478,30 @@ export class InkPreviewPanel {
     try {
       console.log("🔄 Updating story display...");
 
-      // Continue the story as far as we can
+      // Continue the story as far as we can, collecting tags for each line
       let text = "";
+      let allTags: string[] = [];
       while (this._story.canContinue) {
-        text += this._story.Continue();
+        const lineText = this._story.Continue();
+        if (lineText) {
+          text += lineText;
+
+          // Collect tags from each line
+          const lineTags = this._story.currentTags || [];
+          if (lineTags.length > 0) {
+            console.log(
+              `🏷️ Line tags found: ${lineTags.join(
+                ", "
+              )} for text: "${lineText.trim()}"`
+            );
+            allTags = allTags.concat(lineTags);
+          }
+        }
       }
 
-      // Get current tags (tags from the last piece of content)
-      const currentTags = this._story.currentTags || [];
+      // Use all collected tags, removing duplicates
+      const currentTags = [...new Set(allTags)];
+      console.log("🏷️ All collected tags:", currentTags);
 
       // Get current choices
       console.log(
@@ -241,7 +509,9 @@ export class InkPreviewPanel {
         this._story.currentChoices.length
       );
       this._story.currentChoices.forEach((choice: any, idx: number) => {
-        console.log(`  Choice ${idx}: "${choice.text}"`);
+        console.log(
+          `  Choice ${idx}: "${choice.text}" tags: ${choice.tags || []}`
+        );
       });
 
       const choices = this._story.currentChoices.map(
@@ -271,7 +541,7 @@ export class InkPreviewPanel {
         tags: currentTags,
         choices: choices,
         hasEnded: hasEnded,
-        // Future: This is where we'd include external function call info
+        functionCalls: this._functionCalls,
         variables: this._getStoryVariables(),
       });
     } catch (error) {
@@ -374,8 +644,7 @@ export class InkPreviewPanel {
                 
                 <div id="story-container">
                     <div id="story-content">
-                        <div class="waiting">
-                          
+                        <div class="waiting">                          
                         </div>
                     </div>
                     

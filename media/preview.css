@@ -274,6 +274,62 @@ button:active {
   opacity: 0.75;
 }
 
+/* Function Calls */
+.function-calls-container {
+  margin: 12px 0;
+  padding: 8px 12px;
+  background-color: var(--vscode-editor-inactiveSelectionBackground);
+  border-left: 3px solid var(--vscode-terminal-ansiYellow, #ffcc00);
+  border-radius: 3px;
+}
+
+.function-call {
+  color: var(--vscode-terminal-ansiYellow, #ffcc00);
+  font-family: var(
+    --vscode-editor-font-family,
+    "SF Mono",
+    Monaco,
+    "Cascadia Code",
+    "Roboto Mono",
+    Consolas,
+    "Courier New",
+    monospace
+  );
+  font-size: 11px;
+  padding: 2px 0;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+.function-name {
+  font-weight: 600;
+  color: var(--vscode-terminal-ansiYellow, #ffcc00);
+}
+
+.function-args {
+  color: var(--vscode-terminal-ansiBrightYellow, #ffff88);
+  opacity: 0.8;
+}
+
+.function-result {
+  color: var(--vscode-terminal-ansiBrightYellow, #ffff88);
+  font-weight: 500;
+}
+
+/* Function calls in previous text should be dimmed to grey */
+.function-calls-container.function-calls-previous {
+  opacity: 0.6;
+  border-left-color: var(--vscode-descriptionForeground);
+}
+
+.function-calls-container.function-calls-previous .function-call,
+.function-calls-container.function-calls-previous .function-name,
+.function-calls-container.function-calls-previous .function-args,
+.function-calls-container.function-calls-previous .function-result {
+  color: var(--vscode-descriptionForeground) !important;
+  opacity: 0.7;
+}
+
 /* Utility Classes */
 .hidden {
   display: none !important;

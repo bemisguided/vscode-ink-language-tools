@@ -119,7 +119,13 @@ async function compileCurrentFile(debug: boolean = false): Promise<void> {
       if (InkPreviewPanel.currentPanel) {
         if (result.jsonOutput) {
           console.log("📖 Loading story into preview panel");
-          InkPreviewPanel.currentPanel.loadStory(result.jsonOutput, filePath);
+          // Read source content for mock parsing
+          const sourceContent = activeEditor.document.getText();
+          InkPreviewPanel.currentPanel.loadStory(
+            result.jsonOutput,
+            filePath,
+            sourceContent
+          );
         } else {
           console.log("⚠️ No JSON output available for preview");
           // Show error in preview panel

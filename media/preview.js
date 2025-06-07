@@ -79,16 +79,19 @@ function updateStory(data) {
     addStoryText(data.text, data.tags);
   }
 
+  // Display function calls if any
+  if (data.functionCalls && data.functionCalls.length > 0) {
+    displayFunctionCalls(data.functionCalls);
+  } else if (data.functionCalls) {
+    // Empty function calls array - this is expected when story restarts
+    console.log("🧹 No function calls to display (story cleared)");
+  }
+
   // Update choices
   updateChoices(data.choices, data.hasEnded);
 
-  // Scroll to bottom smoothly
-  setTimeout(() => {
-    window.scrollTo({
-      top: document.body.scrollHeight,
-      behavior: "smooth",
-    });
-  }, 100);
+  // Always scroll to bottom smoothly
+  scrollToBottom();
 }
 
 function addStoryText(text, tags = []) {
@@ -120,6 +123,9 @@ function addStoryText(text, tags = []) {
     paragraphElement.innerHTML = content;
     storyContent.appendChild(paragraphElement);
   });
+
+  // Scroll to bottom after adding story text
+  setTimeout(scrollToBottom, 50);
 }
 
 function markCurrentTextAsPrevious() {
@@ -131,6 +137,55 @@ function markCurrentTextAsPrevious() {
     paragraph.classList.remove("story-paragraph-current");
     paragraph.classList.add("story-paragraph-previous");
   });
+
+  // Also mark function call containers as previous
+  const functionCallContainers = storyContent.querySelectorAll(
+    ".function-calls-container:not(.function-calls-previous)"
+  );
+  functionCallContainers.forEach((container) => {
+    container.classList.add("function-calls-previous");
+  });
+}
+
+function displayFunctionCalls(functionCalls) {
+  // Only show recent function calls (from the last update)
+  const recentCalls = functionCalls.slice(-10); // Show last 10 calls
+
+  if (recentCalls.length === 0) return;
+
+  const functionCallsContainer = document.createElement("div");
+  functionCallsContainer.className = "function-calls-container";
+
+  recentCalls.forEach((call) => {
+    const callElement = document.createElement("div");
+    callElement.className = "function-call fade-in";
+
+    // Format arguments
+    const argsString =
+      call.args.length > 0
+        ? call.args
+            .map((arg) => (typeof arg === "string" ? `"${arg}"` : String(arg)))
+            .join(", ")
+        : "";
+
+    // Format result
+    const resultString =
+      typeof call.result === "string"
+        ? `"${call.result}"`
+        : String(call.result);
+
+    callElement.innerHTML = `
+      <span class="function-name">${call.functionName}</span>(<span class="function-args">${argsString}</span>) 
+      → <span class="function-result">${resultString}</span>
+    `;
+
+    functionCallsContainer.appendChild(callElement);
+  });
+
+  storyContent.appendChild(functionCallsContainer);
+
+  // Scroll to bottom after adding function calls
+  setTimeout(scrollToBottom, 100);
 }
 
 function updateChoices(choices, hasEnded) {
@@ -181,6 +236,10 @@ function updateChoices(choices, hasEnded) {
     // Add slight delay for animation effect
     setTimeout(() => {
       choicesContainer.appendChild(choiceButton);
+      // Scroll to bottom after each choice is added
+      if (index === choices.length - 1) {
+        setTimeout(scrollToBottom, 100);
+      }
     }, index * 50);
   });
 }
@@ -212,6 +271,9 @@ function showStoryEnded() {
   endMessage.textContent = "Story Complete";
   choicesContainer.appendChild(endMessage);
   console.log("🎬 Story ended message added to DOM");
+
+  // Scroll to bottom to show story end
+  setTimeout(scrollToBottom, 100);
 }
 
 function showError(error) {
@@ -234,6 +296,7 @@ function clearHistory() {
   storyContent.innerHTML = '<div class="waiting">Restarting story...</div>';
   choicesContainer.innerHTML = "";
   hideError();
+  console.log("🧹 Cleared story history and function calls");
 }
 
 function clearStory() {
@@ -242,6 +305,39 @@ function clearStory() {
   storyContent.innerHTML = '<div class="waiting">Loading new story...</div>';
   choicesContainer.innerHTML = "";
   hideError();
+  console.log("🧹 Cleared story content and function calls");
+}
+
+function scrollToBottom() {
+  // Multiple attempts to ensure we reach the bottom
+  const attemptScroll = () => {
+    // Try multiple scroll methods for reliability
+    const container = document.getElementById("story-container");
+    const maxScrollTop = Math.max(
+      document.body.scrollHeight,
+      document.documentElement.scrollHeight,
+      container ? container.scrollHeight : 0
+    );
+
+    // Scroll the window
+    window.scrollTo({
+      top: maxScrollTop,
+      behavior: "smooth",
+    });
+
+    // Also scroll the container if it exists
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
+  };
+
+  // Initial scroll
+  attemptScroll();
+
+  // Retry after content has had time to render
+  setTimeout(attemptScroll, 50);
+  setTimeout(attemptScroll, 150);
+  setTimeout(attemptScroll, 300);
 }
 
 function escapeHtml(text) {

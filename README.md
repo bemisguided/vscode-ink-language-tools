@@ -131,15 +131,52 @@ The preview panel provides an immersive way to test your interactive stories:
 - **Story restart** anytime with `Ctrl/Cmd+R` or the restart button
 - **Side-by-side workflow** - code and preview in perfect harmony
 - **Error handling** with clear feedback when compilation fails
+- **External function mocking** with JavaScript for advanced game integration testing
 
-*🚀 Future enhancement: External function stubbing with JavaScript for advanced testing scenarios*
+### 🎭 External Function Mocking
+
+Test your Ink stories with external functions using JavaScript mocks:
+
+1. **Create a mock file** (e.g., `game-mocks.js`) with your function implementations:
+   ```javascript
+   function get_player_name() {
+     return "Alex";
+   }
+   
+   function get_player_health() {
+     return 100;
+   }
+   
+   function heal_player(amount) {
+     // Mock game logic here
+     return true;
+   }
+   ```
+
+2. **Reference the mock file** in your Ink story's first line:
+   ```ink
+   // MOCKS examples/game-mocks.js
+   
+   EXTERNAL get_player_name()
+   EXTERNAL get_player_health()
+   EXTERNAL heal_player(amount)
+   
+   === start ===
+   Hello {get_player_name()}! Your health is {get_player_health()}.
+   ```
+
+3. **See function calls in action** - the preview displays:
+   - **Function calls in yellow** showing arguments and return values
+   - **Real-time execution** as your story progresses
+   - **Historical calls in grey** for previous story content
+
+This enables rapid prototyping and testing of game-integrated interactive fiction!
 
 ## Future Enhancements
 
 - 🧠 **IntelliSense** with context-aware completions and auto-complete
 - 📊 **Story analysis** and flow visualization tools
 - 🔧 **Advanced debugging** with breakpoints and variable inspection
-- 🛠️ **External function JavaScript stubs** for preview testing
 - 📝 **Story statistics** and word count analysis
 - 🎨 **Custom themes** for the preview panel
 
