@@ -1,0 +1,82 @@
+{
+  "name": "vscode-ink",
+  "displayName": "Ink Language Support",
+  "description": "Advanced support for Inkle's Ink narrative scripting language",
+  "version": "0.1.0",
+  "publisher": "ink-dev",
+  "icon": "icons/ink.png",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Other"
+  ],
+  "keywords": [
+    "ink",
+    "inkle",
+    "narrative",
+    "interactive fiction",
+    "storytelling",
+    "game development"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "ink",
+        "aliases": [
+          "Ink",
+          "ink"
+        ],
+        "extensions": [
+          ".ink"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/ink.png",
+          "dark": "./icons/ink.png"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "ink",
+        "scopeName": "source.ink",
+        "path": "./syntaxes/ink.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "ink",
+        "path": "./snippets/ink.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "ink.compileFile",
+        "title": "Compile Ink File",
+        "category": "Ink"
+      },
+      {
+        "command": "ink.debugCompile",
+        "title": "Debug Compile Ink File",
+        "category": "Ink"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/node": "18.x",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "inkjs": "^2.3.2"
+  }
+}

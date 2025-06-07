@@ -1,0 +1,230 @@
+{
+  "Knot": {
+    "prefix": "knot",
+    "body": [
+      "=== ${1:knot_name} ===",
+      "${2:// Content goes here}",
+      "$0"
+    ],
+    "description": "Create a new knot"
+  },
+  "Stitch": {
+    "prefix": "stitch",
+    "body": [
+      "= ${1:stitch_name}",
+      "${2:// Content goes here}",
+      "$0"
+    ],
+    "description": "Create a new stitch"
+  },
+  "Function": {
+    "prefix": "function",
+    "body": [
+      "=== function ${1:function_name}(${2:parameters}) ===",
+      "${3:// Function body}",
+      "~ return ${4:value}",
+      "$0"
+    ],
+    "description": "Create a new function"
+  },
+  "Choice Once": {
+    "prefix": "choice",
+    "body": [
+      "* ${1:[Choice text]} ${2:-> destination}",
+      "$0"
+    ],
+    "description": "Create a once-only choice"
+  },
+  "Choice Sticky": {
+    "prefix": "schoice",
+    "body": [
+      "+ ${1:[Choice text]} ${2:-> destination}",
+      "$0"
+    ],
+    "description": "Create a sticky choice"
+  },
+  "Conditional Choice": {
+    "prefix": "cchoice",
+    "body": [
+      "* {${1:condition}} ${2:[Choice text]} ${3:-> destination}",
+      "$0"
+    ],
+    "description": "Create a conditional choice"
+  },
+  "Multiple Choices": {
+    "prefix": "choices",
+    "body": [
+      "* ${1:[First choice]} ${2:-> first_destination}",
+      "* ${3:[Second choice]} ${4:-> second_destination}",
+      "* ${5:[Third choice]} ${6:-> third_destination}",
+      "$0"
+    ],
+    "description": "Create multiple choices"
+  },
+  "Divert": {
+    "prefix": "divert",
+    "body": [
+      "-> ${1:destination}",
+      "$0"
+    ],
+    "description": "Create a divert"
+  },
+  "Tunnel": {
+    "prefix": "tunnel",
+    "body": [
+      "-> ${1:tunnel_destination} ->",
+      "$0"
+    ],
+    "description": "Create a tunnel"
+  },
+  "Variable Declaration": {
+    "prefix": "var",
+    "body": [
+      "VAR ${1:variable_name} = ${2:initial_value}",
+      "$0"
+    ],
+    "description": "Declare a variable"
+  },
+  "Constant Declaration": {
+    "prefix": "const",
+    "body": [
+      "CONST ${1:constant_name} = ${2:value}",
+      "$0"
+    ],
+    "description": "Declare a constant"
+  },
+  "Temporary Variable": {
+    "prefix": "temp",
+    "body": [
+      "~ temp ${1:variable_name} = ${2:value}",
+      "$0"
+    ],
+    "description": "Declare a temporary variable"
+  },
+  "List Declaration": {
+    "prefix": "list",
+    "body": [
+      "LIST ${1:ListName} = ${2:item1}, ${3:item2}, ${4:item3}",
+      "$0"
+    ],
+    "description": "Declare a list"
+  },
+  "If Statement": {
+    "prefix": "if",
+    "body": [
+      "{${1:condition}:",
+      "    ${2:// True content}",
+      "- else:",
+      "    ${3:// False content}",
+      "}",
+      "$0"
+    ],
+    "description": "Create an if-else statement"
+  },
+  "Conditional Text": {
+    "prefix": "cond",
+    "body": [
+      "{${1:condition}: ${2:true_text} | ${3:false_text}}",
+      "$0"
+    ],
+    "description": "Create conditional text"
+  },
+  "Sequence": {
+    "prefix": "seq",
+    "body": [
+      "{${1:First time}|${2:Second time}|${3:Third time}|${4:All subsequent times}}",
+      "$0"
+    ],
+    "description": "Create a sequence"
+  },
+  "Cycle": {
+    "prefix": "cycle",
+    "body": [
+      "{&${1:Option 1}|${2:Option 2}|${3:Option 3}}",
+      "$0"
+    ],
+    "description": "Create a cycle"
+  },
+  "Shuffle": {
+    "prefix": "shuffle",
+    "body": [
+      "{~${1:Random 1}|${2:Random 2}|${3:Random 3}}",
+      "$0"
+    ],
+    "description": "Create a shuffle"
+  },
+  "Once": {
+    "prefix": "once",
+    "body": [
+      "{!${1:First time only}|${2:Second time only}|${3:Third time only}}",
+      "$0"
+    ],
+    "description": "Create a once-only sequence"
+  },
+  "Gather": {
+    "prefix": "gather",
+    "body": [
+      "- ${1:// Gather point content}",
+      "$0"
+    ],
+    "description": "Create a gather point"
+  },
+  "Include": {
+    "prefix": "include",
+    "body": [
+      "INCLUDE ${1:filename}",
+      "$0"
+    ],
+    "description": "Include another ink file"
+  },
+  "Comment Block": {
+    "prefix": "comment",
+    "body": [
+      "/*",
+      " * ${1:Comment text}",
+      " */",
+      "$0"
+    ],
+    "description": "Create a comment block"
+  },
+  "Tag": {
+    "prefix": "tag",
+    "body": [
+      "# ${1:tag_name}",
+      "$0"
+    ],
+    "description": "Create a tag"
+  },
+  "Assignment": {
+    "prefix": "assign",
+    "body": [
+      "~ ${1:variable} = ${2:value}",
+      "$0"
+    ],
+    "description": "Assign a value to a variable"
+  },
+  "Return": {
+    "prefix": "return",
+    "body": [
+      "~ return ${1:value}",
+      "$0"
+    ],
+    "description": "Return from a function"
+  },
+  "End Story": {
+    "prefix": "end",
+    "body": [
+      "-> END",
+      "$0"
+    ],
+    "description": "End the story"
+  },
+  "Done": {
+    "prefix": "done",
+    "body": [
+      "-> DONE",
+      "$0"
+    ],
+    "description": "Mark flow as done"
+  }
+}
