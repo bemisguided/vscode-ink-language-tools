@@ -9,5 +9,6 @@ vsc-extension-quickstart.md
 **/*.map
 **/*.ts
 **/node_modules/**
+!**/node_modules/inkjs/**
 **/.DS_Store
 **/Thumbs.db 

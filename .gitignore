@@ -85,7 +85,6 @@ Thumbs.db
 
 # IDE and editor files
 .vscode/settings.json
-.vscode/launch.json
 .vscode/extensions.json
 *.swp
 *.swo

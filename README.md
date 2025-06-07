@@ -153,9 +153,13 @@ Test your Ink stories with external functions using JavaScript mocks:
    }
    ```
 
-2. **Reference the mock file** in your Ink story's first line:
+2. **Reference the mock file** in your Ink story's first line. The path is relative to the Ink file:
    ```ink
-   // MOCKS examples/game-mocks.js
+   // MOCKS game-mocks.js
+   // or
+   // MOCKS ../mocks/game-mocks.js
+   // or
+   // MOCKS ./mocks/game-mocks.js
    
    EXTERNAL get_player_name()
    EXTERNAL get_player_health()

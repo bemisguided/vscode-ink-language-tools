@@ -1,18 +1,30 @@
 {
-  "name": "vscode-ink",
-  "displayName": "Ink Language Support",
-  "description": "Advanced support for Inkle's Ink narrative scripting language",
-  "version": "0.1.0",
-  "publisher": "ink-dev",
-  "icon": "icons/ink.png",
+  "name": "vscode-ink-language-tools",
+  "displayName": "Ink Language Tools",
+  "description": "Language tools for Inkle's Ink narrative scripting language",
+  "version": "0.0.1",
+  "publisher": "bemisguided",
   "engines": {
-    "vscode": "^1.74.0"
+    "vscode": "^1.85.0"
   },
   "categories": [
     "Programming Languages",
     "Snippets",
     "Other"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bemisguided/vscode-ink-language-tools"
+  },
+  "bugs": {
+    "url": "https://github.com/bemisguided/vscode-ink-language-tools/issues"
+  },
+  "homepage": "https://github.com/bemisguided/vscode-ink-language-tools#readme",
+  "icon": "icons/ink.png",
+  "galleryBanner": {
+    "color": "#1E1E1E",
+    "theme": "dark"
+  },
   "keywords": [
     "ink",
     "inkle",
@@ -22,6 +34,9 @@
     "game development"
   ],
   "main": "./out/extension.js",
+  "activationEvents": [
+    "onWebviewPanel:inkPreview"
+  ],
   "contributes": {
     "languages": [
       {
@@ -33,11 +48,7 @@
         "extensions": [
           ".ink"
         ],
-        "configuration": "./language-configuration.json",
-        "icon": {
-          "light": "./icons/ink.png",
-          "dark": "./icons/ink.png"
-        }
+        "configuration": "./language-configuration.json"
       }
     ],
     "grammars": [
@@ -50,37 +61,38 @@
     "snippets": [
       {
         "language": "ink",
-        "path": "./snippets/ink.json"
+        "path": "./snippets/ink.code-snippets"
       }
     ],
     "commands": [
       {
         "command": "ink.compileFile",
-        "title": "Compile Ink File",
-        "category": "Ink"
+        "title": "Ink: Compile File"
       },
       {
         "command": "ink.debugCompile",
-        "title": "Debug Compile Ink File",
-        "category": "Ink"
+        "title": "Ink: Debug Compile File"
       },
       {
         "command": "ink.openPreview",
-        "title": "Open Story Preview",
-        "category": "Ink",
-        "icon": "$(open-preview)"
+        "title": "Ink: Open Story Preview"
       }
     ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
+    "watch": "tsc -watch -p ./",
+    "package": "npm run compile && vsce package"
   },
   "devDependencies": {
-    "@types/vscode": "^1.74.0",
-    "@types/node": "18.x",
-    "typescript": "^5.0.0"
+    "@types/node": "^20.11.19",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.1",
+    "@typescript-eslint/parser": "^7.0.1",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3",
+    "@vscode/vsce": "^2.24.0"
   },
   "dependencies": {
     "inkjs": "^2.3.2"

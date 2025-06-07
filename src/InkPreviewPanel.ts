@@ -172,18 +172,7 @@ export class InkPreviewPanel {
   private _loadMockFile(mockPath: string, inkFileName: string) {
     // Resolve mock file path relative to the ink file
     const inkFileDir = path.dirname(inkFileName);
-    const workspaceFolder = vscode.workspace.getWorkspaceFolder(
-      vscode.Uri.file(inkFileName)
-    );
-
-    let mockFilePath: string;
-    if (workspaceFolder) {
-      // If in workspace, resolve relative to workspace root
-      mockFilePath = path.resolve(workspaceFolder.uri.fsPath, mockPath);
-    } else {
-      // Otherwise resolve relative to ink file
-      mockFilePath = path.resolve(inkFileDir, mockPath);
-    }
+    const mockFilePath = path.resolve(inkFileDir, mockPath);
 
     if (!fs.existsSync(mockFilePath)) {
       throw new Error(`Mock file not found: ${mockFilePath}`);
