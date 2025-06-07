@@ -119,13 +119,29 @@ VAR character_name = ""
 
 - **Ink: Compile File** - Manually compile the current Ink file
 - **Ink: Debug Compile File** - Compile with detailed debug output
+- **Ink: Open Story Preview** - Open an interactive preview panel to play your story
+
+### 📖 Story Preview
+
+The preview panel provides an immersive way to test your interactive stories:
+
+- **Interactive playthrough** with clickable choices
+- **Real-time updates** when you save changes to your Ink files  
+- **Keyboard shortcuts** - use number keys (1-9) for quick choice selection
+- **Story restart** anytime with `Ctrl/Cmd+R` or the restart button
+- **Side-by-side workflow** - code and preview in perfect harmony
+- **Error handling** with clear feedback when compilation fails
+
+*🚀 Future enhancement: External function stubbing with JavaScript for advanced testing scenarios*
 
 ## Future Enhancements
 
-- 🎮 **Interactive story preview** panel
-- 🧠 **IntelliSense** with context-aware completions  
-- 📊 **Story analysis** and flow visualization
-- 🔧 **Advanced debugging** tools
+- 🧠 **IntelliSense** with context-aware completions and auto-complete
+- 📊 **Story analysis** and flow visualization tools
+- 🔧 **Advanced debugging** with breakpoints and variable inspection
+- 🛠️ **External function JavaScript stubs** for preview testing
+- 📝 **Story statistics** and word count analysis
+- 🎨 **Custom themes** for the preview panel
 
 ## Ink Language Resources
 

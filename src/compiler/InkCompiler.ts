@@ -7,6 +7,7 @@ import { Compiler } from "inkjs/compiler/Compiler";
 export interface CompilationResult {
   success: boolean;
   story?: Story;
+  jsonOutput?: string;
   errors: CompilationError[];
   warnings: CompilationError[];
   includedFiles: string[];
@@ -43,7 +44,10 @@ export class InkCompiler {
   /**
    * Compile an Ink file with full include support
    */
-  public async compileFile(filePath: string): Promise<CompilationResult> {
+  public async compileFile(
+    filePath: string,
+    debug: boolean = false
+  ): Promise<CompilationResult> {
     try {
       this.clearDiagnostics(filePath);
 
@@ -54,7 +58,7 @@ export class InkCompiler {
 
       console.log(`🔧 Compiling Ink file: ${path.basename(filePath)}`);
 
-      return await this.performCompilation(filePath, content);
+      return await this.performCompilation(filePath, content, debug);
     } catch (error) {
       console.error("❌ Compilation failed:", error);
       return this.handleCompilationError(filePath, error);
@@ -66,7 +70,8 @@ export class InkCompiler {
    */
   private async performCompilation(
     filePath: string,
-    content: string
+    content: string,
+    debug: boolean = false
   ): Promise<CompilationResult> {
     // Validate inkjs library works with basic test
     await this.validateInkjsLibrary();
@@ -140,6 +145,31 @@ export class InkCompiler {
 
     console.log("✅ Compilation successful");
 
+    // Generate JSON output for preview
+    let jsonOutput: string | undefined;
+    try {
+      // Use the ToJson method available on the Story object
+      const result = story.ToJson();
+      if (result && typeof result === "string") {
+        jsonOutput = result;
+        if (debug) {
+          console.log(
+            "🔍 Generated JSON output for preview (length:",
+            jsonOutput.length,
+            ")"
+          );
+        }
+      } else {
+        console.log(
+          "⚠️ ToJson() returned:",
+          typeof result,
+          result ? "with content" : "empty/null"
+        );
+      }
+    } catch (error) {
+      console.log("❌ Error generating JSON output for preview:", error);
+    }
+
     // Update dependency tracking
     this.updateDependencies(filePath, includedFiles);
     this.setupFileWatching(filePath, includedFiles);
@@ -149,9 +179,19 @@ export class InkCompiler {
       this.showDiagnostics([], compilationWarnings);
     }
 
+    if (debug) {
+      console.log("🔍 Debug: JSON output generated:", !!jsonOutput);
+    }
+
+    // Always log JSON generation status for preview functionality
+    if (!jsonOutput) {
+      console.log("⚠️ No JSON output generated - preview will not update");
+    }
+
     return {
       success: true,
       story,
+      jsonOutput,
       errors: [],
       warnings: compilationWarnings,
       includedFiles,

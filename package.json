@@ -63,6 +63,12 @@
         "command": "ink.debugCompile",
         "title": "Debug Compile Ink File",
         "category": "Ink"
+      },
+      {
+        "command": "ink.openPreview",
+        "title": "Open Story Preview",
+        "category": "Ink",
+        "icon": "$(open-preview)"
       }
     ]
   },
