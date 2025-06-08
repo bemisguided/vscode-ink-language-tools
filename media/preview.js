@@ -168,15 +168,18 @@ function displayFunctionCalls(functionCalls) {
             .join(", ")
         : "";
 
-    // Format result
-    const resultString =
-      typeof call.result === "string"
-        ? `"${call.result}"`
-        : String(call.result);
+    // Format result - only show if not null/undefined
+    let resultHtml = "";
+    if (call.result !== null && call.result !== undefined) {
+      const resultString =
+        typeof call.result === "string"
+          ? `"${call.result}"`
+          : String(call.result);
+      resultHtml = ` → <span class="function-result">${resultString}</span>`;
+    }
 
     callElement.innerHTML = `
-      <span class="function-name">${call.functionName}</span>(<span class="function-args">${argsString}</span>) 
-      → <span class="function-result">${resultString}</span>
+      <span class="function-name">${call.functionName}</span>(<span class="function-args">${argsString}</span>)${resultHtml}
     `;
 
     functionCallsContainer.appendChild(callElement);
@@ -278,9 +281,9 @@ function showStoryEnded() {
 
 function showError(error) {
   errorContainer.innerHTML = `
-        <div class="error-message">⚠️ Error</div>
-        <div class="error-details">${escapeHtml(error)}</div>
-    `;
+    <div class="error-message">⚠️ Error</div>
+    <div class="error-details">${escapeHtml(error)}</div>
+  `;
   errorContainer.classList.remove("hidden");
 
   // Scroll to error

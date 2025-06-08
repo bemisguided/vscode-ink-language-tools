@@ -462,7 +462,7 @@
         }
       ]
     },
-    "includes": {
+    "includeMap": {
       "patterns": [
         {
           "name": "keyword.control.include.ink",
