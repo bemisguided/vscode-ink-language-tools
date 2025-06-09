@@ -27,38 +27,6 @@ export class InkPreviewPanel {
       }
     );
 
-    // Set minimal webview content for testing
-    // this.webviewPanel.webview.html = `<!DOCTYPE html>
-    //   <html>
-    //     <head>
-    //       <meta charset="UTF-8">
-    //       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    //       <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' ${this.webviewPanel.webview.cspSource};">
-    //     </head>
-    //     <body>
-    //       <h1>Test Webview</h1>
-    //       <div id="output"></div>
-    //       <script>
-    //         const vscode = acquireVsCodeApi();
-    //         const output = document.getElementById('output');
-
-    //         // Log when script loads
-    //         console.log('Test script loaded');
-    //         output.textContent = 'Script loaded';
-
-    //         // Send ready message
-    //         vscode.postMessage({ command: 'ready', payload: {} });
-    //         output.textContent += '\\nReady message sent';
-
-    //         // Listen for messages
-    //         window.addEventListener('message', event => {
-    //           console.log('Message received:', event);
-    //           output.textContent += '\\nMessage received: ' + JSON.stringify(event.data);
-    //         });
-    //       </script>
-    //     </body>
-    //   </html>`;
-
     this.webviewPanel.webview.html = this.getWebviewContent();
 
     this.webviewPanel.onDidDispose(() => this.dispose());
@@ -129,7 +97,6 @@ export class InkPreviewPanel {
           <button id="button-restart">Restart</button>
         </div>
         <div id="story-container">
-          <div id="output"></div>
           <div id="story-content"></div>
           <div id="choices-container"></div>
           <div id="error-container" class="hidden"></div>

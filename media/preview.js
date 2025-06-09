@@ -1,8 +1,5 @@
 // Constants =========================================================================================================
 
-// VSCode API for webview communication
-const vscode = acquireVsCodeApi();
-
 // Event Types
 const eventType = {
   text: "text",
@@ -88,16 +85,6 @@ function createTagsContainer(tags) {
 }
 
 /**
- * Utility function to post a message to the VSCode Extension.
- * @param {string} command - The command to send.
- * @param {Object} payload - The payload to send.
- */
-function postMessage(command, payload) {
-  console.debug(`[preview.js] 📤 Sending message: ${command}`, payload);
-  vscode.postMessage({ command, payload });
-}
-
-/**
  * Utility function to log a message to the VSCode Extension.
  * @param {string} message - The message to log.
  */
@@ -119,8 +106,28 @@ function logLocal(message) {
 // Message Handler ===================================================================================================
 
 const messageHandler = {
+  vscode: acquireVsCodeApi(),
+
   handlers: new Map(),
 
+  listener: null,
+
+  /**
+   * Sends a message to the VSCode extension.
+   * @param {string} command - The command to send
+   * @param {Object} payload - The payload to send with the command
+   */
+  postMessage(command, payload) {
+    logLocal(`[preview.js] 📤 Sending message: ${command}`, payload);
+    this.vscode.postMessage({ command, payload });
+  },
+
+  /**
+   * Registers a callback function for a specific command.
+   * @param {string} command - The command to register the handler for
+   * @param {Function} callback - The function to call when the command is received
+   * @returns {Function} The callback function for cleanup
+   */
   register(command, callback) {
     if (!this.handlers.has(command)) {
       this.handlers.set(command, new Set());
@@ -129,6 +136,11 @@ const messageHandler = {
     return callback; // Return callback for cleanup
   },
 
+  /**
+   * Unregisters a callback function for a specific command.
+   * @param {string} command - The command to unregister the handler from
+   * @param {Function} callback - The function to unregister
+   */
   unregister(command, callback) {
     const callbacks = this.handlers.get(command);
     if (callbacks) {
@@ -136,6 +148,10 @@ const messageHandler = {
     }
   },
 
+  /**
+   * Handles incoming messages from the VSCode extension.
+   * @param {MessageEvent} event - The message event containing the command and payload
+   */
   handle(event) {
     const message = event.data;
     logLocal("[preview.js] 📥 Received message:", message);
@@ -151,34 +167,25 @@ const messageHandler = {
     }
   },
 
+  /**
+   * Initializes the message handler by setting up the message event listener.
+   * This should be called when the webview is loaded.
+   */
   initialize() {
-    logLocal("[preview.js] 📝 Setting up message listener");
-
-    // Remove any existing listeners
-    window.removeEventListener("message", this.handleMessage);
+    logLocal("[preview.js] 📝 MessageHandler: Initializing");
 
     // Add new listener with a bound function
-    this.handleMessage = this.handleMessage.bind(this);
-    window.addEventListener("message", this.handleMessage);
-
-    // Send ready message
-    vscode.postMessage({ command: "ready", payload: {} });
+    this.handle = this.handle.bind(this);
+    this.listener = window.addEventListener("message", this.handle);
   },
 
-  handleMessage(event) {
-    console.log("[preview.js] 🔍 Message received:", event);
-    logLocal("[preview.js] 📥 Raw message event:", event);
-
-    if (!event.data) {
-      console.log("[preview.js] ❌ No data in message");
-      return;
-    }
-    this.handle(event);
-  },
-
+  /**
+   * Cleans up the message handler by removing the event listener.
+   * This should be called when the webview is disposed.
+   */
   cleanup() {
-    if (this.handleMessage) {
-      window.removeEventListener("message", this.handleMessage);
+    if (this.listener) {
+      window.removeEventListener("message", this.listener);
     }
   },
 };
@@ -202,13 +209,20 @@ const storyView = {
   // Event Handlers =================================================================================================
   keyboardHandler: null,
 
-  // Initialization =================================================================================================
+  /**
+   * Initializes the story view by setting up DOM elements and event listeners.
+   * This should be called when the webview is loaded.
+   */
   initialize() {
+    logLocal("[preview.js] 📝 StoryView: Initializing");
     this.initializeElements();
     this.reset();
     this.setupEventListeners();
   },
 
+  /**
+   * Initializes references to DOM elements used by the view.
+   */
   initializeElements() {
     this.elements.restartButton = document.getElementById("button-restart");
     this.elements.storyContent = document.getElementById("story-content");
@@ -218,17 +232,26 @@ const storyView = {
     this.elements.debugContainer = document.getElementById("debug-container");
   },
 
+  /**
+   * Sets up event listeners for user interactions.
+   */
   setupEventListeners() {
     this.setupRestartButton();
     this.setupKeyboardShortcuts();
   },
 
+  /**
+   * Sets up the restart button click handler.
+   */
   setupRestartButton() {
     this.elements.restartButton.addEventListener("click", () => {
       storyController.actionRestartStory();
     });
   },
 
+  /**
+   * Sets up keyboard shortcuts for story navigation.
+   */
   setupKeyboardShortcuts() {
     this.keyboardHandler = (e) => {
       // Restart story: Ctrl/Cmd + R
@@ -259,7 +282,9 @@ const storyView = {
     document.addEventListener("keydown", this.keyboardHandler);
   },
 
-  // State Management ===============================================================================================
+  /**
+   * Resets the story view to its initial state.
+   */
   reset() {
     // Reset state
     this.currentGroup = null;
@@ -271,6 +296,10 @@ const storyView = {
     this.hideError();
   },
 
+  /**
+   * Updates the story view with new content.
+   * @param {Object} group - The story group containing events and choices
+   */
   updateStory(group) {
     // Add to history if there's a current group
     if (this.currentGroup) {
@@ -284,7 +313,10 @@ const storyView = {
     this.renderStoryGroup(group);
   },
 
-  // Rendering ======================================================================================================
+  /**
+   * Renders a story group with its events and choices.
+   * @param {Object} group - The story group to render
+   */
   renderStoryGroup(group) {
     this.hideError();
     this.markCurrentContentAsHistorical();
@@ -325,6 +357,11 @@ const storyView = {
     this.scrollToBottom();
   },
 
+  /**
+   * Renders a text event in the story.
+   * @param {Object} event - The text event to render
+   * @param {HTMLElement} container - The container to render the event in
+   */
   renderTextEvent(event, container) {
     const paragraphElement = createElement(
       "div",
@@ -345,6 +382,11 @@ const storyView = {
     container.appendChild(paragraphElement);
   },
 
+  /**
+   * Renders a function event in the story.
+   * @param {Object} event - The function event to render
+   * @param {HTMLElement} container - The container to render the event in
+   */
   renderFunctionEvent(event, container) {
     const functionElement = createElement(
       "div",
@@ -376,6 +418,11 @@ const storyView = {
     container.appendChild(functionElement);
   },
 
+  /**
+   * Renders the choices for the current story state.
+   * @param {Array} choices - The array of choices to render
+   * @param {boolean} hasEnded - Whether the story has ended
+   */
   renderChoices(choices, hasEnded) {
     this.elements.choicesContainer.innerHTML = "";
 
@@ -390,7 +437,7 @@ const storyView = {
 
     choices.forEach((choice, index) => {
       const choiceButton = createElement("button", "story-choice fade-in", {
-        "data-choice-number": (index + 1).toString(),
+        dataChoiceNumber: (index + 1).toString(),
       });
 
       // Create choice content container
@@ -423,6 +470,9 @@ const storyView = {
     });
   },
 
+  /**
+   * Renders the story ended message.
+   */
   renderStoryEnded() {
     const endMessage = createElement("div", "story-ended fade-in");
     endMessage.textContent = "Story Complete";
@@ -430,7 +480,9 @@ const storyView = {
     setTimeout(() => this.scrollToBottom(), 100);
   },
 
-  // UI Helpers =====================================================================================================
+  /**
+   * Marks the current content as historical by updating its CSS classes.
+   */
   markCurrentContentAsHistorical() {
     const currentGroups = this.elements.storyContent.querySelectorAll(
       ".story-group-current"
@@ -441,6 +493,9 @@ const storyView = {
     });
   },
 
+  /**
+   * Disables all choice buttons.
+   */
   disableChoices() {
     const choiceButtons =
       this.elements.choicesContainer.querySelectorAll(".story-choice");
@@ -450,6 +505,9 @@ const storyView = {
     });
   },
 
+  /**
+   * Scrolls the story container to the bottom.
+   */
   scrollToBottom() {
     const attemptScroll = () => {
       const container = document.getElementById("story-container");
@@ -475,7 +533,10 @@ const storyView = {
     setTimeout(attemptScroll, 300);
   },
 
-  // Error Handling =================================================================================================
+  /**
+   * Renders an error message in the error container.
+   * @param {string} error - The error message to display
+   */
   renderError(error) {
     this.elements.errorContainer.innerHTML = `
       <div class="error-message">⚠️ Error</div>
@@ -485,11 +546,18 @@ const storyView = {
     this.elements.errorContainer.scrollIntoView({ behavior: "smooth" });
   },
 
+  /**
+   * Hides the error container.
+   */
   hideError() {
     this.elements.errorContainer.classList.add("hidden");
   },
 
-  // Utilities ======================================================================================================
+  /**
+   * Escapes HTML special characters in a string.
+   * @param {string} text - The text to escape
+   * @returns {string} The escaped text
+   */
   escapeHtml(text) {
     const htmlEntities = {
       ampersand: "&amp;",
@@ -516,7 +584,9 @@ const storyView = {
     });
   },
 
-  // Cleanup ========================================================================================================
+  /**
+   * Cleans up the story view by removing event listeners.
+   */
   cleanup() {
     if (this.keyboardHandler) {
       document.removeEventListener("keydown", this.keyboardHandler);
@@ -529,88 +599,108 @@ const storyView = {
 
 const storyController = {
   // State ==========================================================================================================
-  messageHandlers: [],
   isInitialized: false,
 
-  // Initialization =================================================================================================
+  /**
+   * Initializes the story controller by setting up event listeners.
+   * This should be called when the webview is loaded.
+   */
   initialize() {
     if (this.isInitialized) {
       return;
     }
+    logLocal("[preview.js] 📝 StoryController: Initializing");
     this.setupEventListeners();
-    postMessage(outboundMessages.ready, {});
+    messageHandler.postMessage(outboundMessages.ready, {});
     this.isInitialized = true;
   },
 
+  /**
+   * Sets up event listeners for story messages.
+   */
   setupEventListeners() {
-    // Message handlers
-    this.messageHandlers = [
-      messageHandler.register(
-        inboundMessages.startStory,
-        this.handleStartStory.bind(this)
-      ),
-      messageHandler.register(
-        inboundMessages.updateStory,
-        this.handleStoryUpdate.bind(this)
-      ),
-      messageHandler.register(
-        inboundMessages.endStory,
-        this.handleEndStory.bind(this)
-      ),
-      messageHandler.register(
-        inboundMessages.showError,
-        this.handleShowError.bind(this)
-      ),
-    ];
+    // Message handler
+    messageHandler.register(
+      inboundMessages.startStory,
+      this.handleStartStory.bind(this)
+    );
+    messageHandler.register(
+      inboundMessages.updateStory,
+      this.handleStoryUpdate.bind(this)
+    );
+    messageHandler.register(
+      inboundMessages.endStory,
+      this.handleEndStory.bind(this)
+    );
+    messageHandler.register(
+      inboundMessages.showError,
+      this.handleShowError.bind(this)
+    );
   },
 
-  // Action Handlers ================================================================================================
+  /**
+   * Handles the selection of a choice by the player.
+   * @param {number} choiceIndex - The index of the selected choice
+   */
   actionSelectChoice(choiceIndex) {
     logLocal(`Action: Selecting choice ${choiceIndex}`);
-    postMessage(outboundMessages.selectChoice, { choiceIndex });
+    messageHandler.postMessage(outboundMessages.selectChoice, { choiceIndex });
   },
 
+  /**
+   * Handles the player's request to restart the story.
+   */
   actionRestartStory() {
     logLocal("Action: Requesting story restart");
-    postMessage(outboundMessages.restartStory, {});
+    messageHandler.postMessage(outboundMessages.restartStory, {});
   },
 
+  /**
+   * Handles the player's request to focus the editor.
+   */
   actionFocusEditor() {
     logLocal("Action: Focusing editor");
-    postMessage(outboundMessages.focusEditor, {});
+    messageHandler.postMessage(outboundMessages.focusEditor, {});
   },
 
-  // Message Handlers ===============================================================================================
+  /**
+   * Handles the start story message from the extension.
+   */
   handleStartStory() {
     logLocal("Message: Starting story");
     storyView.reset();
   },
 
+  /**
+   * Handles a story update message from the extension.
+   * @param {Object} message - The story update message
+   */
   handleStoryUpdate(message) {
     logLocal("Message: Updating story");
     storyView.updateStory(message.payload);
   },
 
+  /**
+   * Handles the end story message from the extension.
+   */
   handleEndStory() {
     logLocal("Message: Story ended");
     storyView.renderStoryEnded();
   },
 
+  /**
+   * Handles an error message from the extension.
+   * @param {string} error - The error message to display
+   */
   handleShowError(error) {
     logLocal("Message: Showing error");
     storyView.renderError(error);
   },
 
-  // Cleanup ========================================================================================================
-  cleanup() {
-    this.messageHandlers.forEach((handler) => {
-      messageHandler.unregister(inboundMessages.startStory, handler);
-      messageHandler.unregister(inboundMessages.updateStory, handler);
-      messageHandler.unregister(inboundMessages.endStory, handler);
-      messageHandler.unregister(inboundMessages.showError, handler);
-    });
-    this.messageHandlers = [];
-  },
+  /**
+   * Cleans up the story controller.
+   */
+  cleanup() {},
 };
 
 // Initialize when DOM is loaded
