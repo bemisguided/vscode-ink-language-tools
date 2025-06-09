@@ -154,8 +154,7 @@ const messageHandler = {
    */
   handle(event) {
     const message = event.data;
-    logLocal("[preview.js] 📥 Received message:", message);
-
+    logLocal("[preview.js] 📥 Received message:" + JSON.stringify(message));
     if (!message || !message.command) {
       logLocal("[preview.js] ❌ Invalid message format:", message);
       return;
@@ -353,7 +352,7 @@ const storyView = {
     }
 
     // Render choices after all events
-    this.renderChoices(group.choices, group.hasEnded);
+    this.renderChoices(group.choices);
     this.scrollToBottom();
   },
 
@@ -421,15 +420,9 @@ const storyView = {
   /**
    * Renders the choices for the current story state.
    * @param {Array} choices - The array of choices to render
-   * @param {boolean} hasEnded - Whether the story has ended
    */
-  renderChoices(choices, hasEnded) {
+  renderChoices(choices) {
     this.elements.choicesContainer.innerHTML = "";
-
-    if (hasEnded) {
-      this.renderStoryEnded();
-      return;
-    }
 
     if (!choices?.length) {
       return;
@@ -474,6 +467,7 @@ const storyView = {
    * Renders the story ended message.
    */
   renderStoryEnded() {
+    this.elements.choicesContainer.innerHTML = "";
     const endMessage = createElement("div", "story-ended fade-in");
     endMessage.textContent = "Story Complete";
     this.elements.choicesContainer.appendChild(endMessage);
@@ -673,11 +667,11 @@ const storyController = {
 
   /**
    * Handles a story update message from the extension.
-   * @param {Object} message - The story update message
+   * @param {Object} payload - The story update payload
    */
-  handleStoryUpdate(message) {
-    logLocal("Message: Updating story");
-    storyView.updateStory(message.payload);
+  handleStoryUpdate(payload) {
+    logLocal("Message: Updating story", payload);
+    storyView.updateStory(payload);
   },
 
   /**
