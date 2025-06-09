@@ -1,0 +1,186 @@
+{
+  "name": "Ink Dark",
+  "type": "dark",
+  "colors": {
+    "editor.background": "#1E1E1E",
+    "editor.foreground": "#D4D4D4",
+    "editor.lineHighlightBackground": "#2A2D2E",
+    "editor.selectionBackground": "#264F78",
+    "editorCursor.foreground": "#FFFFFF"
+  },
+  "tokenColors": [
+    {
+      "name": "Comments",
+      "scope": "comment.line.double-slash.ink",
+      "settings": {
+        "foreground": "#6A9955"
+      }
+    },
+    {
+      "name": "Knots",
+      "scope": "entity.name.knot.ink",
+      "settings": {
+        "foreground": "#569CD6"
+      }
+    },
+    {
+      "name": "Stitches",
+      "scope": "entity.name.function.stitch.ink",
+      "settings": {
+        "foreground": "#569CD6"
+      }
+    },
+    {
+      "name": "Choices",
+      "scope": [
+        "string.unquoted.choice.text.ink",
+        "markup.bold.choice.display-only.ink"
+      ],
+      "settings": {
+        "foreground": "#DCDCAA"
+      }
+    },
+    {
+      "name": "Choice Brackets",
+      "scope": [
+        "punctuation.definition.choice.ink"
+      ],
+      "settings": {
+        "foreground": "#808080"
+      }
+    },
+    {
+      "name": "Tags",
+      "scope": [
+        "entity.other.attribute-name.tag.ink",
+        "entity.other.attribute-name.tag.value.ink"
+      ],
+      "settings": {
+        "foreground": "#4EC9B0"
+      }
+    },
+    {
+      "name": "Functions",
+      "scope": "entity.name.function.ink",
+      "settings": {
+        "foreground": "#DCDCAA"
+      }
+    },
+    {
+      "name": "Function Parameters",
+      "scope": "variable.parameter.ink",
+      "settings": {
+        "foreground": "#9CDCFE"
+      }
+    },
+    {
+      "name": "Diverts",
+      "scope": [
+        "keyword.control.flow.divert.ink",
+        "entity.name.function.divert-target.ink"
+      ],
+      "settings": {
+        "foreground": "#C586C0"
+      }
+    },
+    {
+      "name": "Tunnels",
+      "scope": [
+        "keyword.control.flow.tunnel.ink",
+        "keyword.control.flow.tunnel.return.ink",
+        "entity.name.function.tunnel-target.ink"
+      ],
+      "settings": {
+        "foreground": "#C586C0"
+      }
+    },
+    {
+      "name": "Conditionals",
+      "scope": [
+        "meta.embedded.block.conditional.ink",
+        "punctuation.definition.conditional.begin.ink",
+        "punctuation.definition.conditional.end.ink",
+        "punctuation.separator.conditional.ink"
+      ],
+      "settings": {
+        "foreground": "#DCDCAA"
+      }
+    },
+    {
+      "name": "Variables",
+      "scope": [
+        "storage.type.variable.ink",
+        "variable.other.ink",
+        "storage.type.variable.assignment.ink"
+      ],
+      "settings": {
+        "foreground": "#9CDCFE"
+      }
+    },
+    {
+      "name": "Lists",
+      "scope": [
+        "storage.type.list.ink",
+        "entity.name.type.list.ink"
+      ],
+      "settings": {
+        "foreground": "#9CDCFE"
+      }
+    },
+    {
+      "name": "Strings",
+      "scope": [
+        "string.quoted.double.ink",
+        "string.unquoted.include.path.ink"
+      ],
+      "settings": {
+        "foreground": "#CE9178"
+      }
+    },
+    {
+      "name": "Numbers",
+      "scope": [
+        "constant.numeric.float.ink",
+        "constant.numeric.integer.ink"
+      ],
+      "settings": {
+        "foreground": "#B5CEA8"
+      }
+    },
+    {
+      "name": "Operators",
+      "scope": [
+        "keyword.operator.comparison.ink",
+        "keyword.operator.logical.ink",
+        "keyword.operator.arithmetic.ink",
+        "keyword.operator.assignment.ink",
+        "keyword.operator.ink"
+      ],
+      "settings": {
+        "foreground": "#D4D4D4"
+      }
+    },
+    {
+      "name": "Keywords",
+      "scope": [
+        "keyword.control.ink",
+        "keyword.other.ink",
+        "keyword.declaration.variable.ink",
+        "keyword.declaration.list.ink",
+        "keyword.declaration.function.ink",
+        "keyword.control.return.ink",
+        "keyword.control.include.ink"
+      ],
+      "settings": {
+        "foreground": "#C586C0"
+      }
+    },
+    {
+      "name": "Built-in Functions",
+      "scope": "support.function.builtin.ink",
+      "settings": {
+        "foreground": "#DCDCAA"
+      }
+    }
+  ]
+}

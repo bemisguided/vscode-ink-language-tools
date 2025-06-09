@@ -1,10 +1,6 @@
-import * as vscode from "vscode";
 import * as path from "path";
-import {
-  PipelineResult,
-  CompilationErrorSeverity,
-  CompilationError,
-} from "./types";
+import { CompilationErrorSeverity, CompilationError } from "../types";
+import { PipelineResult } from "./BaseProcessor";
 import { BaseProcessor } from "./BaseProcessor";
 import { Compiler, CompilerOptions } from "inkjs/compiler/Compiler";
 import { PipelineContext } from "./PipelineContext";

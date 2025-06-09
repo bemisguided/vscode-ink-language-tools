@@ -1,14 +1,18 @@
-import * as vscode from "vscode";
-import {
-  PipelineProcessor,
-  CompilationResult,
-  CreateContextOptions,
-  CompilationErrorSeverity,
-} from "./types";
+import { CompilationResult, CompilationErrorSeverity } from "../types";
+import { BaseProcessor } from "./BaseProcessor";
 import { PipelineContext } from "./PipelineContext";
 import { MockProcessor } from "./MockProcessor";
 import { IncludeProcessor } from "./IncludeProcessor";
 import { CompileProcessor } from "./CompileProcessor";
+
+/**
+ * Options for creating a pipeline context
+ */
+export interface CreateContextOptions {
+  filePath: string;
+  content: string;
+  debug?: boolean;
+}
 
 /**
  * Manages the compilation pipeline for Ink files
@@ -16,7 +20,7 @@ import { CompileProcessor } from "./CompileProcessor";
 export class InkCompiler {
   // Private Properties ===============================================================================================
 
-  private processors: PipelineProcessor[] = [];
+  private processors: BaseProcessor[] = [];
 
   // Constructor ======================================================================================================
 
@@ -31,7 +35,7 @@ export class InkCompiler {
   /**
    * Execute the compilation pipeline
    */
-  public async execute(
+  public async compile(
     options: CreateContextOptions
   ): Promise<CompilationResult> {
     // Initialize context
@@ -51,6 +55,7 @@ export class InkCompiler {
         success: context.errors.length === 0,
         story: context.metadata.get("story"),
         jsonOutput: context.metadata.get("jsonOutput"),
+        sourceFileName: context.filePath,
         errors: context.errors,
         warnings: context.warnings,
         includedFiles: context.metadata.get("includedFiles") || [],
@@ -60,6 +65,7 @@ export class InkCompiler {
       console.error("Pipeline execution failed:", error);
       return {
         success: false,
+        sourceFileName: options.filePath,
         errors: [
           {
             message: `Pipeline execution failed: ${
@@ -81,7 +87,7 @@ export class InkCompiler {
   /**
    * Get the list of processors in the pipeline
    */
-  public getProcessors(): PipelineProcessor[] {
+  public getProcessors(): BaseProcessor[] {
     return [...this.processors];
   }
 

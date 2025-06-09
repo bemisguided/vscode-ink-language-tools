@@ -1,12 +1,7 @@
-import { BaseProcessor } from "./BaseProcessor";
-import {
-  PipelineResult,
-  CompilationErrorSeverity,
-  BindableFunction,
-} from "./types";
 import * as path from "path";
+import { BaseProcessor, PipelineResult } from "./BaseProcessor";
+import { CompilationErrorSeverity, BindableFunction } from "../types";
 import { PipelineContext } from "./PipelineContext";
-import * as vscode from "vscode";
 import { LineScanner } from "./LineScanner";
 import { FileSystem } from "./FileSystem";
 

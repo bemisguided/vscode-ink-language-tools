@@ -1,5 +1,14 @@
-import { PipelineResult } from "./types";
 import { PipelineContext } from "./PipelineContext";
+
+/**
+ * Result of a pipeline processor
+ */
+export interface PipelineResult {
+  /** Whether to continue the pipeline */
+  shouldContinue: boolean;
+  /** Updated context */
+  context: PipelineContext;
+}
 
 /**
  * Base class for all pipeline processors.

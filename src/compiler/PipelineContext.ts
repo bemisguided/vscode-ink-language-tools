@@ -1,4 +1,5 @@
-import { CompilationError, PipelineResult, BindableFunction } from "./types";
+import { CompilationError, BindableFunction } from "../types";
+import { PipelineResult } from "./BaseProcessor";
 
 /**
  * Context passed through the compilation pipeline

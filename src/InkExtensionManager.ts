@@ -199,18 +199,18 @@ export class InkExtensionManager {
     return document.languageId === "ink";
   }
 
-  private async previewStory(document: vscode.TextDocument): Promise<void> {
-    this.ensureInkFile(document);
-    const diagnostics = await this.inkPreviewCommand.execute(document);
-    this.updateDiagnostics(document, diagnostics);
-  }
-
   private async previewStoryCurrent(): Promise<void> {
     const document = this.ensureActiveDocument();
     if (!document) {
       return;
     }
     await this.previewStory(document);
+  }
+
+  private async previewStory(document: vscode.TextDocument): Promise<void> {
+    this.ensureInkFile(document);
+    const diagnostics = await this.inkPreviewCommand.execute(document);
+    this.updateDiagnostics(document, diagnostics);
   }
 
   private updateDiagnostics(

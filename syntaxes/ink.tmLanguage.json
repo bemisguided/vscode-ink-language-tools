@@ -121,6 +121,9 @@
               "patterns": [
                 {
                   "include": "#choice-text"
+                },
+                {
+                  "include": "#tags"
                 }
               ]
             }
@@ -146,6 +149,9 @@
               "patterns": [
                 {
                   "include": "#choice-text"
+                },
+                {
+                  "include": "#tags"
                 }
               ]
             }
@@ -156,13 +162,28 @@
     "choice-text": {
       "patterns": [
         {
-          "name": "markup.bold.choice.display-only.ink",
-          "match": "\\[([^\\]]+)\\]",
-          "captures": {
-            "1": {
-              "name": "string.unquoted.choice.display-only.ink"
+          "name": "string.unquoted.choice.text.ink",
+          "begin": "\\[",
+          "end": "\\]",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.choice.ink"
             }
-          }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.choice.ink"
+            }
+          },
+          "patterns": [
+            {
+              "name": "string.unquoted.choice.text.ink",
+              "match": "[^\\[\\]#]+"
+            },
+            {
+              "include": "#tags"
+            }
+          ]
         },
         {
           "include": "#diverts"

@@ -1,438 +1,629 @@
+// Constants =========================================================================================================
+
 // VSCode API for webview communication
 const vscode = acquireVsCodeApi();
 
-// VSCode API for webview communication
-// Debug logging removed - issue resolved!
+// Event Types
+const eventType = {
+  text: "text",
+  function: "function",
+};
 
-// DOM Elements
-let storyContent;
-let choicesContainer;
-let errorContainer;
-let restartBtn;
-let debugContainer;
+// Message Constants =================================================================================================
 
-// Story state
-let currentStory = null;
-let storyHistory = [];
+/**
+ * Messages sent from Webview to MVC
+ */
+const outboundMessages = {
+  /** Sent when Webview is ready to receive messages */
+  ready: "ready",
 
-// Initialize when DOM is loaded
-document.addEventListener("DOMContentLoaded", function () {
-  console.log("🎬 DOM Content Loaded - Webview initializing");
+  /** Sent when player selects a choice */
+  selectChoice: "selectChoice",
 
-  initializeElements();
-  setupEventListeners();
+  /** Sent when player requests story restart */
+  restartStory: "restartStory",
 
-  // Signal that webview is ready
-  vscode.postMessage({ command: "ready" });
-});
+  /** Sent for debug logging */
+  log: "log",
 
-function initializeElements() {
-  storyContent = document.getElementById("story-content");
-  choicesContainer = document.getElementById("choices-container");
-  errorContainer = document.getElementById("error-container");
-  restartBtn = document.getElementById("restart-btn");
-  debugContainer = document.getElementById("debug-container");
+  /** Sent to focus the editor */
+  focusEditor: "focusEditor",
+};
+
+/**
+ * Messages sent from MVC to Webview
+ */
+const inboundMessages = {
+  /** Sent to start/restart the story */
+  startStory: "startStory",
+
+  /** Sent with story updates (events, choices) */
+  updateStory: "updateStory",
+
+  /** Sent when story reaches an end */
+  endStory: "endStory",
+
+  /** Sent to display error messages */
+  showError: "showError",
+};
+
+// Utility Functions =================================================================================================
+
+/**
+ * Creates a DOM element with the specified properties.
+ * @param {string} tag - The HTML tag name
+ * @param {string} className - The CSS class name
+ * @param {Object} attributes - Additional attributes to set
+ * @returns {HTMLElement} The created element
+ */
+function createElement(tag, className, attributes = {}) {
+  const element = document.createElement(tag);
+  if (className) {
+    element.className = className;
+  }
+  Object.entries(attributes).forEach(([key, value]) => {
+    element.setAttribute(key, value);
+  });
+  return element;
 }
 
-function setupEventListeners() {
-  // Restart button
-  restartBtn.addEventListener("click", function (event) {
-    vscode.postMessage({ command: "restart" });
-    clearHistory();
-  });
+/**
+ * Creates a container for tags.
+ * @param {string[]} tags - Array of tags to render
+ * @returns {HTMLElement} The tags container
+ */
+function createTagsContainer(tags) {
+  if (!tags?.length) {
+    return null;
+  }
 
-  // Listen for messages from the extension
-  window.addEventListener("message", (event) => {
+  const tagsContainer = createElement("div", "story-tags");
+  tags.forEach((tag) => {
+    const tagElement = createElement("span", "story-tag");
+    tagElement.textContent = `#${tag}`;
+    tagsContainer.appendChild(tagElement);
+  });
+  return tagsContainer;
+}
+
+/**
+ * Utility function to post a message to the VSCode Extension.
+ * @param {string} command - The command to send.
+ * @param {Object} payload - The payload to send.
+ */
+function postMessage(command, payload) {
+  console.debug(`[preview.js] 📤 Sending message: ${command}`, payload);
+  vscode.postMessage({ command, payload });
+}
+
+/**
+ * Utility function to log a message to the VSCode Extension.
+ * @param {string} message - The message to log.
+ */
+function log(message, isRemote = true) {
+  console.log(`[preview.js] ${message}`);
+  if (isRemote) {
+    postMessage(inboundMessages.log, { message });
+  }
+}
+
+function logRemote(message) {
+  log(message, true);
+}
+
+function logLocal(message) {
+  log(message, false);
+}
+
+// Message Handler ===================================================================================================
+
+const messageHandler = {
+  handlers: new Map(),
+
+  register(command, callback) {
+    if (!this.handlers.has(command)) {
+      this.handlers.set(command, new Set());
+    }
+    this.handlers.get(command).add(callback);
+    return callback; // Return callback for cleanup
+  },
+
+  unregister(command, callback) {
+    const callbacks = this.handlers.get(command);
+    if (callbacks) {
+      callbacks.delete(callback);
+    }
+  },
+
+  handle(event) {
     const message = event.data;
+    logLocal("[preview.js] 📥 Received message:", message);
 
-    switch (message.command) {
-      case "updateStory":
-        updateStory(message);
-        break;
-      case "showError":
-        showError(message.error);
-        break;
-      case "clearStory":
-        clearStory();
-        break;
+    if (!message || !message.command) {
+      logLocal("[preview.js] ❌ Invalid message format:", message);
+      return;
     }
-  });
-}
 
-function updateStory(data) {
-  hideError();
+    const callbacks = this.handlers.get(message.command);
+    if (callbacks) {
+      callbacks.forEach((callback) => callback(message.payload));
+    }
+  },
 
-  // Mark all current text as previous before adding new text
-  markCurrentTextAsPrevious();
+  initialize() {
+    logLocal("[preview.js] 📝 Setting up message listener");
 
-  // Store current state in history
-  if (data.text) {
-    storyHistory.push({
-      text: data.text,
-      choices: data.choices,
-      timestamp: Date.now(),
+    // Remove any existing listeners
+    window.removeEventListener("message", this.handleMessage);
+
+    // Add new listener with a bound function
+    this.handleMessage = this.handleMessage.bind(this);
+    window.addEventListener("message", this.handleMessage);
+
+    // Send ready message
+    vscode.postMessage({ command: "ready", payload: {} });
+  },
+
+  handleMessage(event) {
+    console.log("[preview.js] 🔍 Message received:", event);
+    logLocal("[preview.js] 📥 Raw message event:", event);
+
+    if (!event.data) {
+      console.log("[preview.js] ❌ No data in message");
+      return;
+    }
+    this.handle(event);
+  },
+
+  cleanup() {
+    if (this.handleMessage) {
+      window.removeEventListener("message", this.handleMessage);
+    }
+  },
+};
+
+// Story View ========================================================================================================
+
+const storyView = {
+  // DOM Elements ===================================================================================================
+  elements: {
+    storyContent: null,
+    choicesContainer: null,
+    errorContainer: null,
+    restartButton: null,
+    debugContainer: null,
+  },
+
+  // State ==========================================================================================================
+  currentGroup: null,
+  history: [],
+
+  // Event Handlers =================================================================================================
+  keyboardHandler: null,
+
+  // Initialization =================================================================================================
+  initialize() {
+    this.initializeElements();
+    this.reset();
+    this.setupEventListeners();
+  },
+
+  initializeElements() {
+    this.elements.restartButton = document.getElementById("button-restart");
+    this.elements.storyContent = document.getElementById("story-content");
+    this.elements.choicesContainer =
+      document.getElementById("choices-container");
+    this.elements.errorContainer = document.getElementById("error-container");
+    this.elements.debugContainer = document.getElementById("debug-container");
+  },
+
+  setupEventListeners() {
+    this.setupRestartButton();
+    this.setupKeyboardShortcuts();
+  },
+
+  setupRestartButton() {
+    this.elements.restartButton.addEventListener("click", () => {
+      storyController.actionRestartStory();
     });
-  }
+  },
 
-  // Update story content
-  if (data.text) {
-    addStoryText(data.text, data.tags);
-  }
+  setupKeyboardShortcuts() {
+    this.keyboardHandler = (e) => {
+      // Restart story: Ctrl/Cmd + R
+      if ((e.key === "r" || e.key === "R") && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        storyController.actionRestartStory();
+      }
 
-  // Display function calls if any
-  if (data.functionCalls && data.functionCalls.length > 0) {
-    displayFunctionCalls(data.functionCalls);
-  } else if (data.functionCalls) {
-    // Empty function calls array - this is expected when story restarts
-    console.log("🧹 No function calls to display (story cleared)");
-  }
+      // Select choice: Number keys 1-9
+      if (e.key >= "1" && e.key <= "9") {
+        const choiceIndex = parseInt(e.key) - 1;
+        const choiceButtons =
+          this.elements.choicesContainer.querySelectorAll(".story-choice");
+        if (
+          choiceButtons[choiceIndex] &&
+          !choiceButtons[choiceIndex].disabled
+        ) {
+          storyController.actionSelectChoice(choiceIndex);
+        }
+      }
 
-  // Update choices
-  updateChoices(data.choices, data.hasEnded);
+      // Focus editor: Escape
+      if (e.key === "Escape") {
+        storyController.actionFocusEditor();
+      }
+    };
 
-  // Always scroll to bottom smoothly
-  scrollToBottom();
-}
+    document.addEventListener("keydown", this.keyboardHandler);
+  },
 
-function addStoryText(text, tags = []) {
-  // Clear waiting message if it exists
-  const waiting = storyContent.querySelector(".waiting");
-  if (waiting) {
-    waiting.remove();
-  }
+  // State Management ===============================================================================================
+  reset() {
+    // Reset state
+    this.currentGroup = null;
+    this.history = [];
 
-  // Split text into paragraphs and add them
-  const paragraphs = text.split("\n").filter((p) => p.trim() !== "");
+    // Reset UI
+    this.elements.storyContent.innerHTML = "";
+    this.elements.choicesContainer.innerHTML = "";
+    this.hideError();
+  },
 
-  paragraphs.forEach((paragraph) => {
-    const paragraphElement = document.createElement("div");
-    paragraphElement.className =
-      "story-paragraph story-paragraph-current fade-in";
-
-    // Add the text content
-    let content = paragraph.trim();
-
-    // Add tags inline at the end if present
-    if (tags && tags.length > 0) {
-      const tagString = tags
-        .map((tag) => `<span class="tag">#${tag}</span>`)
-        .join("");
-      content += ` ${tagString}`;
+  updateStory(group) {
+    // Add to history if there's a current group
+    if (this.currentGroup) {
+      this.history.push(this.currentGroup);
     }
 
-    paragraphElement.innerHTML = content;
-    storyContent.appendChild(paragraphElement);
-  });
+    // Update current group
+    this.currentGroup = group;
 
-  // Scroll to bottom after adding story text
-  setTimeout(scrollToBottom, 50);
-}
+    // Render the story group
+    this.renderStoryGroup(group);
+  },
 
-function markCurrentTextAsPrevious() {
-  // Find all current text paragraphs and mark them as previous
-  const currentParagraphs = storyContent.querySelectorAll(
-    ".story-paragraph-current"
-  );
-  currentParagraphs.forEach((paragraph) => {
-    paragraph.classList.remove("story-paragraph-current");
-    paragraph.classList.add("story-paragraph-previous");
-  });
+  // Rendering ======================================================================================================
+  renderStoryGroup(group) {
+    this.hideError();
+    this.markCurrentContentAsHistorical();
 
-  // Also mark function call containers as previous
-  const functionCallContainers = storyContent.querySelectorAll(
-    ".function-calls-container:not(.function-calls-previous)"
-  );
-  functionCallContainers.forEach((container) => {
-    container.classList.add("function-calls-previous");
-  });
-}
+    // Only create a group container if there are events
+    if (group.events?.length > 0) {
+      const groupContainer = createElement(
+        "div",
+        "story-group story-group-current fade-in",
+        {
+          "data-group-id": group.id,
+        }
+      );
 
-function displayFunctionCalls(functionCalls) {
-  // Only show recent function calls (from the last update)
-  const recentCalls = functionCalls.slice(-10); // Show last 10 calls
+      const eventsContainer = createElement("div", "story-events");
 
-  if (recentCalls.length === 0) return;
+      // Render events in exact order they arrived
+      group.events.forEach((event) => {
+        switch (event.type) {
+          case eventType.text:
+            this.renderTextEvent(event, eventsContainer);
+            break;
+          case eventType.function:
+            this.renderFunctionEvent(event, eventsContainer);
+            break;
+          default:
+            log(`Received unknown event type: ${event.type}`);
+            break;
+        }
+      });
 
-  const functionCallsContainer = document.createElement("div");
-  functionCallsContainer.className = "function-calls-container";
+      groupContainer.appendChild(eventsContainer);
+      this.elements.storyContent.appendChild(groupContainer);
+    }
 
-  recentCalls.forEach((call) => {
-    const callElement = document.createElement("div");
-    callElement.className = "function-call fade-in";
+    // Render choices after all events
+    this.renderChoices(group.choices, group.hasEnded);
+    this.scrollToBottom();
+  },
+
+  renderTextEvent(event, container) {
+    const paragraphElement = createElement(
+      "div",
+      "story-event story-event-text"
+    );
+
+    // Create text content
+    const textContent = createElement("div", "story-text");
+    textContent.textContent = event.text.trim();
+    paragraphElement.appendChild(textContent);
+
+    // Add tags if present
+    const tagsContainer = createTagsContainer(event.tags);
+    if (tagsContainer) {
+      paragraphElement.appendChild(tagsContainer);
+    }
+
+    container.appendChild(paragraphElement);
+  },
+
+  renderFunctionEvent(event, container) {
+    const functionElement = createElement(
+      "div",
+      "story-event story-event-function"
+    );
 
     // Format arguments
     const argsString =
-      call.args.length > 0
-        ? call.args
+      event.args?.length > 0
+        ? event.args
             .map((arg) => (typeof arg === "string" ? `"${arg}"` : String(arg)))
             .join(", ")
         : "";
 
-    // Format result - only show if not null/undefined
+    // Format result
     let resultHtml = "";
-    if (call.result !== null && call.result !== undefined) {
+    if (event.result !== null && event.result !== undefined) {
       const resultString =
-        typeof call.result === "string"
-          ? `"${call.result}"`
-          : String(call.result);
+        typeof event.result === "string"
+          ? `"${event.result}"`
+          : String(event.result);
       resultHtml = ` → <span class="function-result">${resultString}</span>`;
     }
 
-    callElement.innerHTML = `
-      <span class="function-name">${call.functionName}</span>(<span class="function-args">${argsString}</span>)${resultHtml}
+    functionElement.innerHTML = `
+      <span class="function-name">${event.functionName}</span>(<span class="function-args">${argsString}</span>)${resultHtml}
     `;
 
-    functionCallsContainer.appendChild(callElement);
-  });
+    container.appendChild(functionElement);
+  },
 
-  storyContent.appendChild(functionCallsContainer);
+  renderChoices(choices, hasEnded) {
+    this.elements.choicesContainer.innerHTML = "";
 
-  // Scroll to bottom after adding function calls
-  setTimeout(scrollToBottom, 100);
-}
-
-function updateChoices(choices, hasEnded) {
-  // Clear existing choices
-  choicesContainer.innerHTML = "";
-
-  if (hasEnded) {
-    showStoryEnded();
-    return;
-  }
-
-  if (!choices || choices.length === 0) {
-    return;
-  }
-
-  // Create choice buttons
-  console.log("🎮 Creating", choices.length, "choice buttons");
-  choices.forEach((choice, index) => {
-    console.log(
-      `🔵 Choice ${index}: text="${choice.text}" choiceIndex=${choice.index}`
-    );
-
-    const choiceButton = document.createElement("button");
-    choiceButton.className = "choice fade-in";
-
-    // Create choice content with inline tags
-    let choiceContent = `<span class="choice-number">${index + 1}.</span>${
-      choice.text
-    }`;
-
-    // Add tags inline if present
-    if (choice.tags && choice.tags.length > 0) {
-      const tagString = choice.tags
-        .map((tag) => `<span class="tag">#${tag}</span>`)
-        .join("");
-      choiceContent += ` ${tagString}`;
+    if (hasEnded) {
+      this.renderStoryEnded();
+      return;
     }
 
-    choiceButton.innerHTML = choiceContent;
+    if (!choices?.length) {
+      return;
+    }
 
-    choiceButton.addEventListener("click", function () {
-      console.log(
-        `🖱️ Choice button clicked - using choice.index: ${choice.index}`
-      );
-      makeChoice(choice.index);
-    });
+    choices.forEach((choice, index) => {
+      const choiceButton = createElement("button", "story-choice fade-in", {
+        "data-choice-number": (index + 1).toString(),
+      });
 
-    // Add slight delay for animation effect
-    setTimeout(() => {
-      choicesContainer.appendChild(choiceButton);
-      // Scroll to bottom after each choice is added
-      if (index === choices.length - 1) {
-        setTimeout(scrollToBottom, 100);
+      // Create choice content container
+      const choiceContent = createElement("div", "choice-content");
+
+      // Create choice text
+      const choiceText = createElement("div", "choice-text");
+      choiceText.textContent = choice.text;
+      choiceContent.appendChild(choiceText);
+
+      // Add tags if present
+      const tagsContainer = createTagsContainer(choice.tags);
+      if (tagsContainer) {
+        choiceContent.appendChild(tagsContainer);
       }
-    }, index * 50);
-  });
-}
 
-function makeChoice(choiceIndex) {
-  console.log("🎯 JavaScript makeChoice called with index:", choiceIndex);
+      choiceButton.appendChild(choiceContent);
 
-  // Disable all choice buttons to prevent double-clicking
-  const choiceButtons = choicesContainer.querySelectorAll(".choice");
-  console.log("📊 Found", choiceButtons.length, "choice buttons to disable");
+      choiceButton.addEventListener("click", () => {
+        this.disableChoices();
+        storyController.actionSelectChoice(choice.index);
+      });
 
-  choiceButtons.forEach((btn) => {
-    btn.disabled = true;
-    btn.style.opacity = "0.6";
-  });
-
-  // Send choice to extension
-  console.log("📤 Sending choice message to extension");
-  vscode.postMessage({
-    command: "makeChoice",
-    choiceIndex: choiceIndex,
-  });
-}
-
-function showStoryEnded() {
-  console.log("🎬 Showing story ended message");
-  const endMessage = document.createElement("div");
-  endMessage.className = "story-ended fade-in";
-  endMessage.textContent = "Story Complete";
-  choicesContainer.appendChild(endMessage);
-  console.log("🎬 Story ended message added to DOM");
-
-  // Scroll to bottom to show story end
-  setTimeout(scrollToBottom, 100);
-}
-
-function showError(error) {
-  errorContainer.innerHTML = `
-    <div class="error-message">⚠️ Error</div>
-    <div class="error-details">${escapeHtml(error)}</div>
-  `;
-  errorContainer.classList.remove("hidden");
-
-  // Scroll to error
-  errorContainer.scrollIntoView({ behavior: "smooth" });
-}
-
-function hideError() {
-  errorContainer.classList.add("hidden");
-}
-
-function clearHistory() {
-  storyHistory = [];
-  storyContent.innerHTML = '<div class="waiting">Restarting story...</div>';
-  choicesContainer.innerHTML = "";
-  hideError();
-  console.log("🧹 Cleared story history and function calls");
-}
-
-function clearStory() {
-  console.log("🧹 Clearing previous story content");
-  storyHistory = [];
-  storyContent.innerHTML = '<div class="waiting">Loading new story...</div>';
-  choicesContainer.innerHTML = "";
-  hideError();
-  console.log("🧹 Cleared story content and function calls");
-}
-
-function scrollToBottom() {
-  // Multiple attempts to ensure we reach the bottom
-  const attemptScroll = () => {
-    // Try multiple scroll methods for reliability
-    const container = document.getElementById("story-container");
-    const maxScrollTop = Math.max(
-      document.body.scrollHeight,
-      document.documentElement.scrollHeight,
-      container ? container.scrollHeight : 0
-    );
-
-    // Scroll the window
-    window.scrollTo({
-      top: maxScrollTop,
-      behavior: "smooth",
+      setTimeout(() => {
+        this.elements.choicesContainer.appendChild(choiceButton);
+        if (index === choices.length - 1) {
+          setTimeout(() => this.scrollToBottom(), 100);
+        }
+      }, index * 50);
     });
+  },
 
-    // Also scroll the container if it exists
-    if (container) {
-      container.scrollTop = container.scrollHeight;
+  renderStoryEnded() {
+    const endMessage = createElement("div", "story-ended fade-in");
+    endMessage.textContent = "Story Complete";
+    this.elements.choicesContainer.appendChild(endMessage);
+    setTimeout(() => this.scrollToBottom(), 100);
+  },
+
+  // UI Helpers =====================================================================================================
+  markCurrentContentAsHistorical() {
+    const currentGroups = this.elements.storyContent.querySelectorAll(
+      ".story-group-current"
+    );
+    currentGroups.forEach((group) => {
+      group.classList.remove("story-group-current");
+      group.classList.add("story-group-previous");
+    });
+  },
+
+  disableChoices() {
+    const choiceButtons =
+      this.elements.choicesContainer.querySelectorAll(".story-choice");
+    choiceButtons.forEach((btn) => {
+      btn.disabled = true;
+      btn.style.opacity = "0.6";
+    });
+  },
+
+  scrollToBottom() {
+    const attemptScroll = () => {
+      const container = document.getElementById("story-container");
+      const maxScrollTop = Math.max(
+        document.body.scrollHeight,
+        document.documentElement.scrollHeight,
+        container?.scrollHeight ?? 0
+      );
+
+      window.scrollTo({
+        top: maxScrollTop,
+        behavior: "smooth",
+      });
+
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
+    };
+
+    attemptScroll();
+    setTimeout(attemptScroll, 50);
+    setTimeout(attemptScroll, 150);
+    setTimeout(attemptScroll, 300);
+  },
+
+  // Error Handling =================================================================================================
+  renderError(error) {
+    this.elements.errorContainer.innerHTML = `
+      <div class="error-message">⚠️ Error</div>
+      <div class="error-details">${this.escapeHtml(error)}</div>
+    `;
+    this.elements.errorContainer.classList.remove("hidden");
+    this.elements.errorContainer.scrollIntoView({ behavior: "smooth" });
+  },
+
+  hideError() {
+    this.elements.errorContainer.classList.add("hidden");
+  },
+
+  // Utilities ======================================================================================================
+  escapeHtml(text) {
+    const htmlEntities = {
+      ampersand: "&amp;",
+      lessThan: "&lt;",
+      greaterThan: "&gt;",
+      doubleQuote: "&quot;",
+      singleQuote: "&#039;",
+    };
+    return text.replace(/[&<>"']/g, (char) => {
+      switch (char) {
+        case "&":
+          return htmlEntities.ampersand;
+        case "<":
+          return htmlEntities.lessThan;
+        case ">":
+          return htmlEntities.greaterThan;
+        case '"':
+          return htmlEntities.doubleQuote;
+        case "'":
+          return htmlEntities.singleQuote;
+        default:
+          return char;
+      }
+    });
+  },
+
+  // Cleanup ========================================================================================================
+  cleanup() {
+    if (this.keyboardHandler) {
+      document.removeEventListener("keydown", this.keyboardHandler);
+      this.keyboardHandler = null;
     }
-  };
-
-  // Initial scroll
-  attemptScroll();
-
-  // Retry after content has had time to render
-  setTimeout(attemptScroll, 50);
-  setTimeout(attemptScroll, 150);
-  setTimeout(attemptScroll, 300);
-}
-
-function escapeHtml(text) {
-  const map = {
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#039;",
-  };
-  return text.replace(/[&<>"']/g, function (m) {
-    return map[m];
-  });
-}
-
-// Future: External function handling
-function handleExternalFunction(functionName, args) {
-  // This will be expanded in the future to allow JavaScript stubs
-  console.log(`External function called: ${functionName}(${args.join(", ")})`);
-
-  // For now, return a default value
-  switch (functionName) {
-    case "get_player_name":
-      return "Player";
-    case "get_player_health":
-      return 100;
-    case "get_current_time":
-      return new Date().toLocaleTimeString();
-    default:
-      return `[${functionName}]`;
-  }
-}
-
-// Future: Debug panel functions
-function showDebugPanel() {
-  debugContainer.classList.remove("hidden");
-}
-
-function hideDebugPanel() {
-  debugContainer.classList.add("hidden");
-}
-
-function updateDebugInfo(info) {
-  // Future: Display external function calls, variables, etc.
-  const debugContent = document.getElementById("function-calls");
-  if (debugContent) {
-    debugContent.innerHTML = JSON.stringify(info, null, 2);
-  }
-}
-
-// Keyboard shortcuts
-document.addEventListener("keydown", function (e) {
-  // R key to restart
-  if (e.key === "r" || e.key === "R") {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      restartBtn.click();
-    }
-  }
-
-  // Number keys for choices
-  if (e.key >= "1" && e.key <= "9") {
-    const choiceIndex = parseInt(e.key) - 1;
-    const choiceButtons = choicesContainer.querySelectorAll(".choice");
-    if (choiceButtons[choiceIndex] && !choiceButtons[choiceIndex].disabled) {
-      choiceButtons[choiceIndex].click();
-    }
-  }
-
-  // Escape to focus back to editor (future enhancement)
-  if (e.key === "Escape") {
-    vscode.postMessage({ command: "focusEditor" });
-  }
-});
-
-// Auto-save scroll position (future enhancement)
-let scrollPosition = 0;
-window.addEventListener("scroll", function () {
-  scrollPosition = window.scrollY;
-});
-
-// Restore scroll position when content updates
-function restoreScrollPosition() {
-  if (scrollPosition > 0) {
-    window.scrollTo(0, scrollPosition);
-  }
-}
-
-// Export for future external function system
-window.inkPreview = {
-  handleExternalFunction,
-  showDebugPanel,
-  hideDebugPanel,
-  updateDebugInfo,
+  },
 };
+
+// Story Controller ==================================================================================================
+
+const storyController = {
+  // State ==========================================================================================================
+  messageHandlers: [],
+  isInitialized: false,
+
+  // Initialization =================================================================================================
+  initialize() {
+    if (this.isInitialized) {
+      return;
+    }
+    this.setupEventListeners();
+    postMessage(outboundMessages.ready, {});
+    this.isInitialized = true;
+  },
+
+  setupEventListeners() {
+    // Message handlers
+    this.messageHandlers = [
+      messageHandler.register(
+        inboundMessages.startStory,
+        this.handleStartStory.bind(this)
+      ),
+      messageHandler.register(
+        inboundMessages.updateStory,
+        this.handleStoryUpdate.bind(this)
+      ),
+      messageHandler.register(
+        inboundMessages.endStory,
+        this.handleEndStory.bind(this)
+      ),
+      messageHandler.register(
+        inboundMessages.showError,
+        this.handleShowError.bind(this)
+      ),
+    ];
+  },
+
+  // Action Handlers ================================================================================================
+  actionSelectChoice(choiceIndex) {
+    logLocal(`Action: Selecting choice ${choiceIndex}`);
+    postMessage(outboundMessages.selectChoice, { choiceIndex });
+  },
+
+  actionRestartStory() {
+    logLocal("Action: Requesting story restart");
+    postMessage(outboundMessages.restartStory, {});
+  },
+
+  actionFocusEditor() {
+    logLocal("Action: Focusing editor");
+    postMessage(outboundMessages.focusEditor, {});
+  },
+
+  // Message Handlers ===============================================================================================
+  handleStartStory() {
+    logLocal("Message: Starting story");
+    storyView.reset();
+  },
+
+  handleStoryUpdate(message) {
+    logLocal("Message: Updating story");
+    storyView.updateStory(message.payload);
+  },
+
+  handleEndStory() {
+    logLocal("Message: Story ended");
+    storyView.renderStoryEnded();
+  },
+
+  handleShowError(error) {
+    logLocal("Message: Showing error");
+    storyView.renderError(error);
+  },
+
+  // Cleanup ========================================================================================================
+  cleanup() {
+    this.messageHandlers.forEach((handler) => {
+      messageHandler.unregister(inboundMessages.startStory, handler);
+      messageHandler.unregister(inboundMessages.updateStory, handler);
+      messageHandler.unregister(inboundMessages.endStory, handler);
+      messageHandler.unregister(inboundMessages.showError, handler);
+    });
+    this.messageHandlers = [];
+  },
+};
+
+// Initialize when DOM is loaded
+document.addEventListener("DOMContentLoaded", () => {
+  messageHandler.initialize();
+  storyView.initialize();
+  storyController.initialize();
+});
+
+// Cleanup ==========================================================================================================
+
+window.addEventListener("unload", () => {
+  storyController.cleanup();
+  storyView.cleanup();
+  messageHandler.cleanup();
+});

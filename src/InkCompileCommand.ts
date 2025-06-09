@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { InkCompiler } from "./compiler/InkCompiler";
-import { CompilationResult } from "./compiler/types";
+import { CompilationResult } from "./types";
 import { ICommand } from "./ICommand";
 
 /**
@@ -41,7 +41,7 @@ export class InkCompileCommand implements ICommand {
 
     this.compilationInProgress = true;
     try {
-      const result = await this.inkCompiler.execute({
+      const result = await this.inkCompiler.compile({
         filePath: document.uri.fsPath,
         content: document?.getText() || "",
         debug: options.debug || false,

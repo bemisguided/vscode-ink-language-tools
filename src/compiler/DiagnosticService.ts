@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { CompilationError } from "./types";
+import { CompilationError } from "../types";
 
 /**
  * Service for managing VSCode diagnostics.
