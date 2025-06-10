@@ -51,15 +51,11 @@ export class InkPreviewPanel {
     return InkPreviewPanel.singleton;
   }
 
-  public loadStory(compilationResult: SuccessfulCompilationResult) {
+  public initialize(document: vscode.TextDocument) {
     try {
-      const model = new StoryModel(
-        compilationResult.story,
-        compilationResult.bindableFunctions
-      );
       const view = new StoryView(this.webviewPanel);
-      this.controller = new StoryController(view, model);
-      this.controller.initialize();
+      this.controller = new StoryController(view);
+      this.controller.initialize(document);
     } catch (error) {
       console.error("❌ Failed to load story:", error);
       vscode.window.showErrorMessage(`Failed to load story: ${error}`);

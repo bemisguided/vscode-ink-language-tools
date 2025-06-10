@@ -58,7 +58,6 @@ export class InkCompiler {
         sourceFileName: context.filePath,
         errors: context.errors,
         warnings: context.warnings,
-        includedFiles: context.metadata.get("includedFiles") || [],
         bindableFunctions: context.getBindableFunctions(),
       };
     } catch (error) {
@@ -78,8 +77,6 @@ export class InkCompiler {
           },
         ],
         warnings: [],
-        includedFiles: [],
-        bindableFunctions: [],
       };
     }
   }

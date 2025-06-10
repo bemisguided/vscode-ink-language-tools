@@ -1,4 +1,5 @@
 import { Story } from "inkjs/engine/Story";
+import { BindableFunction, CompiledStory } from "../../types";
 import {
   StoryUpdate,
   FunctionCall,
@@ -6,7 +7,6 @@ import {
   TextStoryEvent,
   FunctionStoryEvent,
 } from "./types";
-import { BindableFunction } from "../../types";
 
 /**
  * Manages the story state and progression.
@@ -15,14 +15,14 @@ import { BindableFunction } from "../../types";
 export class StoryModel {
   // Private Properties ===============================================================================================
 
-  private story: Story;
   private currentFunctionCalls: FunctionCall[] = [];
+  private story: Story;
 
   // Constructor ======================================================================================================
 
-  constructor(story: Story, bindableFunctions: BindableFunction[]) {
-    this.story = story;
-    this.bindExternalFunctions(bindableFunctions);
+  constructor(compiledStory: CompiledStory) {
+    this.story = compiledStory.story;
+    this.bindExternalFunctions(compiledStory.bindableFunctions);
   }
 
   // Public Methods ===================================================================================================

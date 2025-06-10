@@ -41,8 +41,6 @@ export interface SuccessfulCompilationResult {
   errors: CompilationError[];
   /** Any warnings that occurred */
   warnings: CompilationError[];
-  /** Files included in the compilation */
-  includedFiles: string[];
   /** Functions that can be bound to the story */
   bindableFunctions: BindableFunction[];
 }
@@ -52,8 +50,6 @@ export interface FailedCompilationResult {
   sourceFileName: string;
   errors: CompilationError[];
   warnings: CompilationError[];
-  includedFiles: string[];
-  bindableFunctions: BindableFunction[];
 }
 
 /**
@@ -62,3 +58,10 @@ export interface FailedCompilationResult {
 export type CompilationResult =
   | SuccessfulCompilationResult
   | FailedCompilationResult;
+
+export interface CompiledStory {
+  story: Story;
+  jsonOutput: string;
+  bindableFunctions: BindableFunction[];
+  timestamp: number;
+}

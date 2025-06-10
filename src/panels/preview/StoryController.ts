@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { StoryModel } from "./StoryModel";
 import { StoryView } from "./StoryView";
+import { InkStoryManager } from "../../InkStoryManager";
 import { StoryUpdate } from "./types";
 
 /**
@@ -10,15 +11,15 @@ import { StoryUpdate } from "./types";
 export class StoryController {
   // Private Properties ===============================================================================================
 
-  private model: StoryModel;
+  private document?: vscode.TextDocument;
+  private model?: StoryModel;
   private view: StoryView;
   private isInitialized: boolean = false;
 
   // Constructor ======================================================================================================
 
-  constructor(view: StoryView, model: StoryModel) {
+  constructor(view: StoryView) {
     this.view = view;
-    this.model = model;
   }
 
   // Public Methods ===================================================================================================
@@ -27,17 +28,31 @@ export class StoryController {
    * Initializes the controller and sets up event handlers.
    * This should be called after construction.
    */
-  public initialize(): void {
+  public initialize(document: vscode.TextDocument): void {
+    this.document = document;
     if (this.isInitialized) {
       return;
     }
-    console.debug("[StoryController] 👀 Initializing story controller");
     this.setupEventHandlers();
     this.view.initialize();
     this.isInitialized = true;
   }
 
   // Private Methods ==================================================================================================
+
+  private ensureDocument(): vscode.TextDocument {
+    if (!this.document) {
+      throw new Error("Document not initialized");
+    }
+    return this.document;
+  }
+
+  private ensureModel(): StoryModel {
+    if (!this.model) {
+      throw new Error("StoryModel not initialized");
+    }
+    return this.model;
+  }
 
   /**
    * Sets up event handlers for user interactions and story events.
@@ -63,16 +78,19 @@ export class StoryController {
    * Starts or restarts the story.
    * This is called both on initial start and when the user requests a restart.
    */
-  private startStory(): void {
+  private async startStory(): Promise<void> {
     try {
-      console.debug("[StoryController] 📖 Starting story");
-      // Reset the story state
-      this.model.reset();
+      // Resolve the latest compiled story
+      const document = this.ensureDocument();
+      const storyManager = InkStoryManager.getInstance();
+      const compiledStory = await storyManager.getCompiledStory(document);
+      this.model = new StoryModel(compiledStory);
 
       // Get initial story content
       const update = this.model.continueStory();
 
       // Start the story in the view
+      console.debug("[StoryController] 📖 Starting story");
       this.view.startStory();
 
       // Update the view with initial content
@@ -89,7 +107,7 @@ export class StoryController {
   private handleChoice(index: number): void {
     try {
       console.debug("[StoryController] 📖 Selecting choice", index);
-      const update = this.model.selectChoice(index);
+      const update = this.ensureModel().selectChoice(index);
       this.updateView(update);
     } catch (error) {
       this.handleError(error);

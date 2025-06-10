@@ -30,26 +30,15 @@ export class InkPreviewCommand implements ICommand {
 
     this.previewInProgress = true;
     try {
-      // Compile the story first
-      const result = await this.inkCompiler.compile({
-        filePath: document.uri.fsPath,
-        content: document.getText(),
-        debug: false,
-      });
-
-      if (!result.success || !result.jsonOutput) {
-        return this.createDiagnostics(result);
-      }
-
       // Create or show the preview panel
       const panel = InkPreviewPanel.getInstance();
 
       // Load the story into the preview panel
       if (panel) {
-        panel.loadStory(result);
+        panel.initialize(document);
       }
 
-      return this.createDiagnostics(result);
+      return [];
     } catch (error) {
       // Create a diagnostic for unexpected errors
       return [

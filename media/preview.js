@@ -326,7 +326,7 @@ const storyView = {
         "div",
         "story-group story-group-current fade-in",
         {
-          "data-group-id": group.id,
+          dataGroupId: group.id,
         }
       );
 

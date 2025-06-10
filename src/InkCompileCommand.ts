@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
-import { InkCompiler } from "./compiler/InkCompiler";
 import { CompilationResult } from "./types";
 import { ICommand } from "./ICommand";
+import { InkStoryManager } from "./InkStoryManager";
 
 /**
  * Command handler for Ink compilation functionality.
@@ -10,14 +10,11 @@ import { ICommand } from "./ICommand";
 export class InkCompileCommand implements ICommand {
   // Private Properties ===============================================================================================
 
-  private inkCompiler: InkCompiler;
   private compilationInProgress = false;
 
   // Constructor ======================================================================================================
 
-  constructor() {
-    this.inkCompiler = new InkCompiler();
-  }
+  constructor() {}
 
   // Public Methods ===================================================================================================
 
@@ -41,12 +38,10 @@ export class InkCompileCommand implements ICommand {
 
     this.compilationInProgress = true;
     try {
-      const result = await this.inkCompiler.compile({
-        filePath: document.uri.fsPath,
-        content: document?.getText() || "",
-        debug: options.debug || false,
+      const storyManager = InkStoryManager.getInstance();
+      const result = await storyManager.compileStory(document, {
+        debug: options.debug,
       });
-
       return this.createDiagnostics(result);
     } catch (error) {
       // Create a diagnostic for unexpected errors
@@ -71,40 +66,31 @@ export class InkCompileCommand implements ICommand {
     const diagnostics: vscode.Diagnostic[] = [];
 
     // Add errors
-    if (result.errors) {
-      for (const error of result.errors) {
-        diagnostics.push(
-          new vscode.Diagnostic(
-            new vscode.Range(
-              error.line,
-              error.column,
-              error.line,
-              error.column
-            ),
-            error.message,
-            vscode.DiagnosticSeverity.Error
-          )
-        );
-      }
-    }
+    result.errors.forEach((error) => {
+      diagnostics.push(
+        new vscode.Diagnostic(
+          new vscode.Range(error.line, error.column, error.line, error.column),
+          error.message,
+          vscode.DiagnosticSeverity.Error
+        )
+      );
+    });
 
     // Add warnings
-    if (result.warnings) {
-      for (const warning of result.warnings) {
-        diagnostics.push(
-          new vscode.Diagnostic(
-            new vscode.Range(
-              warning.line,
-              warning.column,
-              warning.line,
-              warning.column
-            ),
-            warning.message,
-            vscode.DiagnosticSeverity.Warning
-          )
-        );
-      }
-    }
+    result.warnings.forEach((warning) => {
+      diagnostics.push(
+        new vscode.Diagnostic(
+          new vscode.Range(
+            warning.line,
+            warning.column,
+            warning.line,
+            warning.column
+          ),
+          warning.message,
+          vscode.DiagnosticSeverity.Warning
+        )
+      );
+    });
 
     return diagnostics;
   }
