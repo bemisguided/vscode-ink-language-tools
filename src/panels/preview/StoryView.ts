@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import path from "path";
-import { StoryGroup, StoryUpdate } from "./types";
+import { StoryUpdate } from "./types";
 import {
   inboundMessages,
   outboundMessages,
@@ -50,15 +50,7 @@ export class StoryView {
    * @param update - The story update containing events, choices, and end state
    */
   public updateStory(update: StoryUpdate): void {
-    const storyGroup: StoryGroup = {
-      id: Date.now(),
-      events: update.events,
-      choices: update.choices,
-      hasEnded: update.hasEnded,
-      timestamp: Date.now(),
-    };
-
-    this.postMessage(outboundMessages.updateStory, storyGroup);
+    this.postMessage(outboundMessages.updateStory, update);
   }
 
   /**

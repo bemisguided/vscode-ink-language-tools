@@ -79,25 +79,20 @@ export class StoryController {
    * This is called both on initial start and when the user requests a restart.
    */
   private async startStory(): Promise<void> {
-    try {
-      // Resolve the latest compiled story
-      const document = this.ensureDocument();
-      const storyManager = InkStoryManager.getInstance();
-      const compiledStory = await storyManager.getCompiledStory(document);
+    const document = this.ensureDocument();
+    const storyManager = InkStoryManager.getInstance();
+    const compiledStory = await storyManager.getCompiledStory(document);
+
+    // Only rebuild model if timestamp is newer or model doesn't exist
+    if (!this.model || compiledStory.timestamp > this.model.getTimestamp()) {
       this.model = new StoryModel(compiledStory);
-
-      // Get initial story content
-      const update = this.model.continueStory();
-
-      // Start the story in the view
-      console.debug("[StoryController] 📖 Starting story");
-      this.view.startStory();
-
-      // Update the view with initial content
-      this.updateView(update);
-    } catch (error) {
-      this.handleError(error);
     }
+    // Start the story, with continue story
+    console.debug("[StoryController] 📖 Starting story");
+    this.model.reset();
+    this.view.startStory();
+    const update = this.model.continueStory();
+    this.updateView(update);
   }
 
   /**
@@ -105,13 +100,20 @@ export class StoryController {
    * @param index - The index of the selected choice
    */
   private handleChoice(index: number): void {
-    try {
-      console.debug("[StoryController] 📖 Selecting choice", index);
-      const update = this.ensureModel().selectChoice(index);
-      this.updateView(update);
-    } catch (error) {
-      this.handleError(error);
+    console.debug("[StoryController] 📖 Selecting choice", index);
+    const model = this.ensureModel();
+
+    // Select the choice
+    const update = model.selectChoice(index);
+
+    // Handle if there was an error
+    if (model.getCurrentError()) {
+      this.view.showError(model.getCurrentError());
+      return;
     }
+
+    // Update the view
+    this.updateView(update);
   }
 
   /**

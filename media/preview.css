@@ -64,14 +64,14 @@
 }
 
 .story-text {
-  margin: 1.5em 0 0 0;
+  margin: 1em 0 0 0;
+  line-height: 1.5em;
 }
 
 .story-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5em;
-  margin: 0.5em 0 0 0;
 }
 
 .story-tag {
@@ -149,7 +149,7 @@
 
 /* Choice Number */
 .story-choice::before {
-  content: attr(data-choice-number);
+  content: attr(datachoicenumber);
   color: var(--vscode-focusBorder);
   font-weight: bold;
   min-width: 1.5em;
@@ -173,4 +173,38 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5em;
+}
+
+/* Error Container =================================================================================================== */
+
+#error-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--vscode-editor-background);
+  border-top: 1px solid var(--vscode-panel-border);
+  padding: 1rem;
+  margin: 0;
+  z-index: 1000;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(100%);
+  transition: transform 0.3s ease-in-out;
+}
+
+#error-container:not(.hidden) {
+  transform: translateY(0);
+}
+
+.error-message {
+  color: var(--vscode-errorForeground);
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.error-details {
+  color: var(--vscode-editor-foreground);
+  font-family: var(--vscode-editor-font-family);
+  white-space: pre-wrap;
+  word-break: break-word;
 }

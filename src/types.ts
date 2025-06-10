@@ -43,6 +43,8 @@ export interface SuccessfulCompilationResult {
   warnings: CompilationError[];
   /** Functions that can be bound to the story */
   bindableFunctions: BindableFunction[];
+  /** Timestamp of when the compilation occurred */
+  timestamp: number;
 }
 
 export interface FailedCompilationResult {
@@ -50,6 +52,8 @@ export interface FailedCompilationResult {
   sourceFileName: string;
   errors: CompilationError[];
   warnings: CompilationError[];
+  /** Timestamp of when the compilation occurred */
+  timestamp: number;
 }
 
 /**

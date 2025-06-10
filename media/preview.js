@@ -89,7 +89,7 @@ function createTagsContainer(tags) {
  * @param {string} message - The message to log.
  */
 function log(message, isRemote = true) {
-  console.log(`[preview.js] ${message}`);
+  console.debug(`[preview.js] ${message}`);
   if (isRemote) {
     postMessage(inboundMessages.log, { message });
   }
@@ -679,6 +679,8 @@ const storyController = {
    */
   handleEndStory() {
     logLocal("Message: Story ended");
+    // Mark all current content as historical before showing end message
+    storyView.markCurrentContentAsHistorical();
     storyView.renderStoryEnded();
   },
 

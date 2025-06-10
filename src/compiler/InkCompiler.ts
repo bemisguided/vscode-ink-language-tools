@@ -59,6 +59,7 @@ export class InkCompiler {
         errors: context.errors,
         warnings: context.warnings,
         bindableFunctions: context.getBindableFunctions(),
+        timestamp: Date.now(),
       };
     } catch (error) {
       console.error("Pipeline execution failed:", error);
@@ -77,6 +78,7 @@ export class InkCompiler {
           },
         ],
         warnings: [],
+        timestamp: Date.now(),
       };
     }
   }

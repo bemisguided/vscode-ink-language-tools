@@ -15,17 +15,39 @@ import {
 export class StoryModel {
   // Private Properties ===============================================================================================
 
+  private currentError: any | null = null;
   private currentFunctionCalls: FunctionCall[] = [];
   private story: Story;
+  private readonly timestamp: number;
 
   // Constructor ======================================================================================================
 
   constructor(compiledStory: CompiledStory) {
     this.story = compiledStory.story;
+    this.timestamp = compiledStory.timestamp;
     this.bindExternalFunctions(compiledStory.bindableFunctions);
+    this.story.onError = (error) => {
+      this.currentError = error;
+    };
   }
 
   // Public Methods ===================================================================================================
+
+  /**
+   * Gets the current error.
+   * @returns The current error
+   */
+  public getCurrentError(): any | null {
+    return this.currentError;
+  }
+
+  /**
+   * Gets the timestamp of the compiled story.
+   * @returns The timestamp of the compiled story
+   */
+  public getTimestamp(): number {
+    return this.timestamp;
+  }
 
   /**
    * Continues the story until it reaches a choice point or ends.
@@ -34,6 +56,7 @@ export class StoryModel {
    */
   public continueStory(): StoryUpdate {
     this.ensureStoryIsLoaded();
+    this.currentError = null;
 
     // Guard against continuing a finished story
     if (this.isEnded()) {
@@ -161,6 +184,7 @@ export class StoryModel {
             result,
             timestamp: Date.now(),
           });
+          return result;
         },
         false
       );

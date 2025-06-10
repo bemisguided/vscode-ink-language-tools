@@ -26,19 +26,6 @@ export interface FunctionStoryEvent {
 
 export type StoryEvent = TextStoryEvent | FunctionStoryEvent;
 
-export interface StoryGroup {
-  id: number;
-  events: StoryEvent[];
-  choices: Choice[];
-  hasEnded: boolean;
-  timestamp: number;
-}
-
-export interface StoryState {
-  currentGroup: StoryGroup | null;
-  history: StoryGroup[];
-}
-
 export interface StoryUpdate {
   choices: Choice[];
   hasEnded: boolean;
