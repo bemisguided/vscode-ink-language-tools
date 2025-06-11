@@ -55,7 +55,7 @@
       {
         "language": "ink",
         "scopeName": "source.ink",
-        "path": "./syntaxes/ink.tmLanguage.json"
+        "path": "./syntaxes/ink.tmLanguage"
       }
     ],
     "snippets": [

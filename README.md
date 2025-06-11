@@ -193,6 +193,8 @@ This enables rapid prototyping and testing of game-integrated interactive fictio
 
 ## Contributing
 
+Leveraged the Syntax Highlighting from this other [vscode-ink extension](https://github.com/RenderBr/ink-vscode/) extension.
+
 This extension is open source and welcomes contributions! Please feel free to:
 
 - Report bugs and request features via GitHub Issues

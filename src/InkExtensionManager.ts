@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { InkCompileCommand } from "./InkCompileCommand";
 import { InkPreviewCommand } from "./InkPreviewCommand";
+import { InkOutlineParser } from "./outlines/InkOutlineParser";
 
 /**
  * Main extension manager that handles all VSCode extension functionality.
@@ -70,10 +71,20 @@ export class InkExtensionManager {
       }
     );
 
+    const outlineProvider = vscode.languages.registerDocumentSymbolProvider(
+      { language: "ink" },
+      {
+        provideDocumentSymbols(document) {
+          return InkOutlineParser.getInstance().parse(document);
+        },
+      }
+    );
+
     // Add to subscriptions
     context.subscriptions.push(
       previewCommand,
       compileCommand,
+      outlineProvider,
       debugCompileCommand,
       documentChangeDisposable,
       this.diagnosticCollection
