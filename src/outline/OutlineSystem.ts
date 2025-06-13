@@ -1,6 +1,8 @@
 import * as vscode from "vscode";
 import { ExtensionSystem } from "../ExtensionSystem";
 import { OutlineParser } from "./OutlineParser";
+import { OutlineManager } from "../dependencies/OutlineManager";
+import { mapOutlineEntitiesToSymbols } from "./OutlineEntityToSymbolMapper";
 
 export class OutlineSystem implements ExtensionSystem {
   private outlineParser: OutlineParser;
@@ -15,7 +17,15 @@ export class OutlineSystem implements ExtensionSystem {
       { language: "ink" },
       {
         provideDocumentSymbols: (document) => {
-          return this.outlineParser.parse(document);
+          const outlineManager = OutlineManager.getInstance();
+          let entities = outlineManager.getOutline(document.uri);
+
+          if (!entities) {
+            entities = this.outlineParser.parse(document);
+            outlineManager.setOutline(document.uri, entities);
+          }
+
+          return mapOutlineEntitiesToSymbols(entities);
         },
       }
     );

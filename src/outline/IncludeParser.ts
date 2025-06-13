@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { OutlineSymbolParser } from "./OutlineSymbolParser";
 import { OutlineParserContext } from "./OutlineParserContext";
+import { OutlineEntity, SymbolType } from "../dependencies/OutlineEntity";
 
 export class IncludeParser implements OutlineSymbolParser {
   private regex = /^INCLUDE\s+(.+\.ink)\s*$/;
@@ -9,17 +10,17 @@ export class IncludeParser implements OutlineSymbolParser {
     line: string,
     lineNumber: number,
     context: OutlineParserContext
-  ): vscode.DocumentSymbol | null {
+  ): OutlineEntity | null {
     const match = this.regex.exec(line.trim());
     if (!match) {
       return null;
     }
     const [_, path] = match;
     const range = new vscode.Range(lineNumber, 0, lineNumber, line.length);
-    return new vscode.DocumentSymbol(
+    return new OutlineEntity(
       path,
-      "Include File",
-      vscode.SymbolKind.File,
+      SymbolType.include,
+      lineNumber,
       range,
       range
     );

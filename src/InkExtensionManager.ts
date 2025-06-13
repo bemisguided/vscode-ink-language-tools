@@ -71,20 +71,10 @@ export class InkExtensionManager {
       }
     );
 
-    const outlineProvider = vscode.languages.registerDocumentSymbolProvider(
-      { language: "ink" },
-      {
-        provideDocumentSymbols(document) {
-          return OutlineParser.getInstance().parse(document);
-        },
-      }
-    );
-
     // Add to subscriptions
     context.subscriptions.push(
       previewCommand,
       compileCommand,
-      outlineProvider,
       debugCompileCommand,
       documentChangeDisposable,
       this.diagnosticCollection

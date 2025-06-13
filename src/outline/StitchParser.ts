@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { OutlineSymbolParser } from "./OutlineSymbolParser";
 import { OutlineParserContext } from "./OutlineParserContext";
+import { OutlineEntity, SymbolType } from "../dependencies/OutlineEntity";
 
 export class StitchParser implements OutlineSymbolParser {
   private regex = /^=\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\((.*?)\))?\s*$/;
@@ -9,24 +10,24 @@ export class StitchParser implements OutlineSymbolParser {
     line: string,
     lineNumber: number,
     context: OutlineParserContext
-  ): vscode.DocumentSymbol | null {
+  ): OutlineEntity | null {
     const match = this.regex.exec(line.trim());
     if (!match) {
       return null;
     }
     const [_, name, params] = match;
     const range = new vscode.Range(lineNumber, 0, lineNumber, line.length);
-    const symbol = new vscode.DocumentSymbol(
+    const entity = new OutlineEntity(
       name + (params ? `(${params})` : ""),
-      "Stitch",
-      vscode.SymbolKind.Method,
+      SymbolType.stitch,
+      lineNumber,
       range,
       range
     );
     if (context.currentKnot) {
-      context.currentKnot.children.push(symbol);
+      context.currentKnot.addChild(entity);
       return null;
     }
-    return symbol;
+    return entity;
   }
 }

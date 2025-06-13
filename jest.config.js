@@ -2,8 +2,8 @@
 module.exports = {
   preset: "ts-jest",
   testEnvironment: "node",
-  roots: ["<rootDir>/src"],
-  testMatch: ["**/__tests__/**/*.test.ts"],
+  roots: ["<rootDir>/src", "<rootDir>/tests"],
+  testMatch: ["**/tests/**/*.test.ts"],
   transform: {
     "^.+\\.tsx?$": "ts-jest",
   },
@@ -17,6 +17,7 @@ module.exports = {
   coverageReporters: ["text", "lcov"],
   verbose: true,
   moduleNameMapper: {
-    "^vscode$": "<rootDir>/src/__mocks__/vscode.ts",
+    "^vscode$": "<rootDir>/tests/__mocks__/vscode.ts",
   },
+  setupFiles: ["<rootDir>/jest.setup.js"],
 };

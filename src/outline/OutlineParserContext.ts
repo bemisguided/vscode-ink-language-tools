@@ -1,6 +1,7 @@
-import * as vscode from "vscode";
+import { OutlineEntity } from "../dependencies/OutlineEntity";
 
 export class OutlineParserContext {
-  public currentKnot: vscode.DocumentSymbol | null = null;
-  public currentList: vscode.DocumentSymbol | null = null;
+  public currentKnot: OutlineEntity | null = null;
+  public currentList: OutlineEntity | null = null;
+  public knotStartLine: number | null = null;
 }

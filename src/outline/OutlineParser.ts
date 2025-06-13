@@ -7,6 +7,8 @@ import { ExternalParser } from "./ExternalParser";
 import { VariableParser } from "./VariableParser";
 import { IncludeParser } from "./IncludeParser";
 import { OutlineParserContext } from "./OutlineParserContext";
+import { OutlineEntity, SymbolType } from "../dependencies/OutlineEntity";
+import { ListParser } from "./ListParser";
 
 export class OutlineParser {
   private static instance: OutlineParser | null = null;
@@ -21,19 +23,21 @@ export class OutlineParser {
 
   private constructor() {
     this.strategies = [
+      new IncludeParser(),
       new KnotParser(),
       new StitchParser(),
       new FunctionParser(),
       new ExternalParser(),
       new VariableParser(),
-      new IncludeParser(),
+      new ListParser(),
     ];
   }
 
-  public parse(document: vscode.TextDocument): vscode.DocumentSymbol[] {
-    const symbols: vscode.DocumentSymbol[] = [];
+  public parse(document: vscode.TextDocument): OutlineEntity[] {
+    const entities: OutlineEntity[] = [];
     const lines = document.getText().split(/\r?\n/);
     const context = new OutlineParserContext();
+    let lastKnot: OutlineEntity | null = null;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -44,9 +48,25 @@ export class OutlineParser {
 
       let handled = false;
       for (const strategy of this.strategies) {
-        const symbol = strategy.tryParse(line, i, context);
-        if (symbol) {
-          symbols.push(symbol);
+        const entity = strategy.tryParse(line, i, context);
+        if (entity) {
+          // If this is a knot, handle scope range for the previous knot
+          if (entity.type === SymbolType.knot) {
+            if (lastKnot) {
+              // Set the scope range of the previous knot
+              lastKnot.scopeRange = new vscode.Range(
+                lastKnot.definitionLine,
+                0,
+                i - 1,
+                lines[i - 1]?.length || 0
+              );
+            }
+            lastKnot = entity;
+            context.knotStartLine = i;
+            entities.push(entity);
+          } else {
+            entities.push(entity);
+          }
           handled = true;
           break;
         }
@@ -59,15 +79,14 @@ export class OutlineParser {
         if (listItemMatch) {
           const [_, name] = listItemMatch;
           const range = new vscode.Range(i, 0, i, line.length);
-          context.currentList.children.push(
-            new vscode.DocumentSymbol(
-              name,
-              "List Item",
-              vscode.SymbolKind.EnumMember,
-              range,
-              range
-            )
+          const listItemEntity = new OutlineEntity(
+            name,
+            SymbolType.listItem,
+            i,
+            range,
+            range
           );
+          context.currentList.addChild(listItemEntity);
           continue;
         } else {
           context.currentList = null;
@@ -80,35 +99,44 @@ export class OutlineParser {
       if (listStartMatch) {
         const [_, listName, inlineItems] = listStartMatch;
         const range = new vscode.Range(i, 0, i, line.length);
-        const listSymbol = new vscode.DocumentSymbol(
+        const listEntity = new OutlineEntity(
           listName,
-          "List",
-          vscode.SymbolKind.Enum,
+          SymbolType.list,
+          i,
           range,
           range
         );
         if (inlineItems) {
           const items = inlineItems.split(",").map((s) => s.trim());
           for (const item of items) {
-            listSymbol.children.push(
-              new vscode.DocumentSymbol(
-                item,
-                "List Item",
-                vscode.SymbolKind.EnumMember,
-                range,
-                range
-              )
+            const itemEntity = new OutlineEntity(
+              item,
+              SymbolType.listItem,
+              i,
+              range,
+              range
             );
+            listEntity.addChild(itemEntity);
           }
         } else {
-          context.currentList = listSymbol;
+          context.currentList = listEntity;
         }
-        symbols.push(listSymbol);
+        entities.push(listEntity);
       } else {
         context.currentList = null;
       }
     }
 
-    return symbols;
+    // After the loop, set the scope range for the last knot (if any)
+    if (lastKnot) {
+      lastKnot.scopeRange = new vscode.Range(
+        lastKnot.definitionLine,
+        0,
+        lines.length - 1,
+        lines[lines.length - 1]?.length || 0
+      );
+    }
+
+    return entities;
   }
 }
