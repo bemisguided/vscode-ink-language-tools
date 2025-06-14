@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
-import { OutlineSymbolParser } from "./OutlineSymbolParser";
+import { EntityParser } from "./EntityParser";
 import { OutlineParserContext } from "./OutlineParserContext";
-import { OutlineEntity, SymbolType } from "../dependencies/OutlineEntity";
+import { OutlineEntity, SymbolType } from "../model/OutlineEntity";
 
-export class IncludeParser implements OutlineSymbolParser {
+export class IncludeParser implements EntityParser {
   private regex = /^INCLUDE\s+(.+\.ink)\s*$/;
 
   tryParse(

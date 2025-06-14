@@ -1,10 +1,10 @@
 import * as vscode from "vscode";
-import { OutlineEntity, SymbolType } from "../dependencies/OutlineEntity";
+import { OutlineEntity, SymbolType } from "../model/OutlineEntity";
 
 function getSymbolKind(type: SymbolType): vscode.SymbolKind {
   switch (type) {
     case SymbolType.knot:
-      return vscode.SymbolKind.Namespace;
+      return vscode.SymbolKind.Object;
     case SymbolType.stitch:
       return vscode.SymbolKind.Method;
     case SymbolType.list:
@@ -14,7 +14,7 @@ function getSymbolKind(type: SymbolType): vscode.SymbolKind {
     case SymbolType.function:
       return vscode.SymbolKind.Function;
     case SymbolType.external:
-      return vscode.SymbolKind.Interface;
+      return vscode.SymbolKind.Function;
     case SymbolType.variable:
       return vscode.SymbolKind.Variable;
     case SymbolType.include:
@@ -41,7 +41,7 @@ function getDescription(type: SymbolType): string {
     case SymbolType.variable:
       return "Variable";
     case SymbolType.include:
-      return "Include File";
+      return "Include";
     default:
       return "Entity";
   }

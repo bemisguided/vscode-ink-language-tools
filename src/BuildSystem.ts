@@ -1,12 +1,12 @@
 import * as vscode from "vscode";
-import { BuildEngine } from "./BuildEngine";
-import { IncludeExtractionProcessor } from "./IncludeExtractionProcessor";
-import { MockExtractionProcessor } from "./MockExtractionProcessor";
-import { CompilationProcessor } from "./CompilationProcessor";
-import { OutlinePipelineProcessor } from "./OutlinePipelineProcessor";
-import { PartialStoryDependencyNode } from "../dependencies/PartialStoryDependencyNode";
-import { ExternalFunctionDependencyNode } from "../dependencies/ExternalFunctionDependencyNode";
-import { ExtensionSystem } from "../ExtensionSystem";
+import { BuildEngine } from "./build/BuildEngine";
+import { IncludeExtractionProcessor } from "./build/IncludeExtractionProcessor";
+import { MockExtractionProcessor } from "./build/MockExtractionProcessor";
+import { CompilationProcessor } from "./build/CompilationProcessor";
+import { OutlinePipelineProcessor } from "./build/OutlinePipelineProcessor";
+import { DependencyNode, DependencyNodeType } from "./model/DependencyNode";
+import { ExtensionSystem } from "./ExtensionSystem";
+import { DependencyManager } from "./model/DependencyManager";
 
 export class BuildSystem implements ExtensionSystem {
   private engine: BuildEngine;
@@ -28,7 +28,8 @@ export class BuildSystem implements ExtensionSystem {
 
     // Seed initial graph from workspace
     this.seedGraph().then(() => {
-      for (const uri of this.engine.graph.keys()) {
+      const depManager = DependencyManager.getInstance();
+      for (const uri of depManager.getGraph().keys()) {
         if (uri.path.endsWith(".ink")) {
           this.engine.onFileChanged(uri);
         }
@@ -63,25 +64,23 @@ export class BuildSystem implements ExtensionSystem {
     const inkUris = await vscode.workspace.findFiles("**/*.ink");
     const jsUris = await vscode.workspace.findFiles("**/*.js");
 
+    const depManager = DependencyManager.getInstance();
     for (const uri of inkUris) {
-      this.engine.graph.set(uri, new PartialStoryDependencyNode(uri, 0));
+      depManager.setNode(uri, DependencyNode.fromUri(uri, 0));
     }
     for (const uri of jsUris) {
-      this.engine.graph.set(uri, new ExternalFunctionDependencyNode(uri, 0));
+      depManager.setNode(uri, DependencyNode.fromUri(uri, 0));
     }
   }
 
   private onCreate(uri: vscode.Uri): void {
-    if (uri.path.endsWith(".ink")) {
-      this.engine.graph.set(uri, new PartialStoryDependencyNode(uri, 0));
-    } else if (uri.path.endsWith(".js")) {
-      this.engine.graph.set(uri, new ExternalFunctionDependencyNode(uri, 0));
-    }
+    const depManager = DependencyManager.getInstance();
+    depManager.setNode(uri, DependencyNode.fromUri(uri, 0));
     this.engine.onFileChanged(uri);
   }
 
   private onDelete(uri: vscode.Uri): void {
-    this.engine.graph.delete(uri);
+    DependencyManager.getInstance().deleteNode(uri);
     this.diagnosticCollection.delete(uri);
   }
 }

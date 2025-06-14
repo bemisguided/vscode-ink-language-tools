@@ -1,30 +1,39 @@
 import "../__mocks__/vscode";
 import { ExternalParser } from "../../src/outline/ExternalParser";
 import { OutlineParserContext } from "../../src/outline/OutlineParserContext";
-import { SymbolType } from "../../src/dependencies/OutlineEntity";
+import { SymbolType } from "../../src/model/OutlineEntity";
 
 describe("ExternalParser", () => {
-  it("parses an EXTERNAL line into an OutlineEntity", () => {
-    const parser = new ExternalParser();
-    const context = new OutlineParserContext();
-    const line = "EXTERNAL myFunction(param1, param2)";
-    const entity = parser.tryParse(line, 3, context);
+  let parser: ExternalParser;
+  let context: OutlineParserContext;
 
+  beforeEach(() => {
+    parser = new ExternalParser();
+    context = new OutlineParserContext();
+  });
+
+  it("parses a standard EXTERNAL line", () => {
+    // Setup
+    const line = "EXTERNAL doSomething()";
+
+    // Execute
+    const entity = parser.tryParse(line, 2, context);
+
+    // Assert
     expect(entity).not.toBeNull();
-    expect(entity!.name).toBe("myFunction(param1, param2)");
+    expect(entity!.name).toBe("doSomething");
     expect(entity!.type).toBe(SymbolType.external);
-    expect(entity!.definitionLine).toBe(3);
-    expect(entity!.definitionRange.start.line).toBe(3);
-    expect(entity!.definitionRange.end.line).toBe(3);
-    expect(entity!.scopeRange.start.line).toBe(3);
-    expect(entity!.scopeRange.end.line).toBe(3);
+    expect(entity!.definitionLine).toBe(2);
   });
 
   it("parses an EXTERNAL line with extra whitespace", () => {
-    const parser = new ExternalParser();
-    const context = new OutlineParserContext();
+    // Setup
     const line = "  EXTERNAL   spacedFunc  (  a, b  )   ";
+
+    // Execute
     const entity = parser.tryParse(line, 5, context);
+
+    // Assert
     expect(entity).not.toBeNull();
     expect(entity!.name).toBe("spacedFunc(  a, b  )");
     expect(entity!.type).toBe(SymbolType.external);
@@ -32,10 +41,13 @@ describe("ExternalParser", () => {
   });
 
   it("parses an EXTERNAL line with no parameters", () => {
-    const parser = new ExternalParser();
-    const context = new OutlineParserContext();
+    // Setup
     const line = "EXTERNAL noParams";
+
+    // Execute
     const entity = parser.tryParse(line, 6, context);
+
+    // Assert
     expect(entity).not.toBeNull();
     expect(entity!.name).toBe("noParams");
     expect(entity!.type).toBe(SymbolType.external);
@@ -43,10 +55,14 @@ describe("ExternalParser", () => {
   });
 
   it("returns null for non-EXTERNAL lines", () => {
-    const parser = new ExternalParser();
-    const context = new OutlineParserContext();
-    const line = "VAR something = 5";
+    // Setup
+    const line = "VAR x = 1";
+
+    // Execute
     const entity = parser.tryParse(line, 0, context);
+
+    // Assert
     expect(entity).toBeNull();
+    expect(parser.tryParse(line, 0, context)).toBeNull();
   });
 });

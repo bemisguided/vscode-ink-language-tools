@@ -1,10 +1,11 @@
 import * as vscode from "vscode";
-import { OutlineSymbolParser } from "./OutlineSymbolParser";
+import { EntityParser } from "./EntityParser";
 import { OutlineParserContext } from "./OutlineParserContext";
-import { OutlineEntity, SymbolType } from "../dependencies/OutlineEntity";
+import { OutlineEntity, SymbolType } from "../model/OutlineEntity";
 
-export class KnotParser implements OutlineSymbolParser {
-  private regex = /^===\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\((.*?)\))?\s*===\s*$/;
+export class KnotParser implements EntityParser {
+  private regex =
+    /^(==+)\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\((.*?)\))?\s*(==+)?\s*$/;
 
   tryParse(
     line: string,
@@ -15,7 +16,8 @@ export class KnotParser implements OutlineSymbolParser {
     if (!match) {
       return null;
     }
-    const [_, name, params] = match;
+    const name = match[2];
+    const params = match[3];
     const range = new vscode.Range(lineNumber, 0, lineNumber, line.length);
     const entity = new OutlineEntity(
       name + (params ? `(${params})` : ""),

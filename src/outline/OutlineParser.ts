@@ -7,7 +7,7 @@ import { ExternalParser } from "./ExternalParser";
 import { VariableParser } from "./VariableParser";
 import { IncludeParser } from "./IncludeParser";
 import { OutlineParserContext } from "./OutlineParserContext";
-import { OutlineEntity, SymbolType } from "../dependencies/OutlineEntity";
+import { OutlineEntity, SymbolType } from "../model/OutlineEntity";
 import { ListParser } from "./ListParser";
 
 export class OutlineParser {
@@ -21,7 +21,7 @@ export class OutlineParser {
     return this.instance;
   }
 
-  private constructor() {
+  constructor() {
     this.strategies = [
       new IncludeParser(),
       new KnotParser(),
@@ -33,7 +33,7 @@ export class OutlineParser {
     ];
   }
 
-  public parse(document: vscode.TextDocument): OutlineEntity[] {
+  public async parse(document: vscode.TextDocument): Promise<OutlineEntity[]> {
     const entities: OutlineEntity[] = [];
     const lines = document.getText().split(/\r?\n/);
     const context = new OutlineParserContext();
@@ -70,60 +70,6 @@ export class OutlineParser {
           handled = true;
           break;
         }
-      }
-
-      // List continuation
-      if (context.currentList && !handled && line.startsWith(" ")) {
-        const listItemMatch =
-          /^\s+([a-zA-Z_][a-zA-Z0-9_]*)(\s*=\s*\d+)?\s*$/.exec(line);
-        if (listItemMatch) {
-          const [_, name] = listItemMatch;
-          const range = new vscode.Range(i, 0, i, line.length);
-          const listItemEntity = new OutlineEntity(
-            name,
-            SymbolType.listItem,
-            i,
-            range,
-            range
-          );
-          context.currentList.addChild(listItemEntity);
-          continue;
-        } else {
-          context.currentList = null;
-        }
-      }
-
-      // List start (handled here because it requires context tracking)
-      const listStartMatch =
-        /^LIST\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:=\s*(.*))?$/.exec(trimmed);
-      if (listStartMatch) {
-        const [_, listName, inlineItems] = listStartMatch;
-        const range = new vscode.Range(i, 0, i, line.length);
-        const listEntity = new OutlineEntity(
-          listName,
-          SymbolType.list,
-          i,
-          range,
-          range
-        );
-        if (inlineItems) {
-          const items = inlineItems.split(",").map((s) => s.trim());
-          for (const item of items) {
-            const itemEntity = new OutlineEntity(
-              item,
-              SymbolType.listItem,
-              i,
-              range,
-              range
-            );
-            listEntity.addChild(itemEntity);
-          }
-        } else {
-          context.currentList = listEntity;
-        }
-        entities.push(listEntity);
-      } else {
-        context.currentList = null;
       }
     }
 

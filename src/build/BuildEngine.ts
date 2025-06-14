@@ -1,14 +1,17 @@
 import * as vscode from "vscode";
-import { DependencyNode } from "../dependencies/DependencyNode";
 import { Story } from "inkjs";
 import { PipelineProcessor } from "./PipelineProcessor";
 import { CompiledStoryResult } from "./CompiledStoryResult";
 import { PipelineContext } from "./PipelineContext";
+import { DependencyManager } from "../model/DependencyManager";
+import { DependencyNodeType } from "../model/DependencyNode";
+import { DependencyNode } from "../model/DependencyNode";
+
+const MAX_CACHE = 2;
 
 export class BuildEngine {
   private static instance: BuildEngine;
   private processors: PipelineProcessor[] = [];
-  public graph: Map<vscode.Uri, DependencyNode> = new Map();
   private diagnosticCollection: vscode.DiagnosticCollection;
 
   // Cache of last compiled stories: key=uri.toString()
@@ -17,7 +20,6 @@ export class BuildEngine {
     { version: number; story: Story; externals: vscode.Uri[] }
   >();
   private lru: string[] = [];
-  private readonly MAX_CACHE = 2;
 
   private constructor(diagnosticCollection: vscode.DiagnosticCollection) {
     this.diagnosticCollection = diagnosticCollection;
@@ -45,7 +47,7 @@ export class BuildEngine {
       const entry = this.storyCache.get(key)!;
       const uri = vscode.Uri.parse(key);
       // Evict if the story itself changed or if it depended on this file
-      const node = this.graph.get(uri);
+      const node = DependencyManager.getInstance().getNode(uri);
       if (key === changedKey || (node && node.deps.has(changed))) {
         this.evict(key);
       }
@@ -57,7 +59,7 @@ export class BuildEngine {
    */
   public async getCompiledStory(uri: vscode.Uri): Promise<CompiledStoryResult> {
     const key = uri.toString();
-    const node = this.graph.get(uri);
+    const node = DependencyManager.getInstance().getNode(uri);
     if (!node) {
       throw new Error(`URI not in graph: ${uri.fsPath}`);
     }
@@ -79,7 +81,9 @@ export class BuildEngine {
     }
     // Gather externals
     const externals = Array.from(node.deps).filter(
-      (d) => this.graph.get(d)?.type === "externalFunctions"
+      (d) =>
+        DependencyManager.getInstance().getNode(d)?.type ===
+        DependencyNodeType.externalFunctions
     );
 
     // Update cache
@@ -99,18 +103,22 @@ export class BuildEngine {
    * Returns the compiled Story if this is a root story, otherwise undefined.
    */
   public async processFile(uri: vscode.Uri): Promise<Story | undefined> {
+    const depManager = DependencyManager.getInstance();
+    if (!depManager.getNode(uri)) {
+      depManager.setNode(uri, DependencyNode.fromUri(uri, 0));
+    }
     try {
       const doc = await vscode.workspace.openTextDocument(uri);
-      this.graph.get(uri)!.version = doc.version;
+      DependencyManager.getInstance().getNode(uri)!.version = doc.version;
     } catch {}
 
-    const ctx = new PipelineContext(this.graph, uri, this.diagnosticCollection);
+    const ctx = new PipelineContext(uri, this.diagnosticCollection);
     ctx.resetDeps();
     for (const proc of this.processors) {
       await proc.run(ctx);
       try {
         const updated = await vscode.workspace.openTextDocument(uri);
-        this.graph.get(uri)!.version = updated.version;
+        DependencyManager.getInstance().getNode(uri)!.version = updated.version;
       } catch {}
     }
     ctx.flushDiagnostics();
@@ -144,14 +152,16 @@ export class BuildEngine {
 
       const compiled = await this.processFile(uri);
       if (compiled) {
-        const deps = this.graph.get(uri)!.deps;
+        const deps = DependencyManager.getInstance().getNode(uri)!.deps;
         const externals = Array.from(deps).filter(
-          (d) => this.graph.get(d)?.type === "externalFunctions"
+          (d) =>
+            DependencyManager.getInstance().getNode(d)?.type ===
+            DependencyNodeType.externalFunctions
         );
         results.set(uri, { story: compiled, externals });
       }
 
-      const node = this.graph.get(uri)!;
+      const node = DependencyManager.getInstance().getNode(uri)!;
       for (const parent of node.revDeps) {
         toVisit.push(parent);
       }
@@ -177,7 +187,7 @@ export class BuildEngine {
   }
 
   private enforceCacheSize() {
-    while (this.lru.length > this.MAX_CACHE) {
+    while (this.lru.length > MAX_CACHE) {
       const old = this.lru.pop()!;
       this.storyCache.delete(old);
     }

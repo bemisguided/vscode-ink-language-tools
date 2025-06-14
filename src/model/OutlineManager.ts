@@ -30,4 +30,8 @@ export class OutlineManager {
   public setOutline(uri: vscode.Uri, entities: OutlineEntity[]): void {
     this.outlines.set(uri.toString(), entities);
   }
+
+  public clear(): void {
+    this.outlines.clear();
+  }
 }

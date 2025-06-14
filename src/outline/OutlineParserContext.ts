@@ -1,4 +1,4 @@
-import { OutlineEntity } from "../dependencies/OutlineEntity";
+import { OutlineEntity } from "../model/OutlineEntity";
 
 export class OutlineParserContext {
   public currentKnot: OutlineEntity | null = null;

@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
-import { OutlineSymbolParser } from "./OutlineSymbolParser";
+import { EntityParser } from "./EntityParser";
 import { OutlineParserContext } from "./OutlineParserContext";
-import { OutlineEntity, SymbolType } from "../dependencies/OutlineEntity";
+import { OutlineEntity, SymbolType } from "../model/OutlineEntity";
 
-export class FunctionParser implements OutlineSymbolParser {
+export class FunctionParser implements EntityParser {
   private regex =
     /^==+\s*function\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\((.*?)\)\s*(==+)?\s*$/;
 

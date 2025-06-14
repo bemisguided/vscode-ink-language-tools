@@ -35,7 +35,7 @@
   ],
   "main": "./out/extension.js",
   "activationEvents": [
-    "onWebviewPanel:inkPreview"
+    "onLanguage:ink"
   ],
   "contributes": {
     "languages": [

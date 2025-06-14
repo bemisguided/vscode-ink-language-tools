@@ -1,7 +1,7 @@
 import { OutlineParserContext } from "./OutlineParserContext";
-import { OutlineEntity } from "../dependencies/OutlineEntity";
+import { OutlineEntity } from "../model/OutlineEntity";
 
-export interface OutlineSymbolParser {
+export interface EntityParser {
   tryParse(
     line: string,
     lineNumber: number,

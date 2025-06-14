@@ -1,20 +1,29 @@
 import * as vscode from "vscode";
-import { DependencyNode } from "../dependencies/DependencyNode";
+import { DependencyNode, DependencyNodeType } from "../model/DependencyNode";
+import { DependencyManager } from "../model/DependencyManager";
 
 export class PipelineContext {
   public diagnostics: vscode.Diagnostic[] = [];
   /** Populated by CompilationProcessor */
   public compiledStory?: any; // Will be Story, but avoid inkjs import here
+  private cachedDoc?: vscode.TextDocument;
 
   constructor(
-    public readonly graph: Map<vscode.Uri, DependencyNode>,
     public readonly currentUri: vscode.Uri,
     private readonly diagnosticCollection: vscode.DiagnosticCollection
   ) {}
 
   async getText(): Promise<string> {
-    const doc = await vscode.workspace.openTextDocument(this.currentUri);
+    const doc = await this.getTextDocument();
     return doc.getText();
+  }
+
+  async getTextDocument(): Promise<vscode.TextDocument> {
+    if (this.cachedDoc) {
+      return this.cachedDoc;
+    }
+    this.cachedDoc = await vscode.workspace.openTextDocument(this.currentUri);
+    return this.cachedDoc;
   }
 
   report(
@@ -31,16 +40,22 @@ export class PipelineContext {
   }
 
   resetDeps() {
-    const node = this.graph.get(this.currentUri)!;
+    const node = DependencyManager.getInstance().getNode(this.currentUri)!;
     for (const dep of node.deps) {
-      this.graph.get(dep)!.revDeps.delete(this.currentUri);
+      DependencyManager.getInstance()
+        .getNode(dep)!
+        .revDeps.delete(this.currentUri);
     }
     node.deps.clear();
   }
 
   addDep(dep: vscode.Uri) {
-    const node = this.graph.get(this.currentUri)!;
+    const depManager = DependencyManager.getInstance();
+    if (!depManager.getNode(dep)) {
+      depManager.setNode(dep, DependencyNode.fromUri(dep, 0));
+    }
+    const node = depManager.getNode(this.currentUri)!;
     node.deps.add(dep);
-    this.graph.get(dep)!.revDeps.add(this.currentUri);
+    depManager.getNode(dep)!.revDeps.add(this.currentUri);
   }
 }

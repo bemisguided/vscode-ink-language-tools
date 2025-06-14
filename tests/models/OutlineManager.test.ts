@@ -1,9 +1,6 @@
 import * as vscode from "vscode";
-import { OutlineManager } from "../../src/dependencies/OutlineManager";
-import {
-  OutlineEntity,
-  SymbolType,
-} from "../../src/dependencies/OutlineEntity";
+import { OutlineManager } from "../../src/model/OutlineManager";
+import { OutlineEntity, SymbolType } from "../../src/model/OutlineEntity";
 
 describe("OutlineManager", () => {
   // Helper to create a mock Uri
@@ -19,11 +16,15 @@ describe("OutlineManager", () => {
   }
 
   it("should set and get outlines for a URI", () => {
+    // Setup
     const manager = OutlineManager.getInstance();
     const uri = mockUri("/fake/path.ink");
     const entities = [mockEntity("knot1"), mockEntity("knot2")];
 
+    // Execute
     manager.setOutline(uri, entities);
+
+    // Assert
     const result = manager.getOutline(uri);
 
     expect(result).toBeDefined();
@@ -33,8 +34,14 @@ describe("OutlineManager", () => {
   });
 
   it("should return undefined for URIs with no outline", () => {
+    // Setup
     const manager = OutlineManager.getInstance();
     const uri = mockUri("/no/outline.ink");
+
+    // Execute
+    const result = manager.getOutline(uri);
+
+    // Assert
     expect(manager.getOutline(uri)).toBeUndefined();
   });
 });
