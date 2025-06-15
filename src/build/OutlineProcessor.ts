@@ -3,7 +3,7 @@ import { PipelineContext } from "./PipelineContext";
 import { OutlineParser } from "../outline/OutlineParser";
 import { OutlineManager } from "../model/OutlineManager";
 
-export class OutlinePipelineProcessor implements PipelineProcessor {
+export class OutlineProcessor implements PipelineProcessor {
   async run(ctx: PipelineContext): Promise<void> {
     const parser = OutlineParser.getInstance();
     const outlineManager = OutlineManager.getInstance();

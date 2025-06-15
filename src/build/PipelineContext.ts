@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { DependencyNode, DependencyNodeType } from "../model/DependencyNode";
+import { DependencyNode } from "../model/DependencyNode";
 import { DependencyManager } from "../model/DependencyManager";
 
 export class PipelineContext {
@@ -7,6 +7,12 @@ export class PipelineContext {
   /** Populated by CompilationProcessor */
   public compiledStory?: any; // Will be Story, but avoid inkjs import here
   private cachedDoc?: vscode.TextDocument;
+
+  /**
+   * Map of all include TextDocuments, keyed by their include path (as written in the INCLUDE statement).
+   * Populated by IncludeExtractionProcessor. Does not include the root document.
+   */
+  public includeDocuments: Map<string, vscode.TextDocument> = new Map();
 
   constructor(
     public readonly currentUri: vscode.Uri,

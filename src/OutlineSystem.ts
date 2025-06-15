@@ -14,7 +14,6 @@ export class OutlineSystem implements ExtensionSystem {
   }
 
   activate(context: vscode.ExtensionContext): void {
-    console.log("OutlineSystem: activate");
     // Register DocumentSymbolProvider for Ink files
     const outlineProvider = vscode.languages.registerDocumentSymbolProvider(
       { language: "ink" },
@@ -31,7 +30,6 @@ export class OutlineSystem implements ExtensionSystem {
   public async getDocumentSymbols(
     document: vscode.TextDocument
   ): Promise<vscode.DocumentSymbol[]> {
-    console.log("getDocumentSymbols", document.uri);
     let entities = this.outlineManager.getOutline(document.uri);
 
     if (!entities) {

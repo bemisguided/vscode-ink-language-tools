@@ -1,36 +1,76 @@
 import * as vscode from "vscode";
 import { PipelineProcessor } from "./PipelineProcessor";
 import { PipelineContext } from "./PipelineContext";
+import { OutlineManager } from "../model/OutlineManager";
+import { SymbolType } from "../model/OutlineEntity";
+import {
+  VSCodeDocumentService,
+  VSCodeDocumentServiceImpl,
+} from "../utils/VSCodeDocumentService";
 
 export class IncludeExtractionProcessor implements PipelineProcessor {
-  private static readonly INCLUDE_REGEX = /^\s*INCLUDE\s+"([^"]+)"/gm;
+  private docService: VSCodeDocumentService;
+
+  constructor(
+    docService: VSCodeDocumentService = new VSCodeDocumentServiceImpl()
+  ) {
+    this.docService = docService;
+  }
 
   async run(ctx: PipelineContext): Promise<void> {
-    const text = await ctx.getText();
-    let match: RegExpExecArray | null;
-    while (
-      (match = IncludeExtractionProcessor.INCLUDE_REGEX.exec(text)) !== null
-    ) {
-      const path = match[1];
-      const prior = text.slice(0, match.index);
-      const line = prior.split(/\r?\n/).length - 1;
-      const startChar = match.index + match[0].indexOf(`"${path}"`);
-      const endChar = startChar + path.length + 2;
-      const range = new vscode.Range(
-        new vscode.Position(line, startChar),
-        new vscode.Position(line, endChar)
-      );
-      const target = vscode.Uri.joinPath(ctx.currentUri, "..", path);
-      try {
-        await vscode.workspace.fs.stat(target);
-        ctx.addDep(target);
-      } catch {
-        ctx.report(
-          range,
-          `Included file not found: ${path}`,
-          vscode.DiagnosticSeverity.Error
-        );
+    const outlineManager = OutlineManager.getInstance();
+    const visited = new Set<string>();
+    const baseUri = ctx.currentUri;
+
+    const loadIncludes = async (uri: vscode.Uri) => {
+      if (visited.has(uri.toString())) {
+        return;
       }
-    }
+      visited.add(uri.toString());
+      let doc: vscode.TextDocument;
+      try {
+        doc = await this.docService.getTextDocument(uri);
+      } catch (err) {
+        // If the root document can't be loaded, report and stop
+        if (uri.toString() === baseUri.toString()) {
+          ctx.report(
+            new vscode.Range(0, 0, 0, 1),
+            `Failed to open root document: ${uri.fsPath}`,
+            vscode.DiagnosticSeverity.Error
+          );
+        }
+        return;
+      }
+      // Get all include entities for this document
+      const includes = outlineManager.queryByTypes(uri, SymbolType.include);
+      for (const includeEntity of includes) {
+        const includePath = includeEntity.name;
+        const resolvedUri = this.docService.resolvePath(uri, includePath);
+        if (!resolvedUri) {
+          ctx.report(
+            includeEntity.definitionRange,
+            `Could not resolve include path: ${includePath}`,
+            vscode.DiagnosticSeverity.Error
+          );
+          continue;
+        }
+        try {
+          const includeDoc = await this.docService.getTextDocument(
+            uri,
+            includePath
+          );
+          ctx.includeDocuments.set(includePath, includeDoc);
+          await loadIncludes(resolvedUri);
+        } catch {
+          ctx.report(
+            includeEntity.definitionRange,
+            `Included file not found: ${includePath}`,
+            vscode.DiagnosticSeverity.Error
+          );
+        }
+      }
+    };
+
+    await loadIncludes(baseUri);
   }
 }

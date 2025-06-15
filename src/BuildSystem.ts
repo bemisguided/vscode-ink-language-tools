@@ -3,7 +3,7 @@ import { BuildEngine } from "./build/BuildEngine";
 import { IncludeExtractionProcessor } from "./build/IncludeExtractionProcessor";
 import { MockExtractionProcessor } from "./build/MockExtractionProcessor";
 import { CompilationProcessor } from "./build/CompilationProcessor";
-import { OutlinePipelineProcessor } from "./build/OutlinePipelineProcessor";
+import { OutlineProcessor } from "./build/OutlineProcessor";
 import { DependencyNode, DependencyNodeType } from "./model/DependencyNode";
 import { ExtensionSystem } from "./ExtensionSystem";
 import { DependencyManager } from "./model/DependencyManager";
@@ -21,7 +21,7 @@ export class BuildSystem implements ExtensionSystem {
 
   activate(context: vscode.ExtensionContext): void {
     // Register pipeline processors
-    this.engine.registerProcessor(new OutlinePipelineProcessor());
+    this.engine.registerProcessor(new OutlineProcessor());
     this.engine.registerProcessor(new IncludeExtractionProcessor());
     this.engine.registerProcessor(new MockExtractionProcessor());
     this.engine.registerProcessor(new CompilationProcessor());
