@@ -62,7 +62,7 @@ export class CompilationProcessor implements IPipelineProcessor {
       const compiler = new Compiler(text, compilerOptions);
       context.compiledStory = compiler.Compile();
     } catch (err: any) {
-      console.log("err", err);
+      // No-op as the error will be handled by the error handler in CompilerOptions
     }
   }
 }
