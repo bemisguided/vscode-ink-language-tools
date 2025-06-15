@@ -23,42 +23,21 @@
  */
 
 import * as vscode from "vscode";
-import { IEntityParser } from "./IEntityParser";
-import { OutlineParserContext } from "./OutlineParserContext";
-import { OutlineEntity, SymbolType } from "../../model/OutlineEntity";
 
 /**
- * Parser for the STITCH keyword of an Ink story for the outline.
+ * Interface for a system or command to plugin to this VSCode Extension.
  */
-export class StitchParser implements IEntityParser {
-  // Private Properties ===============================================================================================
-
-  private regex = /^=\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\((.*?)\))?\s*$/;
-
+export interface IExtensionPlugin {
   // Public Methods ===================================================================================================
 
-  tryParse(
-    line: string,
-    lineNumber: number,
-    context: OutlineParserContext
-  ): OutlineEntity | null {
-    const match = this.regex.exec(line.trim());
-    if (!match) {
-      return null;
-    }
-    const [_, name, params] = match;
-    const range = new vscode.Range(lineNumber, 0, lineNumber, line.length);
-    const entity = new OutlineEntity(
-      name + (params ? `(${params})` : ""),
-      SymbolType.stitch,
-      lineNumber,
-      range,
-      range
-    );
-    if (context.currentKnot) {
-      context.currentKnot.addChild(entity);
-      return null;
-    }
-    return entity;
-  }
+  /**
+   * Called by the extension when it is activated.
+   * @param context - The extension context.
+   */
+  activate(context: vscode.ExtensionContext): void;
+
+  /**
+   * Called by the extension when it is deactivated.
+   */
+  dispose(): void;
 }

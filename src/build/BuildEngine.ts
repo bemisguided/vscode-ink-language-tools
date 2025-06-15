@@ -1,7 +1,31 @@
+/**
+ * MIT License
+ *
+ * Copyright (c) 2025 Martin Crawford
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 import * as vscode from "vscode";
 import { Story } from "inkjs";
-import { PipelineProcessor } from "./PipelineProcessor";
-import { CompiledStoryResult } from "./CompiledStoryResult";
+import { IPipelineProcessor } from "./IPipelineProcessor";
+import { ICompiledStoryResult } from "./ICompiledStoryResult";
 import { PipelineContext } from "./PipelineContext";
 import { DependencyManager } from "../model/DependencyManager";
 import { DependencyNodeType } from "../model/DependencyNode";
@@ -12,10 +36,17 @@ import { CompilationProcessor } from "./compiler/CompilationProcessor";
 
 const MAX_CACHE = 2;
 
+/**
+ * The build engine for the Ink language.
+ */
 export class BuildEngine {
+  // Private Properties ===============================================================================================
+
   private static instance: BuildEngine;
-  private processors: PipelineProcessor[] = [];
+  private processors: IPipelineProcessor[] = [];
   private diagnosticCollection: vscode.DiagnosticCollection;
+
+  // Private Properties ===============================================================================================
 
   // Cache of last compiled stories: key=uri.toString()
   private storyCache = new Map<
@@ -43,7 +74,7 @@ export class BuildEngine {
     return BuildEngine.instance;
   }
 
-  public registerProcessor(processor: PipelineProcessor) {
+  public registerProcessor(processor: IPipelineProcessor) {
     this.processors.push(processor);
   }
 
@@ -63,10 +94,14 @@ export class BuildEngine {
     }
   }
 
+  // Public Methods ===================================================================================================
+
   /**
    * Dedupe and return compiled story for a root URI along with externals.
    */
-  public async getCompiledStory(uri: vscode.Uri): Promise<CompiledStoryResult> {
+  public async getCompiledStory(
+    uri: vscode.Uri
+  ): Promise<ICompiledStoryResult> {
     const key = uri.toString();
     const node = DependencyManager.getInstance().getNode(uri);
     if (!node) {
@@ -121,17 +156,17 @@ export class BuildEngine {
       DependencyManager.getInstance().getNode(uri)!.version = doc.version;
     } catch {}
 
-    const ctx = new PipelineContext(uri, this.diagnosticCollection);
-    ctx.resetDeps();
+    const context = new PipelineContext(uri, this.diagnosticCollection);
+    context.resetDeps();
     for (const proc of this.processors) {
-      await proc.run(ctx);
+      await proc.run(context);
       try {
         const updated = await vscode.workspace.openTextDocument(uri);
         DependencyManager.getInstance().getNode(uri)!.version = updated.version;
       } catch {}
     }
-    ctx.flushDiagnostics();
-    return ctx.compiledStory;
+    context.flushDiagnostics();
+    return context.compiledStory;
   }
 
   /**
@@ -140,7 +175,7 @@ export class BuildEngine {
    */
   public async onFileChanged(
     start: vscode.Uri
-  ): Promise<Map<vscode.Uri, CompiledStoryResult>> {
+  ): Promise<Map<vscode.Uri, ICompiledStoryResult>> {
     // Invalidate any cached stories depending on this change
     this.invalidateCache(start);
 

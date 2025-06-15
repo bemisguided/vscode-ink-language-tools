@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { IExtensionPlugin } from "../ExtensionSystem";
+import { IExtensionPlugin } from "../IExtensionPlugin";
 import { OutlineParser } from "../build/outline/OutlineParser";
 import { OutlineManager } from "../model/OutlineManager";
 import { mapOutlineEntitiesToSymbols } from "../build/outline/mapOutlineEntitiesToSymbols";

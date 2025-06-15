@@ -13,6 +13,6 @@
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node"
   },
-  "include": ["."],
+  "include": [".", "../src/utils/MockVSCodeDocumentService.ts"],
   "references": [{ "path": "../src" }]
 }

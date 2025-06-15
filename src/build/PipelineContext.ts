@@ -1,12 +1,40 @@
+/**
+ * MIT License
+ *
+ * Copyright (c) 2025 Martin Crawford
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 import * as vscode from "vscode";
 import { DependencyNode } from "../model/DependencyNode";
 import { DependencyManager } from "../model/DependencyManager";
 
+/**
+ * Context for a pipeline processor.
+ */
 export class PipelineContext {
+  // Public Properties ===============================================================================================
+
   public diagnostics: vscode.Diagnostic[] = [];
   /** Populated by CompilationProcessor */
   public compiledStory?: any; // Will be Story, but avoid inkjs import here
-  private cachedDoc?: vscode.TextDocument;
 
   /**
    * Map of all include TextDocuments, keyed by their include path (as written in the INCLUDE statement).
@@ -14,17 +42,24 @@ export class PipelineContext {
    */
   public includeDocuments: Map<string, vscode.TextDocument> = new Map();
 
+  // Private Properties ===============================================================================================
+  private cachedDoc?: vscode.TextDocument;
+
+  // Constructor ======================================================================================================
+
   constructor(
     public readonly currentUri: vscode.Uri,
     private readonly diagnosticCollection: vscode.DiagnosticCollection
   ) {}
 
-  async getText(): Promise<string> {
+  // Public Methods ===================================================================================================
+
+  public async getText(): Promise<string> {
     const doc = await this.getTextDocument();
     return doc.getText();
   }
 
-  async getTextDocument(): Promise<vscode.TextDocument> {
+  public async getTextDocument(): Promise<vscode.TextDocument> {
     if (this.cachedDoc) {
       return this.cachedDoc;
     }
@@ -32,7 +67,7 @@ export class PipelineContext {
     return this.cachedDoc;
   }
 
-  report(
+  public report(
     range: vscode.Range,
     message: string,
     severity: vscode.DiagnosticSeverity = vscode.DiagnosticSeverity.Error
@@ -40,12 +75,12 @@ export class PipelineContext {
     this.diagnostics.push(new vscode.Diagnostic(range, message, severity));
   }
 
-  flushDiagnostics() {
+  public flushDiagnostics() {
     this.diagnosticCollection.set(this.currentUri, this.diagnostics);
     this.diagnostics = [];
   }
 
-  resetDeps() {
+  public resetDeps() {
     const node = DependencyManager.getInstance().getNode(this.currentUri)!;
     for (const dep of node.deps) {
       DependencyManager.getInstance()
@@ -55,7 +90,7 @@ export class PipelineContext {
     node.deps.clear();
   }
 
-  addDep(dep: vscode.Uri) {
+  public addDep(dep: vscode.Uri) {
     const depManager = DependencyManager.getInstance();
     if (!depManager.getNode(dep)) {
       depManager.setNode(dep, DependencyNode.fromUri(dep, 0));

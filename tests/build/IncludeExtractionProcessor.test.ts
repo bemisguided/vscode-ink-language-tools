@@ -1,3 +1,27 @@
+/**
+ * MIT License
+ *
+ * Copyright (c) 2025 Martin Crawford
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 import * as vscode from "vscode";
 import { IncludeExtractionProcessor } from "../../src/build/IncludeExtractionProcessor";
 import { PipelineContext } from "../../src/build/PipelineContext";
@@ -21,7 +45,7 @@ function createIncludeEntity(name: string, line = 0): OutlineEntity {
 describe("IncludeExtractionProcessor", () => {
   let outlineManager: OutlineManager;
   let processor: IncludeExtractionProcessor;
-  let ctx: PipelineContext;
+  let context: PipelineContext;
   let diagnosticCollection: vscode.DiagnosticCollection;
   let mockDocService: MockVSCodeDocumentService;
 
@@ -37,7 +61,7 @@ describe("IncludeExtractionProcessor", () => {
       forEach: jest.fn(),
       name: "test",
     } as any;
-    ctx = new PipelineContext(
+    context = new PipelineContext(
       vscode.Uri.file("/root.ink"),
       diagnosticCollection
     );
@@ -45,67 +69,73 @@ describe("IncludeExtractionProcessor", () => {
 
   it("loads a single include", async () => {
     // Setup
-    outlineManager.setOutline(ctx.currentUri, [createIncludeEntity("a.ink")]);
+    outlineManager.setOutline(context.currentUri, [
+      createIncludeEntity("a.ink"),
+    ]);
     outlineManager.setOutline(vscode.Uri.file("/a.ink"), []);
-    mockDocService.mockTextDocument(ctx.currentUri);
+    mockDocService.mockTextDocument(context.currentUri);
     mockDocService.mockTextDocument(vscode.Uri.file("/a.ink"));
 
     // Execute
-    await processor.run(ctx);
+    await processor.run(context);
 
     // Assert
-    expect(ctx.includeDocuments.has("a.ink")).toBe(true);
-    expect(ctx.diagnostics.length).toBe(0);
+    expect(context.includeDocuments.has("a.ink")).toBe(true);
+    expect(context.diagnostics.length).toBe(0);
   });
 
   it("loads nested includes", async () => {
     // Setup
-    outlineManager.setOutline(ctx.currentUri, [createIncludeEntity("a.ink")]);
+    outlineManager.setOutline(context.currentUri, [
+      createIncludeEntity("a.ink"),
+    ]);
     outlineManager.setOutline(vscode.Uri.file("/a.ink"), [
       createIncludeEntity("b.ink"),
     ]);
     outlineManager.setOutline(vscode.Uri.file("/b.ink"), []);
-    mockDocService.mockTextDocument(ctx.currentUri);
+    mockDocService.mockTextDocument(context.currentUri);
     mockDocService.mockTextDocument(vscode.Uri.file("/a.ink"));
     mockDocService.mockTextDocument(vscode.Uri.file("/b.ink"));
 
     // Execute
-    await processor.run(ctx);
+    await processor.run(context);
 
     // Assert
-    expect(ctx.includeDocuments.has("b.ink")).toBe(true);
+    expect(context.includeDocuments.has("b.ink")).toBe(true);
   });
 
   it("reports missing include as diagnostic", async () => {
     // Setup
-    outlineManager.setOutline(ctx.currentUri, [
+    outlineManager.setOutline(context.currentUri, [
       createIncludeEntity("missing.ink"),
     ]);
-    mockDocService.mockTextDocument(ctx.currentUri);
+    mockDocService.mockTextDocument(context.currentUri);
     // Do not add missing.ink to simulate missing file
 
     // Execute
-    await processor.run(ctx);
+    await processor.run(context);
 
     // Assert
-    expect(ctx.diagnostics.length).toBeGreaterThan(0);
-    expect(ctx.includeDocuments.has("missing.ink")).toBe(false);
+    expect(context.diagnostics.length).toBeGreaterThan(0);
+    expect(context.includeDocuments.has("missing.ink")).toBe(false);
   });
 
   it("handles cyclic includes without infinite loop", async () => {
     // Setup
-    outlineManager.setOutline(ctx.currentUri, [createIncludeEntity("a.ink")]);
+    outlineManager.setOutline(context.currentUri, [
+      createIncludeEntity("a.ink"),
+    ]);
     outlineManager.setOutline(vscode.Uri.file("/a.ink"), [
       createIncludeEntity("root.ink"),
     ]);
-    mockDocService.mockTextDocument(ctx.currentUri);
+    mockDocService.mockTextDocument(context.currentUri);
     mockDocService.mockTextDocument(vscode.Uri.file("/a.ink"));
 
     // Execute
-    await processor.run(ctx);
+    await processor.run(context);
 
     // Assert
-    expect(ctx.includeDocuments.has("a.ink")).toBe(true);
+    expect(context.includeDocuments.has("a.ink")).toBe(true);
     // Should not throw or hang
   });
 

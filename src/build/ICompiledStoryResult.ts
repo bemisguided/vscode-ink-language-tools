@@ -22,21 +22,10 @@
  * SOFTWARE.
  */
 
-import { OutlineEntity } from "../../model/OutlineEntity";
+import * as vscode from "vscode";
+import { Story } from "inkjs";
 
-/**
- * Context for the outline parser.
- */
-export class OutlineParserContext {
-  // Public Properties ===============================================================================================
-
-  /**
-   * The current knot being parsed.
-   */
-  public currentKnot: OutlineEntity | null = null;
-
-  /**
-   * The current list being parsed.
-   */
-  public knotStartLine: number | null = null;
+export interface ICompiledStoryResult {
+  story: Story;
+  externals: vscode.Uri[];
 }

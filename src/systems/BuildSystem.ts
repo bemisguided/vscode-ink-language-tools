@@ -5,7 +5,7 @@ import { MockExtractionProcessor } from "../build/MockExtractionProcessor";
 import { CompilationProcessor } from "../build/compiler/CompilationProcessor";
 import { OutlineProcessor } from "../build/outline/OutlineProcessor";
 import { DependencyNode, DependencyNodeType } from "../model/DependencyNode";
-import { IExtensionPlugin } from "../ExtensionSystem";
+import { IExtensionPlugin } from "../IExtensionPlugin";
 import { DependencyManager } from "../model/DependencyManager";
 
 export class BuildSystem implements IExtensionPlugin {

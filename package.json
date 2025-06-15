@@ -65,14 +65,6 @@
       {
         "command": "ink.compileFile",
         "title": "Ink: Compile File"
-      },
-      {
-        "command": "ink.debugCompile",
-        "title": "Ink: Debug Compile File"
-      },
-      {
-        "command": "ink.openPreview",
-        "title": "Ink: Open Story Preview"
       }
     ]
   },

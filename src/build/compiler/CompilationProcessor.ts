@@ -1,22 +1,46 @@
+/**
+ * MIT License
+ *
+ * Copyright (c) 2025 Martin Crawford
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 import * as vscode from "vscode";
-import { PipelineProcessor } from "../PipelineProcessor";
+import { IPipelineProcessor } from "../IPipelineProcessor";
 import { PipelineContext } from "../PipelineContext";
 import { Compiler, CompilerOptions } from "inkjs/compiler/Compiler";
-import { VSCodeFileHandler } from "./VSCodeFileHandler";
+import { CompilationFileHandler } from "./CompilationFileHandler";
 import { ErrorType as InkjsErrorType } from "inkjs/engine/Error";
 import { parseCompilationError } from "./parseCompilationError";
 
-export class CompilationProcessor implements PipelineProcessor {
-  async run(ctx: PipelineContext): Promise<void> {
-    // const node = ctx.graph.get(ctx.currentUri);
-    // if (node?.type !== "story") {
-    //   return;
-    // }
-    const text = await ctx.getText();
+/**
+ * Pipeline processor that compiles an Ink file into a Story object.
+ */
+export class CompilationProcessor implements IPipelineProcessor {
+  // Public Methods ===================================================================================================
+
+  async run(context: PipelineContext): Promise<void> {
+    const text = await context.getText();
     try {
-      const fileHandler = new VSCodeFileHandler(ctx);
+      const fileHandler = new CompilationFileHandler(context);
       const compilerOptions: CompilerOptions = {
-        sourceFilename: ctx.currentUri.fsPath,
+        sourceFilename: context.currentUri.fsPath,
         fileHandler,
         pluginNames: [],
         countAllVisits: false,
@@ -32,11 +56,11 @@ export class CompilationProcessor implements PipelineProcessor {
             new vscode.Position(line, 0),
             new vscode.Position(line, lineText.length)
           );
-          ctx.report(range, msg, severity);
+          context.report(range, msg, severity);
         },
       };
       const compiler = new Compiler(text, compilerOptions);
-      ctx.compiledStory = compiler.Compile();
+      context.compiledStory = compiler.Compile();
     } catch (err: any) {
       console.log("err", err);
     }

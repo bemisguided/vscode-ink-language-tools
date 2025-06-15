@@ -14,5 +14,5 @@
     "moduleResolution": "node",
     "composite": true
   },
-  "include": ["."]
+  "include": [".", "utils/MockVSCodeDocumentService.ts"]
 }

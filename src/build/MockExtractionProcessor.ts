@@ -1,12 +1,41 @@
+/**
+ * MIT License
+ *
+ * Copyright (c) 2025 Martin Crawford
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 import * as vscode from "vscode";
-import { PipelineProcessor } from "./PipelineProcessor";
+import { IPipelineProcessor } from "./IPipelineProcessor";
 import { PipelineContext } from "./PipelineContext";
 
 const MOCK_REGEX = /^\s*\/\/\s*MOCKS?\s+(.+\.js)$/gm;
 
-export class MockExtractionProcessor implements PipelineProcessor {
-  async run(ctx: PipelineContext): Promise<void> {
-    const text = await ctx.getText();
+/**
+ * Pipeline processor for extracting mock files from an Ink story.
+ */
+export class MockExtractionProcessor implements IPipelineProcessor {
+  // Public Methods ===================================================================================================
+
+  async run(context: PipelineContext): Promise<void> {
+    const text = await context.getText();
     let match: RegExpExecArray | null;
     while ((match = MOCK_REGEX.exec(text)) !== null) {
       const path = match[1].trim();
@@ -18,12 +47,12 @@ export class MockExtractionProcessor implements PipelineProcessor {
         new vscode.Position(line, startChar),
         new vscode.Position(line, endChar)
       );
-      const target = vscode.Uri.joinPath(ctx.currentUri, "..", path);
+      const target = vscode.Uri.joinPath(context.currentUri, "..", path);
       try {
         await vscode.workspace.fs.stat(target);
-        ctx.addDep(target);
+        context.addDep(target);
       } catch {
-        ctx.report(
+        context.report(
           range,
           `Mock file not found: ${path}`,
           vscode.DiagnosticSeverity.Warning

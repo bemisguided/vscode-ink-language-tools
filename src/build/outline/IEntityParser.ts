@@ -22,43 +22,25 @@
  * SOFTWARE.
  */
 
-import * as vscode from "vscode";
-import { IEntityParser } from "./IEntityParser";
 import { OutlineParserContext } from "./OutlineParserContext";
-import { OutlineEntity, SymbolType } from "../../model/OutlineEntity";
+import { OutlineEntity } from "../../model/OutlineEntity";
 
 /**
- * Parser for the STITCH keyword of an Ink story for the outline.
+ * Interface for a parser that can try to parse an entity from a line of text.
  */
-export class StitchParser implements IEntityParser {
-  // Private Properties ===============================================================================================
-
-  private regex = /^=\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\((.*?)\))?\s*$/;
-
+export interface IEntityParser {
   // Public Methods ===================================================================================================
 
+  /**
+   * Tries to parse an entity from a line of text.
+   * @param line - The line of text to parse.
+   * @param lineNumber - The line number of the text.
+   * @param context - The context of the parser.
+   * @returns The parsed entity or null if no entity was found.
+   */
   tryParse(
     line: string,
     lineNumber: number,
     context: OutlineParserContext
-  ): OutlineEntity | null {
-    const match = this.regex.exec(line.trim());
-    if (!match) {
-      return null;
-    }
-    const [_, name, params] = match;
-    const range = new vscode.Range(lineNumber, 0, lineNumber, line.length);
-    const entity = new OutlineEntity(
-      name + (params ? `(${params})` : ""),
-      SymbolType.stitch,
-      lineNumber,
-      range,
-      range
-    );
-    if (context.currentKnot) {
-      context.currentKnot.addChild(entity);
-      return null;
-    }
-    return entity;
-  }
+  ): OutlineEntity | null;
 }

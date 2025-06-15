@@ -22,43 +22,42 @@
  * SOFTWARE.
  */
 
-import * as vscode from "vscode";
-import { IEntityParser } from "./IEntityParser";
-import { OutlineParserContext } from "./OutlineParserContext";
-import { OutlineEntity, SymbolType } from "../../model/OutlineEntity";
+/* eslint-disable @typescript-eslint/naming-convention */
+import { IFileHandler } from "inkjs/compiler/IFileHandler";
+import { PipelineContext } from "../PipelineContext";
 
 /**
- * Parser for the STITCH keyword of an Ink story for the outline.
+ * Implements the inkjs IFileHandler interface for the extension compiler.
  */
-export class StitchParser implements IEntityParser {
-  // Private Properties ===============================================================================================
+export class CompilationFileHandler implements IFileHandler {
+  // Constructor ======================================================================================================
 
-  private regex = /^=\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\((.*?)\))?\s*$/;
+  constructor(private context: PipelineContext) {}
 
   // Public Methods ===================================================================================================
 
-  tryParse(
-    line: string,
-    lineNumber: number,
-    context: OutlineParserContext
-  ): OutlineEntity | null {
-    const match = this.regex.exec(line.trim());
-    if (!match) {
-      return null;
-    }
-    const [_, name, params] = match;
-    const range = new vscode.Range(lineNumber, 0, lineNumber, line.length);
-    const entity = new OutlineEntity(
-      name + (params ? `(${params})` : ""),
-      SymbolType.stitch,
-      lineNumber,
-      range,
-      range
-    );
-    if (context.currentKnot) {
-      context.currentKnot.addChild(entity);
-      return null;
-    }
-    return entity;
+  /**
+   * Resolves the filename of an ink file.
+   * @param filename - The filename to resolve.
+   * @returns The resolved filename.
+   */
+  public get ResolveInkFilename(): (filename: string) => string {
+    return (filename: string) => filename;
+  }
+
+  /**
+   * Loads the contents of an ink file.
+   * @param filename - The filename to load.
+   * @returns The contents of the file.
+   */
+  public get LoadInkFileContents(): (filename: string) => string {
+    return (filename: string) => {
+      const doc = this.context.includeDocuments.get(filename);
+      if (!doc) {
+        // eslint-disable-next-line no-throw-literal
+        throw ` INCLUDE "${filename}" file not found`;
+      }
+      return doc.getText();
+    };
   }
 }
