@@ -34,9 +34,6 @@
     "game development"
   ],
   "main": "./out/extension.js",
-  "activationEvents": [
-    "onLanguage:ink"
-  ],
   "contributes": {
     "languages": [
       {

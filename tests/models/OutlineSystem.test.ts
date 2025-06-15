@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
-import { OutlineSystem } from "../../src/OutlineSystem";
+import { OutlineSystem } from "../../src/systems/OutlineSystem";
 import { OutlineManager } from "../../src/model/OutlineManager";
 import { OutlineEntity, SymbolType } from "../../src/model/OutlineEntity";
-import { mapOutlineEntitiesToSymbols } from "../../src/outline/mapOutlineEntitiesToSymbols";
+import { mapOutlineEntitiesToSymbols } from "../../src/build/outline/mapOutlineEntitiesToSymbols";
 
 describe("OutlineSystem (integration)", () => {
   function mockDocument(uri: string, text: string): vscode.TextDocument {

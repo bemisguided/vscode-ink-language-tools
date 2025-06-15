@@ -1,8 +1,6 @@
 import * as vscode from "vscode";
 import { StoryController } from "./StoryController";
 import { StoryView } from "./StoryView";
-import { SuccessfulCompilationResult } from "../../types";
-import { StoryModel } from "./StoryModel";
 import { ExtensionUtils } from "../../utils/ExtensionUtils";
 
 export class InkPreviewPanel {

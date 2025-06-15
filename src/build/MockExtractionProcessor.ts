@@ -2,13 +2,13 @@ import * as vscode from "vscode";
 import { PipelineProcessor } from "./PipelineProcessor";
 import { PipelineContext } from "./PipelineContext";
 
-export class MockExtractionProcessor implements PipelineProcessor {
-  private static readonly MOCK_REGEX = /^\s*\/\/\s*MOCKS?\s+(.+\.js)$/gm;
+const MOCK_REGEX = /^\s*\/\/\s*MOCKS?\s+(.+\.js)$/gm;
 
+export class MockExtractionProcessor implements PipelineProcessor {
   async run(ctx: PipelineContext): Promise<void> {
     const text = await ctx.getText();
     let match: RegExpExecArray | null;
-    while ((match = MockExtractionProcessor.MOCK_REGEX.exec(text)) !== null) {
+    while ((match = MOCK_REGEX.exec(text)) !== null) {
       const path = match[1].trim();
       const prior = text.slice(0, match.index);
       const line = prior.split(/\r?\n/).length - 1;

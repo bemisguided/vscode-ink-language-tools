@@ -1,11 +1,11 @@
 import * as vscode from "vscode";
-import { ExtensionSystem } from "./ExtensionSystem";
-import { BuildSystem } from "./BuildSystem";
-import { OutlineSystem } from "./OutlineSystem";
-import { CompileCommand } from "./CompileCommand";
-import { PreviewCommand } from "./PreviewCommand";
+import { IExtensionPlugin } from "./ExtensionSystem";
+import { BuildSystem } from "./systems/BuildSystem";
+import { OutlineSystem } from "./systems/OutlineSystem";
+import { CompileCommand } from "./commands/CompileCommand";
+import { PreviewCommand } from "./commands/PreviewCommand";
 
-let systems: ExtensionSystem[] = [];
+let systems: IExtensionPlugin[] = [];
 
 /**
  * VSCode Extension Framework Hook: Entry point for extension activation.

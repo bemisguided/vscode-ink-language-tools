@@ -6,6 +6,9 @@ import { PipelineContext } from "./PipelineContext";
 import { DependencyManager } from "../model/DependencyManager";
 import { DependencyNodeType } from "../model/DependencyNode";
 import { DependencyNode } from "../model/DependencyNode";
+import { OutlineProcessor } from "./outline/OutlineProcessor";
+import { IncludeExtractionProcessor } from "./IncludeExtractionProcessor";
+import { CompilationProcessor } from "./compiler/CompilationProcessor";
 
 const MAX_CACHE = 2;
 
@@ -23,6 +26,12 @@ export class BuildEngine {
 
   private constructor(diagnosticCollection: vscode.DiagnosticCollection) {
     this.diagnosticCollection = diagnosticCollection;
+
+    // Register pipeline processors
+    this.registerProcessor(new OutlineProcessor());
+    this.registerProcessor(new IncludeExtractionProcessor());
+    // this.registerProcessor(new MockExtractionProcessor());
+    this.registerProcessor(new CompilationProcessor());
   }
 
   public static getInstance(
