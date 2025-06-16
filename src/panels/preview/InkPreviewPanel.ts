@@ -25,7 +25,7 @@
 import * as vscode from "vscode";
 import { StoryController } from "./StoryController";
 import { StoryView } from "./StoryView";
-import { ExtensionUtils } from "../../utils/ExtensionUtils";
+import { ExtensionUtils } from "../../services/ExtensionUtils";
 
 export class InkPreviewPanel {
   // Private Properties ===============================================================================================

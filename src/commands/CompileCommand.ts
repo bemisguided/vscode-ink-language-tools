@@ -36,8 +36,8 @@ export class CompileCommand implements IExtensionPlugin {
 
   // Constructor ======================================================================================================
 
-  constructor(diagnosticCollection: vscode.DiagnosticCollection) {
-    this.buildEngine = BuildEngine.getInstance(diagnosticCollection);
+  constructor() {
+    this.buildEngine = BuildEngine.getInstance();
   }
 
   // Public Methods ===================================================================================================
@@ -60,7 +60,7 @@ export class CompileCommand implements IExtensionPlugin {
         }
         await document.save();
         try {
-          await this.buildEngine.processFile(document.uri);
+          await this.buildEngine.compileStory(document.uri);
           vscode.window.showInformationMessage(
             "Ink file compiled successfully."
           );

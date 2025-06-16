@@ -27,7 +27,9 @@ import { IncludeExtractionProcessor } from "../../src/build/IncludeExtractionPro
 import { PipelineContext } from "../../src/build/PipelineContext";
 import { OutlineManager } from "../../src/model/OutlineManager";
 import { OutlineEntity, SymbolType } from "../../src/model/OutlineEntity";
-import { MockVSCodeDocumentService } from "../../src/utils/MockVSCodeDocumentService";
+import { VSCodeServiceLocator } from "../../src/services/VSCodeServiceLocator";
+import { MockVSCodeDocumentService } from "../__mocks__/MockVSCodeDocumentService";
+import { MockVSCodeDiagnosticsService } from "../__mocks__/MockVSCodeDiagnosticsService";
 
 jest.mock("vscode", () => require("jest-mock-vscode").createVSCodeMock(jest));
 
@@ -46,24 +48,20 @@ describe("IncludeExtractionProcessor", () => {
   let outlineManager: OutlineManager;
   let processor: IncludeExtractionProcessor;
   let context: PipelineContext;
-  let diagnosticCollection: vscode.DiagnosticCollection;
   let mockDocService: MockVSCodeDocumentService;
+  let mockDiagnosticsService: MockVSCodeDiagnosticsService;
 
   beforeEach(() => {
     outlineManager = OutlineManager.getInstance();
     outlineManager.clear();
     mockDocService = new MockVSCodeDocumentService();
+    mockDiagnosticsService = new MockVSCodeDiagnosticsService();
+    VSCodeServiceLocator.setDocumentService(mockDocService);
     processor = new IncludeExtractionProcessor(mockDocService);
-    diagnosticCollection = {
-      set: jest.fn(),
-      clear: jest.fn(),
-      delete: jest.fn(),
-      forEach: jest.fn(),
-      name: "test",
-    } as any;
     context = new PipelineContext(
       vscode.Uri.file("/root.ink"),
-      diagnosticCollection
+      mockDiagnosticsService,
+      mockDocService
     );
   });
 

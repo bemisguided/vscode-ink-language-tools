@@ -23,7 +23,7 @@
  */
 
 import * as vscode from "vscode";
-import { VSCodeDocumentService } from "./VSCodeDocumentService";
+import { VSCodeDocumentService } from "../../src/services/VSCodeDocumentService";
 
 export class MockVSCodeDocumentService implements VSCodeDocumentService {
   private docs = new Map<string, vscode.TextDocument>();
@@ -97,4 +97,8 @@ export class MockVSCodeDocumentService implements VSCodeDocumentService {
     }
     return this.docs.get(uri.toString());
   };
+
+  dispose(): void {
+    // No-op
+  }
 }

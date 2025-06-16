@@ -35,6 +35,7 @@ export interface VSCodeDocumentService {
     baseUri: vscode.Uri,
     path?: string
   ): Promise<vscode.TextDocument | undefined>;
+  dispose(): void;
 }
 
 export class VSCodeDocumentServiceImpl implements VSCodeDocumentService {
@@ -113,5 +114,12 @@ export class VSCodeDocumentServiceImpl implements VSCodeDocumentService {
     } catch {
       return undefined;
     }
+  }
+
+  /**
+   * Dispose of the document service.
+   */
+  public dispose(): void {
+    // No-op
   }
 }

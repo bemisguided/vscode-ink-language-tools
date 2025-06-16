@@ -25,6 +25,8 @@
 import * as vscode from "vscode";
 import { DependencyNode } from "../model/DependencyNode";
 import { DependencyManager } from "../model/DependencyManager";
+import { VSCodeDiagnosticsService } from "../services/VSCodeDiagnosticsService";
+import { VSCodeDocumentService } from "../services/VSCodeDocumentService";
 
 /**
  * Context for a pipeline processor.
@@ -44,13 +46,17 @@ export class PipelineContext {
 
   // Private Properties ===============================================================================================
   private cachedDoc?: vscode.TextDocument;
+  private readonly docService: VSCodeDocumentService;
 
   // Constructor ======================================================================================================
 
   constructor(
     public readonly currentUri: vscode.Uri,
-    private readonly diagnosticCollection: vscode.DiagnosticCollection
-  ) {}
+    private readonly diagnosticsService: VSCodeDiagnosticsService,
+    docService: VSCodeDocumentService
+  ) {
+    this.docService = docService;
+  }
 
   // Public Methods ===================================================================================================
 
@@ -63,7 +69,7 @@ export class PipelineContext {
     if (this.cachedDoc) {
       return this.cachedDoc;
     }
-    this.cachedDoc = await vscode.workspace.openTextDocument(this.currentUri);
+    this.cachedDoc = await this.docService.getTextDocument(this.currentUri);
     return this.cachedDoc;
   }
 
@@ -76,7 +82,7 @@ export class PipelineContext {
   }
 
   public flushDiagnostics() {
-    this.diagnosticCollection.set(this.currentUri, this.diagnostics);
+    this.diagnosticsService.set(this.currentUri, this.diagnostics);
     this.diagnostics = [];
   }
 

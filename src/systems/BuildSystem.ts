@@ -1,10 +1,6 @@
 import * as vscode from "vscode";
 import { BuildEngine } from "../build/BuildEngine";
-import { IncludeExtractionProcessor } from "../build/IncludeExtractionProcessor";
-import { MockExtractionProcessor } from "../build/MockExtractionProcessor";
-import { CompilationProcessor } from "../build/compiler/CompilationProcessor";
-import { OutlineProcessor } from "../build/outline/OutlineProcessor";
-import { DependencyNode, DependencyNodeType } from "../model/DependencyNode";
+import { DependencyNode } from "../model/DependencyNode";
 import { IExtensionPlugin } from "../IExtensionPlugin";
 import { DependencyManager } from "../model/DependencyManager";
 
@@ -13,10 +9,8 @@ export class BuildSystem implements IExtensionPlugin {
   private inkWatcher!: vscode.FileSystemWatcher;
   private jsWatcher!: vscode.FileSystemWatcher;
 
-  constructor(
-    private readonly diagnosticCollection: vscode.DiagnosticCollection
-  ) {
-    this.engine = BuildEngine.getInstance(diagnosticCollection);
+  constructor() {
+    this.engine = BuildEngine.getInstance();
   }
 
   activate(context: vscode.ExtensionContext): void {
@@ -25,7 +19,7 @@ export class BuildSystem implements IExtensionPlugin {
       const depManager = DependencyManager.getInstance();
       for (const uri of depManager.getGraph().keys()) {
         if (uri.path.endsWith(".ink")) {
-          this.engine.onFileChanged(uri);
+          this.engine.recompileDependents(uri);
         }
       }
     });
@@ -35,14 +29,14 @@ export class BuildSystem implements IExtensionPlugin {
     this.jsWatcher = vscode.workspace.createFileSystemWatcher("**/*.js");
 
     context.subscriptions.push(
-      this.diagnosticCollection,
+      this.engine.diagnostics,
       this.inkWatcher,
       this.jsWatcher,
       this.inkWatcher.onDidCreate((u) => this.onCreate(u)),
-      this.inkWatcher.onDidChange((u) => this.engine.onFileChanged(u)),
+      this.inkWatcher.onDidChange((u) => this.engine.recompileDependents(u)),
       this.inkWatcher.onDidDelete((u) => this.onDelete(u)),
       this.jsWatcher.onDidCreate((u) => this.onCreate(u)),
-      this.jsWatcher.onDidChange((u) => this.engine.onFileChanged(u)),
+      this.jsWatcher.onDidChange((u) => this.engine.recompileDependents(u)),
       this.jsWatcher.onDidDelete((u) => this.onDelete(u))
     );
   }
@@ -50,8 +44,8 @@ export class BuildSystem implements IExtensionPlugin {
   dispose(): void {
     this.inkWatcher.dispose();
     this.jsWatcher.dispose();
-    this.diagnosticCollection.clear();
-    this.diagnosticCollection.dispose();
+    this.engine.diagnostics.clear();
+    this.engine.diagnostics.dispose();
   }
 
   private async seedGraph(): Promise<void> {
@@ -70,11 +64,11 @@ export class BuildSystem implements IExtensionPlugin {
   private onCreate(uri: vscode.Uri): void {
     const depManager = DependencyManager.getInstance();
     depManager.setNode(uri, DependencyNode.fromUri(uri, 0));
-    this.engine.onFileChanged(uri);
+    this.engine.recompileDependents(uri);
   }
 
   private onDelete(uri: vscode.Uri): void {
     DependencyManager.getInstance().deleteNode(uri);
-    this.diagnosticCollection.delete(uri);
+    this.engine.diagnostics.delete(uri);
   }
 }

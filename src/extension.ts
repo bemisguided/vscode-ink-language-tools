@@ -28,6 +28,9 @@ import { BuildSystem } from "./systems/BuildSystem";
 import { OutlineSystem } from "./systems/OutlineSystem";
 import { CompileCommand } from "./commands/CompileCommand";
 import { PreviewCommand } from "./commands/PreviewCommand";
+import { VSCodeServiceLocator } from "./services/VSCodeServiceLocator";
+import { VSCodeDiagnosticsServiceImpl } from "./services/VSCodeDiagnosticsService";
+import { VSCodeDocumentServiceImpl } from "./services/VSCodeDocumentService";
 
 let systems: IExtensionPlugin[] = [];
 
@@ -38,10 +41,24 @@ let systems: IExtensionPlugin[] = [];
  */
 export function activate(context: vscode.ExtensionContext): void {
   console.log("Activating Ink extension");
-  const diagCollection = vscode.languages.createDiagnosticCollection("ink");
+
+  // Setup Diagnostics Service
+  const diagnostics = vscode.languages.createDiagnosticCollection();
+  const diagnosticsService = new VSCodeDiagnosticsServiceImpl(diagnostics);
+  context.subscriptions.push(diagnosticsService);
+
+  // Setup Document Service
+  const documentService = new VSCodeDocumentServiceImpl();
+  context.subscriptions.push(documentService);
+
+  // Setup Service Locator
+  VSCodeServiceLocator.setDiagnosticsService(diagnosticsService);
+  VSCodeServiceLocator.setDocumentService(documentService);
+
+  // Setup Systems
   systems.push(new OutlineSystem());
-  systems.push(new BuildSystem(diagCollection));
-  systems.push(new CompileCommand(diagCollection));
+  systems.push(new BuildSystem());
+  systems.push(new CompileCommand());
   systems.push(new PreviewCommand());
   systems.forEach((s) => s.activate(context));
 }

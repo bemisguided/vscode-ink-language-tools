@@ -27,10 +27,8 @@ import { IPipelineProcessor } from "./IPipelineProcessor";
 import { PipelineContext } from "./PipelineContext";
 import { OutlineManager } from "../model/OutlineManager";
 import { SymbolType } from "../model/OutlineEntity";
-import {
-  VSCodeDocumentService,
-  VSCodeDocumentServiceImpl,
-} from "../utils/VSCodeDocumentService";
+import { VSCodeServiceLocator } from "../services/VSCodeServiceLocator";
+import { VSCodeDocumentService } from "../services/VSCodeDocumentService";
 
 /**
  * Pipeline processor for extracting includes from an Ink story.
@@ -40,10 +38,8 @@ export class IncludeExtractionProcessor implements IPipelineProcessor {
 
   private docService: VSCodeDocumentService;
 
-  constructor(
-    docService: VSCodeDocumentService = new VSCodeDocumentServiceImpl()
-  ) {
-    this.docService = docService;
+  constructor(docService?: VSCodeDocumentService) {
+    this.docService = docService ?? VSCodeServiceLocator.getDocumentService();
   }
 
   async run(context: PipelineContext): Promise<void> {
