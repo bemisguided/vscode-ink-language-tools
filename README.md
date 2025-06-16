@@ -1,8 +1,6 @@
 # Ink Language Tools for Visual Studio Code
 
-Advanced language support for [Inkle's Ink](https://www.inklestudios.com/ink/) interactive fiction scripting language in Visual Studio Code.
-
-**Happy storytelling!** 📖✨ 
+An unoffical VSCode Extension offering advanced language support for [Inkle's Ink](https://www.inklestudios.com/ink/) interactive fiction scripting language.
 
 ## Features
 
@@ -25,6 +23,8 @@ Advanced language support for [Inkle's Ink](https://www.inklestudios.com/ink/) i
 
 - **IntelliSense**  
   Context-aware code completion and suggestions for Ink syntax, variables, and functions.
+
+**Happy storytelling!** 📖✨ 
 
 ## Syntax Highlighting Attribution
 
