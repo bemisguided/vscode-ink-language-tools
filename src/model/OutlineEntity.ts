@@ -28,14 +28,15 @@ import * as vscode from "vscode";
  * Enum for Ink Symbol types.
  */
 export enum SymbolType {
+  const = "const",
+  external = "external",
+  function = "function",
+  include = "include",
   knot = "knot",
-  stitch = "stitch",
   list = "list",
   listItem = "listItem",
-  function = "function",
-  external = "external",
+  stitch = "stitch",
   variable = "variable",
-  include = "include",
 }
 
 /**

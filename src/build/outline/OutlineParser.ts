@@ -32,6 +32,7 @@ import { IncludeParser } from "./IncludeParser";
 import { OutlineParserContext } from "./OutlineParserContext";
 import { OutlineEntity, SymbolType } from "../../model/OutlineEntity";
 import { ListParser } from "./ListParser";
+import { ConstParser } from "./ConstParser";
 
 /**
  * Parser for the outline of an Ink story.
@@ -59,13 +60,14 @@ export class OutlineParser {
 
   constructor() {
     this.strategies = [
+      new ConstParser(),
+      new ExternalParser(),
+      new FunctionParser(),
       new IncludeParser(),
       new KnotParser(),
-      new StitchParser(),
-      new FunctionParser(),
-      new ExternalParser(),
-      new VariableParser(),
       new ListParser(),
+      new StitchParser(),
+      new VariableParser(),
     ];
   }
 

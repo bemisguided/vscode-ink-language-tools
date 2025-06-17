@@ -27,22 +27,24 @@ import { OutlineEntity, SymbolType } from "../../model/OutlineEntity";
 
 function getSymbolKind(type: SymbolType): vscode.SymbolKind {
   switch (type) {
-    case SymbolType.knot:
-      return vscode.SymbolKind.Object;
-    case SymbolType.stitch:
-      return vscode.SymbolKind.Method;
+    case SymbolType.const:
+      return vscode.SymbolKind.Constant;
+    case SymbolType.external:
+      return vscode.SymbolKind.Function;
+    case SymbolType.function:
+      return vscode.SymbolKind.Function;
     case SymbolType.list:
       return vscode.SymbolKind.Enum;
     case SymbolType.listItem:
       return vscode.SymbolKind.EnumMember;
-    case SymbolType.function:
-      return vscode.SymbolKind.Function;
-    case SymbolType.external:
-      return vscode.SymbolKind.Function;
-    case SymbolType.variable:
-      return vscode.SymbolKind.Variable;
     case SymbolType.include:
       return vscode.SymbolKind.File;
+    case SymbolType.knot:
+      return vscode.SymbolKind.Object;
+    case SymbolType.stitch:
+      return vscode.SymbolKind.Method;
+    case SymbolType.variable:
+      return vscode.SymbolKind.Variable;
     default:
       return vscode.SymbolKind.Object;
   }
@@ -50,22 +52,24 @@ function getSymbolKind(type: SymbolType): vscode.SymbolKind {
 
 function getDescription(type: SymbolType): string {
   switch (type) {
-    case SymbolType.knot:
-      return "Knot";
-    case SymbolType.stitch:
-      return "Stitch";
-    case SymbolType.list:
-      return "List";
-    case SymbolType.listItem:
-      return "List Item";
+    case SymbolType.const:
+      return "Constant";
     case SymbolType.function:
       return "Function";
     case SymbolType.external:
       return "External Function";
-    case SymbolType.variable:
-      return "Variable";
     case SymbolType.include:
       return "Include";
+    case SymbolType.list:
+      return "List";
+    case SymbolType.listItem:
+      return "List Item";
+    case SymbolType.knot:
+      return "Knot";
+    case SymbolType.stitch:
+      return "Stitch";
+    case SymbolType.variable:
+      return "Variable";
     default:
       return "Entity";
   }
