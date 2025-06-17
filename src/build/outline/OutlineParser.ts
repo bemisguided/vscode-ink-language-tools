@@ -33,6 +33,7 @@ import { OutlineParserContext } from "./OutlineParserContext";
 import { OutlineEntity, SymbolType } from "../../model/OutlineEntity";
 import { ListParser } from "./ListParser";
 import { ConstParser } from "./ConstParser";
+import { stripComments } from "./stripComments";
 
 /**
  * Parser for the outline of an Ink story.
@@ -80,7 +81,8 @@ export class OutlineParser {
    */
   public async parse(document: vscode.TextDocument): Promise<OutlineEntity[]> {
     const entities: OutlineEntity[] = [];
-    const lines = document.getText().split(/\r?\n/);
+    const cleanedText = stripComments(document.getText());
+    const lines = cleanedText.split(/\r?\n/);
     const context = new OutlineParserContext();
     let lastKnot: OutlineEntity | null = null;
 
