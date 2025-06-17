@@ -23,13 +23,18 @@
  */
 
 /**
+ * The severity of a compilation error.
+ */
+export type CompilationErrorSeverity = "TODO" | "ERROR" | "WARNING";
+
+/**
  * Represents the details of a compilation error.
  */
 export type CompilationErrorDetails = {
   message: string;
   line: number;
   filename?: string;
-  severity: "ERROR" | "WARNING";
+  severity: CompilationErrorSeverity;
 };
 
 // Exported Functions =================================================================================================
@@ -45,12 +50,12 @@ export function parseCompilationError(
   let line = 0;
   let message = errorText;
   let filename: string | undefined = undefined;
-  let severity: "ERROR" | "WARNING" = "ERROR";
+  let severity: CompilationErrorSeverity = "ERROR";
 
   // Extract severity from prefix
-  const sevMatch = errorText.match(/^(ERROR|WARNING):/i);
+  const sevMatch = errorText.match(/^(TODO|ERROR|WARNING):/i);
   if (sevMatch) {
-    severity = sevMatch[1].toUpperCase() as "ERROR" | "WARNING";
+    severity = sevMatch[1].toUpperCase() as CompilationErrorSeverity;
   }
 
   // Extract filename if present (between quotes after ERROR: or WARNING:)

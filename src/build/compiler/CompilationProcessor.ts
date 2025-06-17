@@ -33,6 +33,18 @@ import { parseCompilationError } from "./parseCompilationError";
  * Pipeline processor that compiles an Ink file into a Story object.
  */
 export class CompilationProcessor implements IPipelineProcessor {
+  // Private Methods ==================================================================================================
+  private toSeverity(type: InkjsErrorType): vscode.DiagnosticSeverity {
+    switch (type) {
+      case InkjsErrorType.Author:
+        return vscode.DiagnosticSeverity.Information;
+      case InkjsErrorType.Warning:
+        return vscode.DiagnosticSeverity.Warning;
+      default: // Error
+        return vscode.DiagnosticSeverity.Error;
+    }
+  }
+
   // Public Methods ===================================================================================================
 
   async run(context: PipelineContext): Promise<void> {
@@ -46,10 +58,7 @@ export class CompilationProcessor implements IPipelineProcessor {
         countAllVisits: false,
         errorHandler: (message: string, type: InkjsErrorType) => {
           const { message: msg, line } = parseCompilationError(message);
-          const severity =
-            type === InkjsErrorType.Warning
-              ? vscode.DiagnosticSeverity.Warning
-              : vscode.DiagnosticSeverity.Error;
+          const severity = this.toSeverity(type);
           const all = text.split(/\r?\n/);
           const lineText = all[line] || "";
           const range = new vscode.Range(

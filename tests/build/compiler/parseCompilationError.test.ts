@@ -27,39 +27,55 @@ import { parseCompilationError } from "../../../src/build/compiler/parseCompilat
 describe("parseCompilationError()", () => {
   it("parses single-line error with filename and line with severity", () => {
     // Setup
-    const errorText =
-      "WARNING: '/Users/martin.crawford/Development/Workspaces/RPG/test/test.ink' line 20: Apparent loose end exists where the flow runs out. Do you need a '-> DONE' statement, choice or divert? Note that if you intend to enter 'test_stictch' next, you need to divert to it explicitly.";
+    const filename = "/User/test/test.ink";
+    const line = 20;
+    const message =
+      "Apparent loose end exists where the flow runs out. Do you need a '-> DONE' statement, choice or divert? Note that if you intend to enter 'test_stictch' next, you need to divert to it explicitly.";
+    const errorText = `WARNING: '${filename}' line ${line}: ${message}`;
 
     // Execute
     const result = parseCompilationError(errorText);
 
     // Assert
-    expect(result.filename).toBe(
-      "/Users/martin.crawford/Development/Workspaces/RPG/test/test.ink"
-    );
+    expect(result.filename).toBe(filename);
     expect(result.line).toBe(19); // 0-based
     expect(result.severity).toBe("WARNING");
-    expect(result.message).toBe(
-      "Apparent loose end exists where the flow runs out. Do you need a '-> DONE' statement, choice or divert? Note that if you intend to enter 'test_stictch' next, you need to divert to it explicitly."
-    );
+    expect(result.message).toBe(message);
   });
 
   it("parses multi-line error with filename and line with severity", () => {
     // Setup
-    const errorText =
-      "ERROR: '/Users/martin.crawford/Development/Workspaces/RPG/test/test.ink' line 18: Logic following a '~' can't be that type of expression. It can only be something like:\n\t~ return\n\t~ var x = blah\n\t~ x++\n\t~ myFunction()";
+    const filename = "/User/test/test.ink";
+    const line = 18;
+    const message =
+      "Logic following a '~' can't be that type of expression. It can only be something like:\n\t~ return\n\t~ var x = blah\n\t~ x++\n\t~ myFunction()";
+    const errorText = `ERROR: '${filename}' line ${line}: ${message}`;
 
     // Execute
     const result = parseCompilationError(errorText);
 
     // Assert
-    expect(result.filename).toBe(
-      "/Users/martin.crawford/Development/Workspaces/RPG/test/test.ink"
-    );
+    expect(result.filename).toBe(filename);
     expect(result.line).toBe(17); // 0-based
     expect(result.severity).toBe("ERROR");
-    expect(result.message).toBe(
-      "Logic following a '~' can't be that type of expression. It can only be something like:\n\t~ return\n\t~ var x = blah\n\t~ x++\n\t~ myFunction()"
-    );
+    expect(result.message).toBe(message);
+  });
+
+  it("parses TODO error with filename and line with severity", () => {
+    // Setup
+    const filename = "/User/test/test.ink";
+    const line = 18;
+    const message =
+      "Logic following a '~' can't be that type of expression. It can only be something like:\n\t~ return\n\t~ var x = blah\n\t~ x++\n\t~ myFunction()";
+    const errorText = `TODO: '${filename}' line ${line}: ${message}`;
+
+    // Execute
+    const result = parseCompilationError(errorText);
+
+    // Assert
+    expect(result.filename).toBe(filename);
+    expect(result.line).toBe(17); // 0-based
+    expect(result.severity).toBe("TODO");
+    expect(result.message).toBe(message);
   });
 });
