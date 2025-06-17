@@ -40,26 +40,6 @@ describe("OutlineSystem (integration)", () => {
     OutlineManager.getInstance().clear();
   });
 
-  it("returns mapped symbols from outline entities and caches result", async () => {
-    // Setup
-    const doc = mockDocument("/foo/bar.ink", "== knot1 ==");
-    const outlineSystem = new OutlineSystem();
-    const entity = new OutlineEntity(
-      "knot1",
-      SymbolType.knot,
-      0,
-      new vscode.Range(0, 0, 0, 8),
-      new vscode.Range(0, 0, 0, 8)
-    );
-    OutlineManager.getInstance().setOutline(doc.uri, [entity]);
-
-    // Execute
-    const result = await outlineSystem.getDocumentSymbols(doc);
-
-    // Assert
-    expect(result).toEqual(mapOutlineEntitiesToSymbols([entity]));
-  });
-
   it("parses and caches if outline does not exist", async () => {
     // Setup
     const doc = mockDocument("/foo/bar.ink", "== knot1 ==");
@@ -71,6 +51,5 @@ describe("OutlineSystem (integration)", () => {
 
     // Assert
     expect(result.length).toBeGreaterThan(0);
-    expect(OutlineManager.getInstance().getOutline(doc.uri)).toBeDefined();
   });
 });

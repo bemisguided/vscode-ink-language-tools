@@ -40,7 +40,7 @@ let systems: IExtensionPlugin[] = [];
  * @param context The extension context provided by VSCode
  */
 export function activate(context: vscode.ExtensionContext): void {
-  console.log("Activating Ink extension");
+  console.log("vscode-ink-language-tools: Activating");
 
   // Setup Diagnostics Service
   const diagnostics = vscode.languages.createDiagnosticCollection();
@@ -68,6 +68,7 @@ export function activate(context: vscode.ExtensionContext): void {
  * Called by VSCode when the extension is deactivated.
  */
 export function deactivate(): void {
+  console.log("vscode-ink-language-tools: Deactivating");
   systems.forEach((s) => s.dispose());
   systems = [];
 }

@@ -30,13 +30,7 @@ export class OutlineSystem implements IExtensionPlugin {
   public async getDocumentSymbols(
     document: vscode.TextDocument
   ): Promise<vscode.DocumentSymbol[]> {
-    let entities = this.outlineManager.getOutline(document.uri);
-
-    if (!entities) {
-      entities = await this.outlineParser.parse(document);
-      this.outlineManager.setOutline(document.uri, entities);
-    }
-
+    const entities = await this.outlineParser.parse(document);
     return mapOutlineEntitiesToSymbols(entities);
   }
 
