@@ -22,25 +22,42 @@
  * SOFTWARE.
  */
 
-import { OutlineParserContext } from "./OutlineParserContext";
 import { OutlineEntity } from "../../model/OutlineEntity";
 
 /**
  * Interface for a parser that can try to parse an entity from a line of text.
  */
 export interface IEntityParser {
+  // Public Properties ================================================================================================
+  /**
+   * Whether this parser's entity type is a block Outline Entity.
+   */
+  readonly isBlockEntity: boolean;
+
+  /**
+   * Whether this entity type is a nested Outline Entity.
+   */
+  readonly isNestedEntity: boolean;
+
+  /**
+   * Whether this entity type is always a root Outline Entity.
+   */
+  readonly isRootEntity: boolean;
+
   // Public Methods ===================================================================================================
 
   /**
    * Tries to parse an entity from a line of text.
    * @param line - The line of text to parse.
-   * @param lineNumber - The line number of the text.
-   * @param context - The context of the parser.
+   * @param lineNumber - The line number in the document.
    * @returns The parsed entity or null if no entity was found.
    */
-  tryParse(
-    line: string,
-    lineNumber: number,
-    context: OutlineParserContext
-  ): OutlineEntity | null;
+  tryParse(line: string, lineNumber: number): OutlineEntity | null;
+
+  /**
+   * Determines whether the stack should be popped before handling this entity.
+   * @param stack - The current parent stack.
+   * @returns True if the stack should be popped, false otherwise.
+   */
+  shouldPopStack(stack: OutlineEntity[]): boolean;
 }

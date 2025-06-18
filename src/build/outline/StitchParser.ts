@@ -24,7 +24,6 @@
 
 import * as vscode from "vscode";
 import { IEntityParser } from "./IEntityParser";
-import { OutlineParserContext } from "./OutlineParserContext";
 import { OutlineEntity, SymbolType } from "../../model/OutlineEntity";
 
 /**
@@ -37,28 +36,30 @@ export class StitchParser implements IEntityParser {
 
   // Public Methods ===================================================================================================
 
-  tryParse(
-    line: string,
-    lineNumber: number,
-    context: OutlineParserContext
-  ): OutlineEntity | null {
+  tryParse(line: string, lineNumber: number): OutlineEntity | null {
     const match = this.regex.exec(line.trim());
     if (!match) {
       return null;
     }
     const [_, name, params] = match;
     const range = new vscode.Range(lineNumber, 0, lineNumber, line.length);
-    const entity = new OutlineEntity(
+    return new OutlineEntity(
       name + (params ? `(${params})` : ""),
       SymbolType.stitch,
       lineNumber,
       range,
       range
     );
-    if (context.currentKnot) {
-      context.currentKnot.addChild(entity);
-      return null;
-    }
-    return entity;
   }
+
+  shouldPopStack(stack: OutlineEntity[]): boolean {
+    // Pop if the top of the stack is a stitch
+    return (
+      stack.length > 0 && stack[stack.length - 1].type === SymbolType.stitch
+    );
+  }
+
+  readonly isBlockEntity = true;
+  readonly isNestedEntity = true;
+  readonly isRootEntity = false;
 }

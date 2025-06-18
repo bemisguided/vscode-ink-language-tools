@@ -24,7 +24,6 @@
 
 import * as vscode from "vscode";
 import { IEntityParser } from "./IEntityParser";
-import { OutlineParserContext } from "./OutlineParserContext";
 import { OutlineEntity, SymbolType } from "../../model/OutlineEntity";
 
 /**
@@ -38,11 +37,7 @@ export class KnotParser implements IEntityParser {
 
   // Public Methods ===================================================================================================
 
-  tryParse(
-    line: string,
-    lineNumber: number,
-    context: OutlineParserContext
-  ): OutlineEntity | null {
+  tryParse(line: string, lineNumber: number): OutlineEntity | null {
     const match = this.regex.exec(line.trim());
     if (!match) {
       return null;
@@ -50,14 +45,21 @@ export class KnotParser implements IEntityParser {
     const name = match[2];
     const params = match[3];
     const range = new vscode.Range(lineNumber, 0, lineNumber, line.length);
-    const entity = new OutlineEntity(
+    return new OutlineEntity(
       name + (params ? `(${params})` : ""),
       SymbolType.knot,
       lineNumber,
       range,
       range
     );
-    context.currentKnot = entity;
-    return entity;
   }
+
+  shouldPopStack(stack: OutlineEntity[]): boolean {
+    // Pop all for a new knot
+    return stack.length > 0;
+  }
+
+  readonly isBlockEntity = true;
+  readonly isNestedEntity = true;
+  readonly isRootEntity = false;
 }

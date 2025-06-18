@@ -24,7 +24,6 @@
 
 import * as vscode from "vscode";
 import { IEntityParser } from "./IEntityParser";
-import { OutlineParserContext } from "./OutlineParserContext";
 import { OutlineEntity, SymbolType } from "../../model/OutlineEntity";
 
 /**
@@ -37,11 +36,7 @@ export class ListParser implements IEntityParser {
 
   // Public Methods ===================================================================================================
 
-  tryParse(
-    line: string,
-    lineNumber: number,
-    context: OutlineParserContext
-  ): OutlineEntity | null {
+  tryParse(line: string, lineNumber: number): OutlineEntity | null {
     const match = this.regex.exec(line.trim());
     if (!match) {
       return null;
@@ -73,4 +68,14 @@ export class ListParser implements IEntityParser {
     }
     return listEntity;
   }
+
+  shouldPopStack(stack: OutlineEntity[]): boolean {
+    return false;
+  }
+
+  readonly isBlockEntity = false;
+
+  readonly isNestedEntity = false;
+
+  readonly isRootEntity = true;
 }

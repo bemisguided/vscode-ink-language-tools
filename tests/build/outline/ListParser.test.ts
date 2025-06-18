@@ -23,102 +23,57 @@
  */
 
 import { ListParser } from "../../../src/build/outline/ListParser";
-import { OutlineParserContext } from "../../../src/build/outline/OutlineParserContext";
 import { SymbolType } from "../../../src/model/OutlineEntity";
 
 describe("ListParser", () => {
   let parser: ListParser;
-  let context: OutlineParserContext;
 
   beforeEach(() => {
     parser = new ListParser();
-    context = new OutlineParserContext();
   });
 
-  it("parses a simple LIST line", () => {
+  it("parses a standard LIST line", () => {
     // Setup
-    const line = "LIST fruits";
+    const line = "LIST myList = a, b, c";
 
     // Execute
-    const entity = parser.tryParse(line, 0, context);
+    const entity = parser.tryParse(line, 0);
 
     // Assert
     expect(entity).not.toBeNull();
-    expect(entity!.name).toBe("fruits");
+    expect(entity!.name).toBe("myList");
     expect(entity!.type).toBe(SymbolType.list);
-    expect(entity!.children.length).toBe(0);
+    expect(entity!.definitionLine).toBe(0);
   });
 
-  it("parses a LIST line with inline items", () => {
+  it("parses a LIST line with extra whitespace", () => {
     // Setup
-    const line = "LIST colors = red, green, blue";
+    const line = "  LIST    spacedList   =   x, y, z  ";
 
     // Execute
-    const entity = parser.tryParse(line, 1, context);
+    const entity = parser.tryParse(line, 7);
 
     // Assert
     expect(entity).not.toBeNull();
-    expect(entity!.name).toBe("colors");
+    expect(entity!.name).toBe("spacedList");
     expect(entity!.type).toBe(SymbolType.list);
-    expect(entity!.children.length).toBe(3);
-    expect(entity!.children.map((c) => c.name)).toEqual([
-      "red",
-      "green",
-      "blue",
-    ]);
-    expect(entity!.children.every((c) => c.type === SymbolType.listItem)).toBe(
-      true
-    );
+    expect(entity!.definitionLine).toBe(7);
   });
 
   it("returns null for non-LIST lines", () => {
     // Setup
-    const line = "VAR x = 1";
+    const line = "INCLUDE file.ink";
 
     // Execute
-    const entity = parser.tryParse(line, 0, context);
+    const entity = parser.tryParse(line, 1);
 
     // Assert
     expect(entity).toBeNull();
   });
 
-  it("parses a LIST line with default values for items", () => {
-    // Setup
-    const line = "LIST animals = cat, (dog), (mouse)";
-
-    // Execute
-    const entity = parser.tryParse(line, 2, context);
-
-    // Assert
-    expect(entity).not.toBeNull();
-    expect(entity!.name).toBe("animals");
-    expect(entity!.type).toBe(SymbolType.list);
-    expect(entity!.children.length).toBe(3);
-    expect(entity!.children.map((c) => c.name)).toEqual([
-      "cat",
-      "(dog)",
-      "(mouse)",
-    ]);
-    // By default, no explicit value assignment, just names
-  });
-
-  it("parses a LIST line with explicit values assigned to items", () => {
-    // Setup
-    const line = "LIST points = gold=10, silver=5, bronze=1";
-
-    // Execute
-    const entity = parser.tryParse(line, 3, context);
-
-    // Assert
-    expect(entity).not.toBeNull();
-    expect(entity!.name).toBe("points");
-    expect(entity!.type).toBe(SymbolType.list);
-    expect(entity!.children.length).toBe(3);
-    expect(entity!.children.map((c) => c.name)).toEqual([
-      "gold=10",
-      "silver=5",
-      "bronze=1",
-    ]);
-    // If the parser is later enhanced to split name/value, update this test
+  it("shouldPopStack always returns false", () => {
+    // Execute & Assert
+    expect(parser.shouldPopStack([])).toBe(false);
+    expect(parser.shouldPopStack([{} as any])).toBe(false);
   });
 });

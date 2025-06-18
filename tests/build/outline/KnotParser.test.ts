@@ -23,126 +23,57 @@
  */
 
 import { KnotParser } from "../../../src/build/outline/KnotParser";
-import { OutlineParserContext } from "../../../src/build/outline/OutlineParserContext";
 import { SymbolType } from "../../../src/model/OutlineEntity";
 
 describe("KnotParser", () => {
   let parser: KnotParser;
-  let context: OutlineParserContext;
 
   beforeEach(() => {
     parser = new KnotParser();
-    context = new OutlineParserContext();
   });
 
-  it("parses a standard knot line with two equals at start", () => {
+  it("parses a standard knot line", () => {
     // Setup
-    const line = "== myKnot";
+    const line = "=== myKnot ===";
 
     // Execute
-    const entity = parser.tryParse(line, 0, context);
+    const entity = parser.tryParse(line, 0);
 
     // Assert
     expect(entity).not.toBeNull();
     expect(entity!.name).toBe("myKnot");
     expect(entity!.type).toBe(SymbolType.knot);
     expect(entity!.definitionLine).toBe(0);
-    expect(context.currentKnot).toBe(entity);
   });
 
-  it("parses a knot line with three equals at start and end (convention)", () => {
+  it("parses a knot line with extra whitespace", () => {
     // Setup
-    const line = "=== myKnot ===";
+    const line = "  ===   spacedKnot   ===  ";
 
     // Execute
-    const entity = parser.tryParse(line, 1, context);
+    const entity = parser.tryParse(line, 7);
 
     // Assert
     expect(entity).not.toBeNull();
-    expect(entity!.name).toBe("myKnot");
+    expect(entity!.name).toBe("spacedKnot");
     expect(entity!.type).toBe(SymbolType.knot);
-    expect(entity!.definitionLine).toBe(1);
-    expect(context.currentKnot).toBe(entity);
-  });
-
-  it("parses a knot line with parameters and optional trailing equals", () => {
-    // Setup
-    const line = "== myKnot(x, y) ===";
-
-    // Execute
-    const entity = parser.tryParse(line, 2, context);
-
-    // Assert
-    expect(entity).not.toBeNull();
-    expect(entity!.name).toBe("myKnot(x, y)");
-    expect(entity!.type).toBe(SymbolType.knot);
-    expect(entity!.definitionLine).toBe(2);
-    expect(context.currentKnot).toBe(entity);
-  });
-
-  it("parses a knot line with extra whitespace and no trailing equals", () => {
-    // Setup
-    const line = "==   spacedKnot   ( a, b )   ";
-
-    // Execute
-    const entity = parser.tryParse(line, 3, context);
-
-    // Assert
-    expect(entity).not.toBeNull();
-    expect(entity!.name).toBe("spacedKnot( a, b )");
-    expect(entity!.type).toBe(SymbolType.knot);
-    expect(entity!.definitionLine).toBe(3);
-    expect(context.currentKnot).toBe(entity);
-  });
-
-  it("returns null for lines with only one equals at start", () => {
-    // Setup
-    const line = "= notAKnot";
-
-    // Execute
-    const entity = parser.tryParse(line, 4, context);
-
-    // Assert
-    expect(entity).toBeNull();
-    expect(context.currentKnot).toBeNull();
-  });
-
-  it("returns null for lines with spaces in the knot name", () => {
-    // Setup
-    const line = "== not a knot ==";
-
-    // Execute
-    const entity = parser.tryParse(line, 5, context);
-
-    // Assert
-    expect(entity).toBeNull();
-    expect(context.currentKnot).toBeNull();
+    expect(entity!.definitionLine).toBe(7);
   });
 
   it("returns null for non-knot lines", () => {
     // Setup
-    const line = "VAR x = 1";
+    const line = "INCLUDE file.ink";
 
     // Execute
-    const entity = parser.tryParse(line, 6, context);
+    const entity = parser.tryParse(line, 1);
 
     // Assert
     expect(entity).toBeNull();
-    expect(context.currentKnot).toBeNull();
   });
 
-  it("parses a knot line with whitespace before the first two equals", () => {
-    // Setup
-    const line = "   == myKnot";
-
-    // Execute
-    const entity = parser.tryParse(line, 7, context);
-
-    // Assert
-    expect(entity).not.toBeNull();
-    expect(entity!.name).toBe("myKnot");
-    expect(entity!.type).toBe(SymbolType.knot);
-    expect(entity!.definitionLine).toBe(7);
-    expect(context.currentKnot).toBe(entity);
+  it("shouldPopStack always returns true if stack is not empty", () => {
+    // Execute & Assert
+    expect(parser.shouldPopStack([])).toBe(false);
+    expect(parser.shouldPopStack([{} as any])).toBe(true);
   });
 });

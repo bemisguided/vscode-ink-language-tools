@@ -24,8 +24,8 @@
 
 import * as vscode from "vscode";
 import { IEntityParser } from "./IEntityParser";
-import { OutlineParserContext } from "./OutlineParserContext";
 import { OutlineEntity, SymbolType } from "../../model/OutlineEntity";
+import { formatFunction } from "./formatFunction";
 
 /**
  * Parser for the FUNCTION keyword of an Ink story for the outline.
@@ -34,27 +34,33 @@ export class FunctionParser implements IEntityParser {
   // Private Properties ===============================================================================================
 
   private regex =
-    /^==+\s*function\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\((.*?)\)\s*(==+)?\s*$/;
+    /^==+\s*function\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\((.*?)\))?\s*(==+)?\s*$/;
 
   // Public Methods ===================================================================================================
 
-  tryParse(
-    line: string,
-    lineNumber: number,
-    context: OutlineParserContext
-  ): OutlineEntity | null {
+  tryParse(line: string, lineNumber: number): OutlineEntity | null {
     const match = this.regex.exec(line.trim());
     if (!match) {
       return null;
     }
-    const [_, name, params] = match;
+    let [_, name, params] = match;
+    const formattedName =
+      params !== undefined ? formatFunction(name, params) : name;
     const range = new vscode.Range(lineNumber, 0, lineNumber, line.length);
     return new OutlineEntity(
-      `${name}(${params})`,
+      formattedName,
       SymbolType.function,
       lineNumber,
       range,
       range
     );
   }
+
+  shouldPopStack(stack: OutlineEntity[]): boolean {
+    return false;
+  }
+
+  readonly isBlockEntity = false;
+  readonly isNestedEntity = false;
+  readonly isRootEntity = true;
 }

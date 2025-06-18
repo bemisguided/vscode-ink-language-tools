@@ -23,16 +23,13 @@
  */
 
 import { ConstParser } from "../../../src/build/outline/ConstParser";
-import { OutlineParserContext } from "../../../src/build/outline/OutlineParserContext";
 import { SymbolType } from "../../../src/model/OutlineEntity";
 
 describe("ConstParser", () => {
   let parser: ConstParser;
-  let context: OutlineParserContext;
 
   beforeEach(() => {
     parser = new ConstParser();
-    context = new OutlineParserContext();
   });
 
   it("parses a standard CONST line", () => {
@@ -40,7 +37,7 @@ describe("ConstParser", () => {
     const line = "CONST myConst = 10";
 
     // Execute
-    const entity = parser.tryParse(line, 0, context);
+    const entity = parser.tryParse(line, 0);
 
     // Assert
     expect(entity).not.toBeNull();
@@ -54,7 +51,7 @@ describe("ConstParser", () => {
     const line = "  CONST    spacedConst   =   42  ";
 
     // Execute
-    const entity = parser.tryParse(line, 7, context);
+    const entity = parser.tryParse(line, 7);
 
     // Assert
     expect(entity).not.toBeNull();
@@ -68,9 +65,15 @@ describe("ConstParser", () => {
     const line = "INCLUDE file.ink";
 
     // Execute
-    const entity = parser.tryParse(line, 1, context);
+    const entity = parser.tryParse(line, 1);
 
     // Assert
     expect(entity).toBeNull();
+  });
+
+  it("shouldPopStack always returns false", () => {
+    // Execute & Assert
+    expect(parser.shouldPopStack([])).toBe(false);
+    expect(parser.shouldPopStack([{} as any])).toBe(false);
   });
 });

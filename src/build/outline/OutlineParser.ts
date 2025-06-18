@@ -29,7 +29,6 @@ import { FunctionParser } from "./FunctionParser";
 import { ExternalParser } from "./ExternalParser";
 import { VariableParser } from "./VariableParser";
 import { IncludeParser } from "./IncludeParser";
-import { OutlineParserContext } from "./OutlineParserContext";
 import { OutlineEntity, SymbolType } from "../../model/OutlineEntity";
 import { ListParser } from "./ListParser";
 import { ConstParser } from "./ConstParser";
@@ -72,6 +71,127 @@ export class OutlineParser {
     ];
   }
 
+  // Private Methods ===================================================================================================
+
+  /**
+   * Strips comments and splits the document into lines.
+   */
+  private preprocessDocument(document: vscode.TextDocument): string[] {
+    const cleanedText = stripComments(document.getText());
+    return cleanedText.split(/\r?\n/);
+  }
+
+  /**
+   * Parses the lines into outline entities, handling stack and parent/child relationships.
+   */
+  private parseEntities(lines: string[]): OutlineEntity[] {
+    const entities: OutlineEntity[] = [];
+    const parentStack: OutlineEntity[] = [];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+      if (trimmed === "") {
+        continue;
+      }
+      for (const strategy of this.strategies) {
+        const entity = strategy.tryParse(line, i);
+        if (entity) {
+          // Pop stack as long as the parser says to
+          while (strategy.shouldPopStack(parentStack)) {
+            parentStack.pop();
+          }
+          this.attachEntity(entity, strategy, parentStack, entities);
+          break;
+        }
+      }
+    }
+    return entities;
+  }
+
+  /**
+   * Attaches an entity to its parent or the root, and manages the parent stack.
+   */
+  private attachEntity(
+    entity: OutlineEntity,
+    strategy: any,
+    parentStack: OutlineEntity[],
+    entities: OutlineEntity[]
+  ): void {
+    if (strategy.isRootEntity) {
+      entities.push(entity);
+      // Do not push to stack
+      return;
+    }
+    const parent = parentStack[parentStack.length - 1];
+    if (parent) {
+      try {
+        parent.addChild(entity);
+      } catch (e) {
+        entities.push(entity);
+      }
+    } else {
+      entities.push(entity);
+    }
+    // Only push to stack if isNestedEntity is true AND isRootEntity is false
+    if (strategy.isNestedEntity && !strategy.isRootEntity) {
+      parentStack.push(entity);
+    }
+  }
+
+  /**
+   * Assigns scope ranges to all block entities (e.g., knots, stitches).
+   */
+  private assignScopeRanges(entities: OutlineEntity[], lines: string[]): void {
+    const blockTypes = new Set<string>(
+      this.strategies
+        .filter((s) => s.definesScope)
+        .map((s) =>
+          s instanceof KnotParser
+            ? SymbolType.knot
+            : s instanceof StitchParser
+            ? SymbolType.stitch
+            : ""
+        )
+    );
+    this.setScopeRangesRecursive(entities, lines, blockTypes);
+  }
+
+  /**
+   * Recursively sets scope ranges for all block entities.
+   */
+  private setScopeRangesRecursive(
+    entities: OutlineEntity[],
+    lines: string[],
+    blockTypes: Set<string>
+  ): void {
+    let lastBlock: OutlineEntity | null = null;
+    for (let i = 0; i < entities.length; i++) {
+      const entity = entities[i];
+      if (blockTypes.has(entity.type)) {
+        if (lastBlock) {
+          lastBlock.scopeRange = new vscode.Range(
+            lastBlock.definitionLine,
+            0,
+            entity.definitionLine - 1,
+            lines[entity.definitionLine - 1]?.length || 0
+          );
+        }
+        lastBlock = entity;
+      }
+      if (entity.children && entity.children.length > 0) {
+        this.setScopeRangesRecursive(entity.children, lines, blockTypes);
+      }
+    }
+    if (lastBlock) {
+      lastBlock.scopeRange = new vscode.Range(
+        lastBlock.definitionLine,
+        0,
+        lines.length - 1,
+        lines[lines.length - 1]?.length || 0
+      );
+    }
+  }
+
   // Public Methods ===================================================================================================
 
   /**
@@ -80,56 +200,9 @@ export class OutlineParser {
    * @returns The outline entities.
    */
   public async parse(document: vscode.TextDocument): Promise<OutlineEntity[]> {
-    const entities: OutlineEntity[] = [];
-    const cleanedText = stripComments(document.getText());
-    const lines = cleanedText.split(/\r?\n/);
-    const context = new OutlineParserContext();
-    let lastKnot: OutlineEntity | null = null;
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const trimmed = line.trim();
-      if (trimmed === "" || trimmed.startsWith("//")) {
-        continue;
-      }
-
-      let handled = false;
-      for (const strategy of this.strategies) {
-        const entity = strategy.tryParse(line, i, context);
-        if (entity) {
-          // If this is a knot, handle scope range for the previous knot
-          if (entity.type === SymbolType.knot) {
-            if (lastKnot) {
-              // Set the scope range of the previous knot
-              lastKnot.scopeRange = new vscode.Range(
-                lastKnot.definitionLine,
-                0,
-                i - 1,
-                lines[i - 1]?.length || 0
-              );
-            }
-            lastKnot = entity;
-            context.knotStartLine = i;
-            entities.push(entity);
-          } else {
-            entities.push(entity);
-          }
-          handled = true;
-          break;
-        }
-      }
-    }
-
-    // After the loop, set the scope range for the last knot (if any)
-    if (lastKnot) {
-      lastKnot.scopeRange = new vscode.Range(
-        lastKnot.definitionLine,
-        0,
-        lines.length - 1,
-        lines[lines.length - 1]?.length || 0
-      );
-    }
-
+    const lines = this.preprocessDocument(document);
+    const entities = this.parseEntities(lines);
+    this.assignScopeRanges(entities, lines);
     return entities;
   }
 }

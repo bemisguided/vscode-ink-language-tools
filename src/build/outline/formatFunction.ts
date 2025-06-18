@@ -22,21 +22,25 @@
  * SOFTWARE.
  */
 
-import { OutlineEntity } from "../../model/OutlineEntity";
-
 /**
- * Context for the outline parser.
+ * Formats a function name and parameters into a string.
+ * @param name - The name of the function.
+ * @param params - The parameters of the function.
+ * @returns The formatted function name and parameters.
  */
-export class OutlineParserContext {
-  // Public Properties ===============================================================================================
-
-  /**
-   * The current knot being parsed.
-   */
-  public currentKnot: OutlineEntity | null = null;
-
-  /**
-   * The current list being parsed.
-   */
-  public knotStartLine: number | null = null;
+export function formatFunction(name: string, params?: string): string {
+  name = name.trim();
+  if (!params || params.trim() === "") {
+    return `${name}()`;
+  }
+  params = params
+    .split(",")
+    .map((p) =>
+      p
+        .trim()
+        .replace(/^ref\s+/, "ref ")
+        .replace(/^->\s*/, "-> ")
+    )
+    .join(", ");
+  return `${name}(${params})`;
 }

@@ -24,69 +24,84 @@
 
 import "../../__mocks__/vscode";
 import { ExternalParser } from "../../../src/build/outline/ExternalParser";
-import { OutlineParserContext } from "../../../src/build/outline/OutlineParserContext";
 import { SymbolType } from "../../../src/model/OutlineEntity";
 
 describe("ExternalParser", () => {
   let parser: ExternalParser;
-  let context: OutlineParserContext;
 
   beforeEach(() => {
     parser = new ExternalParser();
-    context = new OutlineParserContext();
   });
 
   it("parses a standard EXTERNAL line", () => {
     // Setup
-    const line = "EXTERNAL doSomething()";
+    const line = "EXTERNAL myFunc(x, y)";
 
     // Execute
-    const entity = parser.tryParse(line, 2, context);
+    const entity = parser.tryParse(line, 0);
 
     // Assert
     expect(entity).not.toBeNull();
-    expect(entity!.name).toBe("doSomething");
+    expect(entity!.name).toBe("myFunc(x, y)");
     expect(entity!.type).toBe(SymbolType.external);
-    expect(entity!.definitionLine).toBe(2);
+    expect(entity!.definitionLine).toBe(0);
   });
 
   it("parses an EXTERNAL line with extra whitespace", () => {
     // Setup
-    const line = "  EXTERNAL   spacedFunc  (  a, b  )   ";
+    const line = "  EXTERNAL    spacedFunc   ( a, b )  ";
 
     // Execute
-    const entity = parser.tryParse(line, 5, context);
+    const entity = parser.tryParse(line, 7);
 
     // Assert
     expect(entity).not.toBeNull();
-    expect(entity!.name).toBe("spacedFunc(  a, b  )");
+    expect(entity!.name).toBe("spacedFunc(a, b)");
     expect(entity!.type).toBe(SymbolType.external);
-    expect(entity!.definitionLine).toBe(5);
-  });
-
-  it("parses an EXTERNAL line with no parameters", () => {
-    // Setup
-    const line = "EXTERNAL noParams";
-
-    // Execute
-    const entity = parser.tryParse(line, 6, context);
-
-    // Assert
-    expect(entity).not.toBeNull();
-    expect(entity!.name).toBe("noParams");
-    expect(entity!.type).toBe(SymbolType.external);
-    expect(entity!.definitionLine).toBe(6);
+    expect(entity!.definitionLine).toBe(7);
   });
 
   it("returns null for non-EXTERNAL lines", () => {
     // Setup
-    const line = "VAR x = 1";
+    const line = "INCLUDE file.ink";
 
     // Execute
-    const entity = parser.tryParse(line, 0, context);
+    const entity = parser.tryParse(line, 1);
 
     // Assert
     expect(entity).toBeNull();
-    expect(parser.tryParse(line, 0, context)).toBeNull();
+  });
+
+  it("shouldPopStack always returns false", () => {
+    // Execute & Assert
+    expect(parser.shouldPopStack([])).toBe(false);
+    expect(parser.shouldPopStack([{} as any])).toBe(false);
+  });
+
+  it("parses EXTERNAL with a ref as a parameter", () => {
+    const line = "EXTERNAL myFunc(ref param1, param2)";
+    const entity = parser.tryParse(line, 3);
+    expect(entity).not.toBeNull();
+    expect(entity!.name).toBe("myFunc(ref param1, param2)");
+    expect(entity!.type).toBe(SymbolType.external);
+    expect(entity!.definitionLine).toBe(3);
+  });
+
+  it("parses EXTERNAL with a divert as a parameter", () => {
+    const line = "EXTERNAL myFunc(-> return_to)";
+    const entity = parser.tryParse(line, 4);
+    expect(entity).not.toBeNull();
+    expect(entity!.name).toBe("myFunc(-> return_to)");
+    expect(entity!.type).toBe(SymbolType.external);
+    expect(entity!.definitionLine).toBe(4);
+  });
+
+  it("parses EXTERNAL with a ref and a divert as parameters", () => {
+    const line = "EXTERNAL myFunc(ref param1, param2, -> return_to)";
+    const entity = parser.tryParse(line, 5);
+    expect(entity).not.toBeNull();
+    expect(entity!.name).toBe("myFunc(ref param1, param2, -> return_to)");
+    expect(entity!.type).toBe(SymbolType.external);
+    expect(entity!.definitionLine).toBe(5);
   });
 });

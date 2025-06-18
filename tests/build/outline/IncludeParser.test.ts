@@ -23,44 +23,41 @@
  */
 
 import { IncludeParser } from "../../../src/build/outline/IncludeParser";
-import { OutlineParserContext } from "../../../src/build/outline/OutlineParserContext";
 import { SymbolType } from "../../../src/model/OutlineEntity";
 
 describe("IncludeParser", () => {
   let parser: IncludeParser;
-  let context: OutlineParserContext;
 
   beforeEach(() => {
     parser = new IncludeParser();
-    context = new OutlineParserContext();
   });
 
   it("parses a standard INCLUDE line", () => {
     // Setup
-    const line = "INCLUDE myfile.ink";
+    const line = "INCLUDE file.ink";
 
     // Execute
-    const entity = parser.tryParse(line, 1, context);
+    const entity = parser.tryParse(line, 0);
 
     // Assert
     expect(entity).not.toBeNull();
-    expect(entity!.name).toBe("myfile.ink");
+    expect(entity!.name).toBe("file.ink");
     expect(entity!.type).toBe(SymbolType.include);
-    expect(entity!.definitionLine).toBe(1);
+    expect(entity!.definitionLine).toBe(0);
   });
 
   it("parses an INCLUDE line with extra whitespace", () => {
     // Setup
-    const line = "  INCLUDE    another_file.ink   ";
+    const line = "  INCLUDE    anotherFile.ink  ";
 
     // Execute
-    const entity = parser.tryParse(line, 4, context);
+    const entity = parser.tryParse(line, 7);
 
     // Assert
     expect(entity).not.toBeNull();
-    expect(entity!.name).toBe("another_file.ink");
+    expect(entity!.name).toBe("anotherFile.ink");
     expect(entity!.type).toBe(SymbolType.include);
-    expect(entity!.definitionLine).toBe(4);
+    expect(entity!.definitionLine).toBe(7);
   });
 
   it("parses an INCLUDE line with slashes in the path", () => {
@@ -68,7 +65,7 @@ describe("IncludeParser", () => {
     const line = "INCLUDE path/to/file.ink";
 
     // Execute
-    const entity = parser.tryParse(line, 2, context);
+    const entity = parser.tryParse(line, 2);
 
     // Assert
     expect(entity).not.toBeNull();
@@ -81,7 +78,7 @@ describe("IncludeParser", () => {
     const line = "INCLUDE ../relative/other.ink";
 
     // Execute
-    const entity = parser.tryParse(line, 3, context);
+    const entity = parser.tryParse(line, 3);
 
     // Assert
     expect(entity).not.toBeNull();
@@ -94,7 +91,7 @@ describe("IncludeParser", () => {
     const line = "INCLUDE /absolute/path/to/file.ink";
 
     // Execute
-    const entity = parser.tryParse(line, 5, context);
+    const entity = parser.tryParse(line, 5);
 
     // Assert
     expect(entity).not.toBeNull();
@@ -104,13 +101,18 @@ describe("IncludeParser", () => {
 
   it("returns null for non-INCLUDE lines", () => {
     // Setup
-    const line = "VAR something = 5";
+    const line = "VAR x = 1";
 
     // Execute
-    const entity = parser.tryParse(line, 0, context);
+    const entity = parser.tryParse(line, 1);
 
     // Assert
     expect(entity).toBeNull();
-    expect(parser.tryParse(line, 0, context)).toBeNull();
+  });
+
+  it("shouldPopStack always returns false", () => {
+    // Execute & Assert
+    expect(parser.shouldPopStack([])).toBe(false);
+    expect(parser.shouldPopStack([{} as any])).toBe(false);
   });
 });

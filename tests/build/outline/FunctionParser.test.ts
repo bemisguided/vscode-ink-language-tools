@@ -23,30 +23,41 @@
  */
 
 import { FunctionParser } from "../../../src/build/outline/FunctionParser";
-import { OutlineParserContext } from "../../../src/build/outline/OutlineParserContext";
 import { SymbolType } from "../../../src/model/OutlineEntity";
 
 describe("FunctionParser", () => {
   let parser: FunctionParser;
-  let context: OutlineParserContext;
 
   beforeEach(() => {
     parser = new FunctionParser();
-    context = new OutlineParserContext();
   });
 
-  it("parses a standard function line", () => {
+  it("parses a standard function line without parentheses", () => {
     // Setup
-    const line = "=== function myFunc(x, y) ===";
+    const line = "=== function myFunc ===";
 
     // Execute
-    const entity = parser.tryParse(line, 5, context);
+    const entity = parser.tryParse(line, 0);
 
     // Assert
     expect(entity).not.toBeNull();
-    expect(entity!.name).toBe("myFunc(x, y)");
+    expect(entity!.name).toBe("myFunc");
     expect(entity!.type).toBe(SymbolType.function);
-    expect(entity!.definitionLine).toBe(5);
+    expect(entity!.definitionLine).toBe(0);
+  });
+
+  it("parses a standard function line with parentheses", () => {
+    // Setup
+    const line = "=== function myFunc() ===";
+
+    // Execute
+    const entity = parser.tryParse(line, 1);
+
+    // Assert
+    expect(entity).not.toBeNull();
+    expect(entity!.name).toBe("myFunc()");
+    expect(entity!.type).toBe(SymbolType.function);
+    expect(entity!.definitionLine).toBe(1);
   });
 
   it("parses a function line with parameters", () => {
@@ -54,7 +65,7 @@ describe("FunctionParser", () => {
     const line = "=== function add(a, b) ===";
 
     // Execute
-    const entity = parser.tryParse(line, 2, context);
+    const entity = parser.tryParse(line, 2);
 
     // Assert
     expect(entity).not.toBeNull();
@@ -65,23 +76,56 @@ describe("FunctionParser", () => {
 
   it("parses a function line with extra whitespace", () => {
     // Setup
-    const line = "==   function   spacedFunc  (  a, b  )   == ";
+    const line = "  ===   function   spacedFunc   ===  ";
 
     // Execute
-    const entity = parser.tryParse(line, 5, context);
+    const entity = parser.tryParse(line, 7);
 
     // Assert
     expect(entity).not.toBeNull();
-    expect(entity!.name).toBe("spacedFunc(  a, b  )");
+    expect(entity!.name).toBe("spacedFunc");
     expect(entity!.type).toBe(SymbolType.function);
-    expect(entity!.definitionLine).toBe(5);
+    expect(entity!.definitionLine).toBe(7);
+  });
+
+  it("parses a function line with a divert as a parameter", () => {
+    // Setup
+    const line = "=== function myFunc(-> divert) ===";
+
+    // Execute
+    const entity = parser.tryParse(line, 1);
+
+    // Assert
+    expect(entity).not.toBeNull();
+    expect(entity!.name).toBe("myFunc(-> divert)");
+  });
+
+  it("parses a function line with a ref as a parameter", () => {
+    // Setup
+    const line = "=== function myFunc(ref param) ===";
+
+    // Execute
+    const entity = parser.tryParse(line, 1);
+
+    // Assert
+    expect(entity).not.toBeNull();
+    expect(entity!.name).toBe("myFunc(ref param)");
   });
 
   it("returns null for non-function lines", () => {
     // Setup
-    const line = "VAR y = 2";
+    const line = "INCLUDE file.ink";
 
+    // Execute
+    const entity = parser.tryParse(line, 1);
+
+    // Assert
+    expect(entity).toBeNull();
+  });
+
+  it("shouldPopStack always returns false", () => {
     // Execute & Assert
-    expect(parser.tryParse(line, 0, context)).toBeNull();
+    expect(parser.shouldPopStack([])).toBe(false);
+    expect(parser.shouldPopStack([{} as any])).toBe(false);
   });
 });

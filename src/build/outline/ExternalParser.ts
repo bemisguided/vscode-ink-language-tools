@@ -24,8 +24,8 @@
 
 import * as vscode from "vscode";
 import { IEntityParser } from "./IEntityParser";
-import { OutlineParserContext } from "./OutlineParserContext";
 import { OutlineEntity, SymbolType } from "../../model/OutlineEntity";
+import { formatFunction } from "./formatFunction";
 
 /**
  * Parser for the EXTERNAL keyword of an Ink story for the outline.
@@ -37,23 +37,28 @@ export class ExternalParser implements IEntityParser {
 
   // Public Methods ===================================================================================================
 
-  tryParse(
-    line: string,
-    lineNumber: number,
-    context: OutlineParserContext
-  ): OutlineEntity | null {
+  tryParse(line: string, lineNumber: number): OutlineEntity | null {
     const match = this.regex.exec(line.trim());
     if (!match) {
       return null;
     }
     const [_, name, params] = match;
+    const formattedName = formatFunction(name, params);
     const range = new vscode.Range(lineNumber, 0, lineNumber, line.length);
     return new OutlineEntity(
-      name + (params ? `(${params})` : ""),
+      formattedName,
       SymbolType.external,
       lineNumber,
       range,
       range
     );
   }
+
+  shouldPopStack(stack: OutlineEntity[]): boolean {
+    return false;
+  }
+
+  readonly isBlockEntity = false;
+  readonly isNestedEntity = false;
+  readonly isRootEntity = true;
 }
