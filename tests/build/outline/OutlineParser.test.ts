@@ -75,11 +75,16 @@ describe("OutlineParser", () => {
   it("parses root-level knots and nested stitches with correct properties", async () => {
     // Setup
     const lines = [
-      "== knotA",
-      "= stitchA",
-      "= stitchB",
-      "== knotB",
-      "= stitchC",
+      "== knotA", // 0
+      "Hello,", // 1
+      "= stitchA", // 2
+      "is", // 3
+      "= stitchB", // 4
+      "me", // 5
+      "== knotB", // 6
+      "you're", // 7
+      "= stitchC", // 8
+      "looking for?", // 9
     ];
     const doc = createMockDocument(lines);
 
@@ -92,32 +97,37 @@ describe("OutlineParser", () => {
       type: EntityType.knot,
       name: "knotA",
       definition: { line: 0 },
+      scope: { start: 0, end: 5 },
       isBlock: true,
     });
     expectOutlineEntity(outline[0].children[0], {
       type: EntityType.stitch,
       name: "stitchA",
-      definition: { line: 1 },
+      definition: { line: 2 },
+      scope: { start: 2, end: 3 },
       isBlock: true,
       parent: { name: "knotA", type: EntityType.knot },
     });
     expectOutlineEntity(outline[0].children[1], {
       type: EntityType.stitch,
       name: "stitchB",
-      definition: { line: 2 },
+      definition: { line: 4 },
+      scope: { start: 4, end: 5 },
       isBlock: true,
       parent: { name: "knotA", type: EntityType.knot },
     });
     expectOutlineEntity(outline[1], {
       type: EntityType.knot,
       name: "knotB",
-      definition: { line: 3 },
+      definition: { line: 6 },
+      scope: { start: 6, end: 9 },
       isBlock: true,
     });
     expectOutlineEntity(outline[1].children[0], {
       type: EntityType.stitch,
       name: "stitchC",
-      definition: { line: 4 },
+      definition: { line: 8 },
+      scope: { start: 8, end: 9 },
       isBlock: true,
       parent: { name: "knotB", type: EntityType.knot },
     });

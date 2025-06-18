@@ -87,11 +87,10 @@ export class OutlineParser {
   }
 
   /**
-   * Parses the lines into outline entities, handling stack and parent/child relationships.
+   * Extracts all outline entities from the document lines (flat, no hierarchy).
    */
-  private parseEntities(lines: string[]): OutlineEntity[] {
+  private extractEntities(lines: string[]): OutlineEntity[] {
     const entities: OutlineEntity[] = [];
-    const parentStack: OutlineEntity[] = [];
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const trimmed = line.trim();
@@ -101,93 +100,53 @@ export class OutlineParser {
       for (const strategy of this.strategies) {
         const entity = strategy.tryParse(line, i);
         if (entity) {
-          // Pop stack as long as the parser says to
-          while (strategy.shouldPopStack(parentStack)) {
-            const popped = parentStack.pop();
-            if (popped && popped.isBlock) {
-              // Set scope range for the block entity
-              popped.scopeRange = new vscode.Range(
-                popped.definitionRange.start.line,
-                0,
-                i - 1,
-                lines[i - 1]?.length || 0
-              );
-            }
-          }
-
-          if (strategy.isRootEntity) {
-            // Attach to root
-            entities.push(entity);
-            // Only reset stack if this root entity is a block
-            if (entity.isBlock) {
-              parentStack.length = 0;
-              parentStack.push(entity);
-            }
-            // Otherwise, do not touch the stack
-          } else {
-            // Attach to parent if present, else to root
-            const parent = parentStack[parentStack.length - 1];
-            if (parent) {
-              try {
-                parent.addChild(entity);
-              } catch (e) {
-                entities.push(entity);
-              }
-            } else {
-              entities.push(entity);
-            }
-            // Push to stack if nested and block
-            if (strategy.isNestedEntity && entity.isBlock) {
-              parentStack.push(entity);
-            }
-          }
+          entities.push(entity);
           break;
         }
-      }
-    }
-    // Set scope for any remaining blocks on the stack
-    const lastLine = lines.length - 1;
-    while (parentStack.length > 0) {
-      const popped = parentStack.pop();
-      if (popped && popped.isBlock) {
-        popped.scopeRange = new vscode.Range(
-          popped.definitionRange.start.line,
-          0,
-          lastLine,
-          lines[lastLine]?.length || 0
-        );
       }
     }
     return entities;
   }
 
   /**
-   * Attaches an entity to its parent or the root, and manages the parent stack.
+   * Assigns parent/child relationships to the extracted entities.
    */
-  private attachEntity(
-    entity: OutlineEntity,
-    strategy: any,
-    parentStack: OutlineEntity[],
-    entities: OutlineEntity[]
-  ): void {
-    if (strategy.isRootEntity) {
-      entities.push(entity);
-      // Do not push to stack
-      return;
-    }
-    const parent = parentStack[parentStack.length - 1];
-    if (parent) {
-      try {
-        parent.addChild(entity);
-      } catch (e) {
-        entities.push(entity);
+  private assignParentChildRelationships(entities: OutlineEntity[]): void {
+    const parentStack: OutlineEntity[] = [];
+    for (const entity of entities) {
+      // Find the strategy for this entity type
+      const strategy = this.strategies.find(
+        (s) => s.entityType === entity.type
+      );
+      if (!strategy) {
+        continue;
       }
-    } else {
-      entities.push(entity);
-    }
-    // Only push to stack if isNestedEntity is true AND isRootEntity is false
-    if (strategy.isNestedEntity && !strategy.isRootEntity) {
-      parentStack.push(entity);
+      // Pop stack as long as the parser says to
+      while (strategy.shouldPopStack(parentStack)) {
+        parentStack.pop();
+      }
+      if (strategy.isRootEntity) {
+        // Root entity: clear stack if block, then push
+        if (entity.isBlock) {
+          parentStack.length = 0;
+          parentStack.push(entity);
+        }
+        // No parent assignment needed for root
+      } else {
+        // Attach to parent if present, else leave as root
+        const parent = parentStack[parentStack.length - 1];
+        if (parent) {
+          try {
+            parent.addChild(entity);
+          } catch (e) {
+            // If parent cannot have children, leave as root
+          }
+        }
+        // Push to stack if nested and block
+        if (strategy.isNestedEntity && entity.isBlock) {
+          parentStack.push(entity);
+        }
+      }
     }
   }
 
@@ -203,33 +162,40 @@ export class OutlineParser {
    */
   private setScopeRangesRecursive(
     entities: OutlineEntity[],
-    lines: string[]
+    lines: string[],
+    parentEndLine?: number
   ): void {
-    let lastBlock: OutlineEntity | null = null;
+    // First, collect all block entities and their indices
+    const blockIndices: number[] = [];
     for (let i = 0; i < entities.length; i++) {
-      const entity = entities[i];
-      if (this.blockTypes.has(entity.type)) {
-        if (lastBlock) {
-          lastBlock.scopeRange = new vscode.Range(
-            lastBlock.definitionRange.start.line,
-            0,
-            entity.definitionRange.start.line - 1,
-            lines[entity.definitionRange.start.line - 1]?.length || 0
-          );
-        }
-        lastBlock = entity;
-      }
-      if (entity.children && entity.children.length > 0) {
-        this.setScopeRangesRecursive(entity.children, lines);
+      if (this.blockTypes.has(entities[i].type)) {
+        blockIndices.push(i);
       }
     }
-    if (lastBlock) {
-      lastBlock.scopeRange = new vscode.Range(
-        lastBlock.definitionRange.start.line,
+    // Now, assign scope for each block entity
+    for (let b = 0; b < blockIndices.length; b++) {
+      const idx = blockIndices[b];
+      const block = entities[idx];
+      const startLine = block.definitionRange.start.line;
+      let endLine: number;
+      if (b < blockIndices.length - 1) {
+        // End at the line before the next block entity
+        const nextBlock = entities[blockIndices[b + 1]];
+        endLine = nextBlock.definitionRange.start.line - 1;
+      } else {
+        // End at the parent block's end line, or end of document if not provided
+        endLine = !!parentEndLine ? parentEndLine : lines.length - 1;
+      }
+      block.scopeRange = new vscode.Range(
+        startLine,
         0,
-        lines.length - 1,
-        lines[lines.length - 1]?.length || 0
+        endLine,
+        lines[endLine]?.length || 0
       );
+      // Recurse into children, passing this block's end line
+      if (block.children && block.children.length > 0) {
+        this.setScopeRangesRecursive(block.children, lines, endLine);
+      }
     }
   }
 
@@ -241,9 +207,16 @@ export class OutlineParser {
    * @returns The outline entities.
    */
   public async parse(document: vscode.TextDocument): Promise<OutlineEntity[]> {
+    // Step 1: Preprocess document
     const lines = this.preprocessDocument(document);
-    const entities = this.parseEntities(lines);
-    this.assignScopeRanges(entities, lines);
-    return entities;
+    // Step 2: Extract all entities (flat, no hierarchy)
+    const entities = this.extractEntities(lines);
+    // Step 3: Assign parent/child relationships
+    this.assignParentChildRelationships(entities);
+    // Only keep root entities (no parent)
+    const rootEntities = entities.filter((e) => !e.parent);
+    // Step 4: Assign scope ranges
+    this.assignScopeRanges(rootEntities, lines);
+    return rootEntities;
   }
 }
