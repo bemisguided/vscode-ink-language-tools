@@ -24,7 +24,7 @@
 
 import * as vscode from "vscode";
 import { IEntityParser } from "./IEntityParser";
-import { OutlineEntity, SymbolType } from "../../model/OutlineEntity";
+import { OutlineEntity, EntityType } from "../../model/OutlineEntity";
 
 /**
  * Parser for the KNOT keyword of an Ink story for the outline.
@@ -34,6 +34,23 @@ export class KnotParser implements IEntityParser {
 
   private regex =
     /^(==+)\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\((.*?)\))?\s*(==+)?\s*$/;
+
+  // Public Properties ===============================================================================================
+
+  readonly entityType = EntityType.knot;
+
+  readonly isBlockEntity = true;
+
+  readonly isNestedEntity = true;
+
+  readonly isRootEntity = false;
+
+  // Public Methods ===================================================================================================
+
+  shouldPopStack(stack: OutlineEntity[]): boolean {
+    // Pop all for a new knot
+    return stack.length > 0;
+  }
 
   // Public Methods ===================================================================================================
 
@@ -47,19 +64,10 @@ export class KnotParser implements IEntityParser {
     const range = new vscode.Range(lineNumber, 0, lineNumber, line.length);
     return new OutlineEntity(
       name + (params ? `(${params})` : ""),
-      SymbolType.knot,
-      lineNumber,
+      EntityType.knot,
       range,
-      range
+      range,
+      this.isBlockEntity
     );
   }
-
-  shouldPopStack(stack: OutlineEntity[]): boolean {
-    // Pop all for a new knot
-    return stack.length > 0;
-  }
-
-  readonly isBlockEntity = true;
-  readonly isNestedEntity = true;
-  readonly isRootEntity = false;
 }

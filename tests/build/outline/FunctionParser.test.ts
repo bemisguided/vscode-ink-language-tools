@@ -23,7 +23,7 @@
  */
 
 import { FunctionParser } from "../../../src/build/outline/FunctionParser";
-import { SymbolType } from "../../../src/model/OutlineEntity";
+import { EntityType } from "../../../src/model/OutlineEntity";
 
 describe("FunctionParser", () => {
   let parser: FunctionParser;
@@ -42,8 +42,8 @@ describe("FunctionParser", () => {
     // Assert
     expect(entity).not.toBeNull();
     expect(entity!.name).toBe("myFunc");
-    expect(entity!.type).toBe(SymbolType.function);
-    expect(entity!.definitionLine).toBe(0);
+    expect(entity!.type).toBe(EntityType.function);
+    expect(entity!.definitionRange.start.line).toBe(0);
   });
 
   it("parses a standard function line with parentheses", () => {
@@ -56,8 +56,8 @@ describe("FunctionParser", () => {
     // Assert
     expect(entity).not.toBeNull();
     expect(entity!.name).toBe("myFunc()");
-    expect(entity!.type).toBe(SymbolType.function);
-    expect(entity!.definitionLine).toBe(1);
+    expect(entity!.type).toBe(EntityType.function);
+    expect(entity!.definitionRange.start.line).toBe(1);
   });
 
   it("parses a function line with parameters", () => {
@@ -70,8 +70,8 @@ describe("FunctionParser", () => {
     // Assert
     expect(entity).not.toBeNull();
     expect(entity!.name).toBe("add(a, b)");
-    expect(entity!.type).toBe(SymbolType.function);
-    expect(entity!.definitionLine).toBe(2);
+    expect(entity!.type).toBe(EntityType.function);
+    expect(entity!.definitionRange.start.line).toBe(2);
   });
 
   it("parses a function line with extra whitespace", () => {
@@ -84,8 +84,8 @@ describe("FunctionParser", () => {
     // Assert
     expect(entity).not.toBeNull();
     expect(entity!.name).toBe("spacedFunc");
-    expect(entity!.type).toBe(SymbolType.function);
-    expect(entity!.definitionLine).toBe(7);
+    expect(entity!.type).toBe(EntityType.function);
+    expect(entity!.definitionRange.start.line).toBe(7);
   });
 
   it("parses a function line with a divert as a parameter", () => {

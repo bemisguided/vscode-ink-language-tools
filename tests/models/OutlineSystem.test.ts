@@ -25,7 +25,7 @@
 import * as vscode from "vscode";
 import { OutlineSystem } from "../../src/systems/OutlineSystem";
 import { OutlineManager } from "../../src/model/OutlineManager";
-import { OutlineEntity, SymbolType } from "../../src/model/OutlineEntity";
+import { OutlineEntity, EntityType } from "../../src/model/OutlineEntity";
 import { mapOutlineEntitiesToSymbols } from "../../src/build/outline/mapOutlineEntitiesToSymbols";
 
 describe("OutlineSystem (integration)", () => {

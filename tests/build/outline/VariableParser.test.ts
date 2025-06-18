@@ -23,7 +23,7 @@
  */
 
 import { VariableParser } from "../../../src/build/outline/VariableParser";
-import { SymbolType } from "../../../src/model/OutlineEntity";
+import { EntityType } from "../../../src/model/OutlineEntity";
 
 describe("VariableParser", () => {
   let parser: VariableParser;
@@ -42,8 +42,8 @@ describe("VariableParser", () => {
     // Assert
     expect(entity).not.toBeNull();
     expect(entity!.name).toBe("score");
-    expect(entity!.type).toBe(SymbolType.variable);
-    expect(entity!.definitionLine).toBe(0);
+    expect(entity!.type).toBe(EntityType.variable);
+    expect(entity!.definitionRange.start.line).toBe(0);
   });
 
   it("parses a VAR line with extra whitespace", () => {
@@ -56,8 +56,8 @@ describe("VariableParser", () => {
     // Assert
     expect(entity).not.toBeNull();
     expect(entity!.name).toBe("spacedVar");
-    expect(entity!.type).toBe(SymbolType.variable);
-    expect(entity!.definitionLine).toBe(7);
+    expect(entity!.type).toBe(EntityType.variable);
+    expect(entity!.definitionRange.start.line).toBe(7);
   });
 
   it("returns null for non-VAR lines", () => {

@@ -24,20 +24,20 @@
 
 import * as vscode from "vscode";
 import { mapOutlineEntitiesToSymbols } from "../../../src/build/outline/mapOutlineEntitiesToSymbols";
-import { OutlineEntity, SymbolType } from "../../../src/model/OutlineEntity";
+import { OutlineEntity, EntityType } from "../../../src/model/OutlineEntity";
 
 describe("mapOutlineEntitiesToSymbols", () => {
   function makeEntity(
     name: string,
-    type: SymbolType,
+    type: EntityType,
     children: OutlineEntity[] = []
   ): OutlineEntity {
     const entity = new OutlineEntity(
       name,
       type,
-      0,
       new vscode.Range(0, 0, 0, name.length),
-      new vscode.Range(0, 0, 0, name.length)
+      new vscode.Range(0, 0, 0, name.length),
+      false
     );
     for (const child of children) {
       entity.addChild(child);
@@ -47,7 +47,7 @@ describe("mapOutlineEntitiesToSymbols", () => {
 
   it("maps a single knot entity to a DocumentSymbol", () => {
     // Setup
-    const entity = makeEntity("knot1", SymbolType.knot);
+    const entity = makeEntity("knot1", EntityType.knot);
 
     // Execute
     const symbols = mapOutlineEntitiesToSymbols([entity]);
@@ -61,7 +61,7 @@ describe("mapOutlineEntitiesToSymbols", () => {
 
   it("maps a single include entity to a DocumentSymbol", () => {
     // Setup
-    const entity = makeEntity("file.ink", SymbolType.include);
+    const entity = makeEntity("file.ink", EntityType.include);
 
     // Execute
     const symbols = mapOutlineEntitiesToSymbols([entity]);
@@ -73,7 +73,7 @@ describe("mapOutlineEntitiesToSymbols", () => {
 
   it("maps a function entity to a DocumentSymbol", () => {
     // Setup
-    const entity = makeEntity("func", SymbolType.function);
+    const entity = makeEntity("func", EntityType.function);
 
     // Execute
     const symbols = mapOutlineEntitiesToSymbols([entity]);
@@ -85,7 +85,7 @@ describe("mapOutlineEntitiesToSymbols", () => {
 
   it("maps a variable entity to a DocumentSymbol", () => {
     // Setup
-    const entity = makeEntity("var", SymbolType.variable);
+    const entity = makeEntity("var", EntityType.variable);
 
     // Execute
     const symbols = mapOutlineEntitiesToSymbols([entity]);
@@ -97,7 +97,7 @@ describe("mapOutlineEntitiesToSymbols", () => {
 
   it("maps a list entity to a DocumentSymbol", () => {
     // Setup
-    const entity = makeEntity("list", SymbolType.list);
+    const entity = makeEntity("list", EntityType.list);
 
     // Execute
     const symbols = mapOutlineEntitiesToSymbols([entity]);
@@ -109,7 +109,7 @@ describe("mapOutlineEntitiesToSymbols", () => {
 
   it("maps a listItem entity to a DocumentSymbol", () => {
     // Setup
-    const entity = makeEntity("item", SymbolType.listItem);
+    const entity = makeEntity("item", EntityType.listItem);
 
     // Execute
     const symbols = mapOutlineEntitiesToSymbols([entity]);
@@ -121,7 +121,7 @@ describe("mapOutlineEntitiesToSymbols", () => {
 
   it("maps a const entity to a DocumentSymbol", () => {
     // Setup
-    const entity = makeEntity("CONST", SymbolType.const);
+    const entity = makeEntity("CONST", EntityType.const);
 
     // Execute
     const symbols = mapOutlineEntitiesToSymbols([entity]);
@@ -133,7 +133,7 @@ describe("mapOutlineEntitiesToSymbols", () => {
 
   it("maps an external entity to a DocumentSymbol", () => {
     // Setup
-    const entity = makeEntity("EXTERNAL", SymbolType.external);
+    const entity = makeEntity("EXTERNAL", EntityType.external);
 
     // Execute
     const symbols = mapOutlineEntitiesToSymbols([entity]);
@@ -145,8 +145,8 @@ describe("mapOutlineEntitiesToSymbols", () => {
 
   it("maps nested entities as children", () => {
     // Setup
-    const child = makeEntity("child", SymbolType.stitch);
-    const parent = makeEntity("parent", SymbolType.knot, [child]);
+    const child = makeEntity("child", EntityType.stitch);
+    const parent = makeEntity("parent", EntityType.knot, [child]);
 
     // Execute
     const symbols = mapOutlineEntitiesToSymbols([parent]);

@@ -24,7 +24,7 @@
 
 import * as vscode from "vscode";
 import { IEntityParser } from "./IEntityParser";
-import { OutlineEntity, SymbolType } from "../../model/OutlineEntity";
+import { OutlineEntity, EntityType } from "../../model/OutlineEntity";
 
 /**
  * Parser for the STITCH keyword of an Ink story for the outline.
@@ -34,7 +34,26 @@ export class StitchParser implements IEntityParser {
 
   private regex = /^=\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\((.*?)\))?\s*$/;
 
+  // Public Properties ===============================================================================================
+
+  readonly entityType = EntityType.stitch;
+
+  readonly isBlockEntity = true;
+
+  readonly isNestedEntity = true;
+
+  readonly isRootEntity = false;
+
   // Public Methods ===================================================================================================
+
+  shouldPopStack(stack: OutlineEntity[]): boolean {
+    // Only pop if the parent is NOT a Knot
+    if (stack.length === 0) {
+      return false;
+    }
+    const parent = stack[stack.length - 1];
+    return parent.type !== EntityType.knot;
+  }
 
   tryParse(line: string, lineNumber: number): OutlineEntity | null {
     const match = this.regex.exec(line.trim());
@@ -45,21 +64,10 @@ export class StitchParser implements IEntityParser {
     const range = new vscode.Range(lineNumber, 0, lineNumber, line.length);
     return new OutlineEntity(
       name + (params ? `(${params})` : ""),
-      SymbolType.stitch,
-      lineNumber,
+      EntityType.stitch,
       range,
-      range
+      range,
+      this.isBlockEntity
     );
   }
-
-  shouldPopStack(stack: OutlineEntity[]): boolean {
-    // Pop if the top of the stack is a stitch
-    return (
-      stack.length > 0 && stack[stack.length - 1].type === SymbolType.stitch
-    );
-  }
-
-  readonly isBlockEntity = true;
-  readonly isNestedEntity = true;
-  readonly isRootEntity = false;
 }

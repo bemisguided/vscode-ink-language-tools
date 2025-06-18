@@ -29,10 +29,11 @@ import { FunctionParser } from "./FunctionParser";
 import { ExternalParser } from "./ExternalParser";
 import { VariableParser } from "./VariableParser";
 import { IncludeParser } from "./IncludeParser";
-import { OutlineEntity, SymbolType } from "../../model/OutlineEntity";
+import { OutlineEntity, EntityType } from "../../model/OutlineEntity";
 import { ListParser } from "./ListParser";
 import { ConstParser } from "./ConstParser";
 import { stripComments } from "./stripComments";
+import { IEntityParser } from "./IEntityParser";
 
 /**
  * Parser for the outline of an Ink story.
@@ -41,7 +42,8 @@ export class OutlineParser {
   // Private Properties ===============================================================================================
 
   private static instance: OutlineParser | null = null;
-  private strategies: any[];
+  private strategies: IEntityParser[];
+  private blockTypes: Set<EntityType>;
 
   // Public Static Methods ============================================================================================
 
@@ -69,6 +71,9 @@ export class OutlineParser {
       new StitchParser(),
       new VariableParser(),
     ];
+    this.blockTypes = new Set(
+      this.strategies.filter((s) => s.isBlockEntity).map((s) => s.entityType)
+    );
   }
 
   // Private Methods ===================================================================================================
@@ -98,11 +103,59 @@ export class OutlineParser {
         if (entity) {
           // Pop stack as long as the parser says to
           while (strategy.shouldPopStack(parentStack)) {
-            parentStack.pop();
+            const popped = parentStack.pop();
+            if (popped && popped.isBlock) {
+              // Set scope range for the block entity
+              popped.scopeRange = new vscode.Range(
+                popped.definitionRange.start.line,
+                0,
+                i - 1,
+                lines[i - 1]?.length || 0
+              );
+            }
           }
-          this.attachEntity(entity, strategy, parentStack, entities);
+
+          if (strategy.isRootEntity) {
+            // Attach to root
+            entities.push(entity);
+            // Only reset stack if this root entity is a block
+            if (entity.isBlock) {
+              parentStack.length = 0;
+              parentStack.push(entity);
+            }
+            // Otherwise, do not touch the stack
+          } else {
+            // Attach to parent if present, else to root
+            const parent = parentStack[parentStack.length - 1];
+            if (parent) {
+              try {
+                parent.addChild(entity);
+              } catch (e) {
+                entities.push(entity);
+              }
+            } else {
+              entities.push(entity);
+            }
+            // Push to stack if nested and block
+            if (strategy.isNestedEntity && entity.isBlock) {
+              parentStack.push(entity);
+            }
+          }
           break;
         }
+      }
+    }
+    // Set scope for any remaining blocks on the stack
+    const lastLine = lines.length - 1;
+    while (parentStack.length > 0) {
+      const popped = parentStack.pop();
+      if (popped && popped.isBlock) {
+        popped.scopeRange = new vscode.Range(
+          popped.definitionRange.start.line,
+          0,
+          lastLine,
+          lines[lastLine]?.length || 0
+        );
       }
     }
     return entities;
@@ -142,18 +195,7 @@ export class OutlineParser {
    * Assigns scope ranges to all block entities (e.g., knots, stitches).
    */
   private assignScopeRanges(entities: OutlineEntity[], lines: string[]): void {
-    const blockTypes = new Set<string>(
-      this.strategies
-        .filter((s) => s.definesScope)
-        .map((s) =>
-          s instanceof KnotParser
-            ? SymbolType.knot
-            : s instanceof StitchParser
-            ? SymbolType.stitch
-            : ""
-        )
-    );
-    this.setScopeRangesRecursive(entities, lines, blockTypes);
+    this.setScopeRangesRecursive(entities, lines);
   }
 
   /**
@@ -161,30 +203,29 @@ export class OutlineParser {
    */
   private setScopeRangesRecursive(
     entities: OutlineEntity[],
-    lines: string[],
-    blockTypes: Set<string>
+    lines: string[]
   ): void {
     let lastBlock: OutlineEntity | null = null;
     for (let i = 0; i < entities.length; i++) {
       const entity = entities[i];
-      if (blockTypes.has(entity.type)) {
+      if (this.blockTypes.has(entity.type)) {
         if (lastBlock) {
           lastBlock.scopeRange = new vscode.Range(
-            lastBlock.definitionLine,
+            lastBlock.definitionRange.start.line,
             0,
-            entity.definitionLine - 1,
-            lines[entity.definitionLine - 1]?.length || 0
+            entity.definitionRange.start.line - 1,
+            lines[entity.definitionRange.start.line - 1]?.length || 0
           );
         }
         lastBlock = entity;
       }
       if (entity.children && entity.children.length > 0) {
-        this.setScopeRangesRecursive(entity.children, lines, blockTypes);
+        this.setScopeRangesRecursive(entity.children, lines);
       }
     }
     if (lastBlock) {
       lastBlock.scopeRange = new vscode.Range(
-        lastBlock.definitionLine,
+        lastBlock.definitionRange.start.line,
         0,
         lines.length - 1,
         lines[lines.length - 1]?.length || 0

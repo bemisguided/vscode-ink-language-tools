@@ -24,7 +24,7 @@
 
 import * as vscode from "vscode";
 import { IEntityParser } from "./IEntityParser";
-import { OutlineEntity, SymbolType } from "../../model/OutlineEntity";
+import { OutlineEntity, EntityType } from "../../model/OutlineEntity";
 
 /**
  * Parser for the LIST keyword of an Ink story for the outline.
@@ -34,7 +34,21 @@ export class ListParser implements IEntityParser {
 
   private regex = /^LIST\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:=\s*(.*))?$/;
 
+  // Public Properties ===============================================================================================
+
+  readonly entityType = EntityType.list;
+
+  readonly isBlockEntity = false;
+
+  readonly isNestedEntity = false;
+
+  readonly isRootEntity = true;
+
   // Public Methods ===================================================================================================
+
+  shouldPopStack(stack: OutlineEntity[]): boolean {
+    return false;
+  }
 
   tryParse(line: string, lineNumber: number): OutlineEntity | null {
     const match = this.regex.exec(line.trim());
@@ -45,10 +59,10 @@ export class ListParser implements IEntityParser {
     const range = new vscode.Range(lineNumber, 0, lineNumber, line.length);
     const listEntity = new OutlineEntity(
       listName,
-      SymbolType.list,
-      lineNumber,
+      EntityType.list,
       range,
-      range
+      range,
+      this.isBlockEntity
     );
     if (inlineItems) {
       const items = inlineItems
@@ -58,24 +72,14 @@ export class ListParser implements IEntityParser {
       for (const item of items) {
         const itemEntity = new OutlineEntity(
           item,
-          SymbolType.listItem,
-          lineNumber,
+          EntityType.listItem,
           range,
-          range
+          range,
+          this.isBlockEntity
         );
         listEntity.addChild(itemEntity);
       }
     }
     return listEntity;
   }
-
-  shouldPopStack(stack: OutlineEntity[]): boolean {
-    return false;
-  }
-
-  readonly isBlockEntity = false;
-
-  readonly isNestedEntity = false;
-
-  readonly isRootEntity = true;
 }

@@ -23,7 +23,7 @@
  */
 
 import { KnotParser } from "../../../src/build/outline/KnotParser";
-import { SymbolType } from "../../../src/model/OutlineEntity";
+import { EntityType } from "../../../src/model/OutlineEntity";
 
 describe("KnotParser", () => {
   let parser: KnotParser;
@@ -42,8 +42,8 @@ describe("KnotParser", () => {
     // Assert
     expect(entity).not.toBeNull();
     expect(entity!.name).toBe("myKnot");
-    expect(entity!.type).toBe(SymbolType.knot);
-    expect(entity!.definitionLine).toBe(0);
+    expect(entity!.type).toBe(EntityType.knot);
+    expect(entity!.definitionRange.start.line).toBe(0);
   });
 
   it("parses a knot line with extra whitespace", () => {
@@ -56,8 +56,8 @@ describe("KnotParser", () => {
     // Assert
     expect(entity).not.toBeNull();
     expect(entity!.name).toBe("spacedKnot");
-    expect(entity!.type).toBe(SymbolType.knot);
-    expect(entity!.definitionLine).toBe(7);
+    expect(entity!.type).toBe(EntityType.knot);
+    expect(entity!.definitionRange.start.line).toBe(7);
   });
 
   it("returns null for non-knot lines", () => {

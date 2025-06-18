@@ -25,9 +25,9 @@
 import * as vscode from "vscode";
 
 /**
- * Enum for Ink Symbol types.
+ * Enum for Ink Entity types.
  */
-export enum SymbolType {
+export enum EntityType {
   const = "const",
   external = "external",
   function = "function",
@@ -46,28 +46,28 @@ export class OutlineEntity {
   // Public Properties ===============================================================================================
 
   public name: string;
-  public type: SymbolType;
-  public definitionLine: number;
+  public type: EntityType;
   public definitionRange: vscode.Range;
   public scopeRange: vscode.Range;
   public parent?: OutlineEntity;
   public children: OutlineEntity[] = [];
+  public isBlock: boolean;
 
   // Constructor ======================================================================================================
 
   constructor(
     name: string,
-    type: SymbolType,
-    definitionLine: number,
+    type: EntityType,
     definitionRange: vscode.Range,
     scopeRange: vscode.Range,
+    isBlock: boolean = false,
     parent?: OutlineEntity
   ) {
     this.name = name;
     this.type = type;
-    this.definitionLine = definitionLine;
     this.definitionRange = definitionRange;
     this.scopeRange = scopeRange;
+    this.isBlock = isBlock;
     this.parent = parent;
   }
 
@@ -79,9 +79,9 @@ export class OutlineEntity {
    */
   addChild(child: OutlineEntity) {
     if (
-      this.type === SymbolType.knot ||
-      this.type === SymbolType.stitch ||
-      this.type === SymbolType.list
+      this.type === EntityType.knot ||
+      this.type === EntityType.stitch ||
+      this.type === EntityType.list
     ) {
       child.parent = this;
       this.children.push(child);

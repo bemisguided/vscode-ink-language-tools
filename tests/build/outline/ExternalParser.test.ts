@@ -24,7 +24,7 @@
 
 import "../../__mocks__/vscode";
 import { ExternalParser } from "../../../src/build/outline/ExternalParser";
-import { SymbolType } from "../../../src/model/OutlineEntity";
+import { EntityType } from "../../../src/model/OutlineEntity";
 
 describe("ExternalParser", () => {
   let parser: ExternalParser;
@@ -43,8 +43,8 @@ describe("ExternalParser", () => {
     // Assert
     expect(entity).not.toBeNull();
     expect(entity!.name).toBe("myFunc(x, y)");
-    expect(entity!.type).toBe(SymbolType.external);
-    expect(entity!.definitionLine).toBe(0);
+    expect(entity!.type).toBe(EntityType.external);
+    expect(entity!.definitionRange.start.line).toBe(0);
   });
 
   it("parses an EXTERNAL line with extra whitespace", () => {
@@ -57,8 +57,8 @@ describe("ExternalParser", () => {
     // Assert
     expect(entity).not.toBeNull();
     expect(entity!.name).toBe("spacedFunc(a, b)");
-    expect(entity!.type).toBe(SymbolType.external);
-    expect(entity!.definitionLine).toBe(7);
+    expect(entity!.type).toBe(EntityType.external);
+    expect(entity!.definitionRange.start.line).toBe(7);
   });
 
   it("returns null for non-EXTERNAL lines", () => {
@@ -83,8 +83,8 @@ describe("ExternalParser", () => {
     const entity = parser.tryParse(line, 3);
     expect(entity).not.toBeNull();
     expect(entity!.name).toBe("myFunc(ref param1, param2)");
-    expect(entity!.type).toBe(SymbolType.external);
-    expect(entity!.definitionLine).toBe(3);
+    expect(entity!.type).toBe(EntityType.external);
+    expect(entity!.definitionRange.start.line).toBe(3);
   });
 
   it("parses EXTERNAL with a divert as a parameter", () => {
@@ -92,8 +92,8 @@ describe("ExternalParser", () => {
     const entity = parser.tryParse(line, 4);
     expect(entity).not.toBeNull();
     expect(entity!.name).toBe("myFunc(-> return_to)");
-    expect(entity!.type).toBe(SymbolType.external);
-    expect(entity!.definitionLine).toBe(4);
+    expect(entity!.type).toBe(EntityType.external);
+    expect(entity!.definitionRange.start.line).toBe(4);
   });
 
   it("parses EXTERNAL with a ref and a divert as parameters", () => {
@@ -101,7 +101,7 @@ describe("ExternalParser", () => {
     const entity = parser.tryParse(line, 5);
     expect(entity).not.toBeNull();
     expect(entity!.name).toBe("myFunc(ref param1, param2, -> return_to)");
-    expect(entity!.type).toBe(SymbolType.external);
-    expect(entity!.definitionLine).toBe(5);
+    expect(entity!.type).toBe(EntityType.external);
+    expect(entity!.definitionRange.start.line).toBe(5);
   });
 });

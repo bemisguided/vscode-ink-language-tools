@@ -23,7 +23,7 @@
  */
 
 import * as vscode from "vscode";
-import { OutlineEntity, SymbolType } from "./OutlineEntity";
+import { OutlineEntity, EntityType } from "./OutlineEntity";
 
 /**
  * Singleton which manages the Outline of Ink stories.
@@ -92,7 +92,7 @@ export class OutlineManager {
    */
   public queryByTypes(
     uri: vscode.Uri,
-    types: SymbolType | SymbolType[]
+    types: EntityType | EntityType[]
   ): OutlineEntity[] {
     const typeSet = Array.isArray(types) ? new Set(types) : new Set([types]);
     return this.query(uri, (entity) => typeSet.has(entity.type));

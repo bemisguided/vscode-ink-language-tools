@@ -22,15 +22,21 @@
  * SOFTWARE.
  */
 
-import { OutlineEntity } from "../../model/OutlineEntity";
+import { EntityType, OutlineEntity } from "../../model/OutlineEntity";
 
 /**
  * Interface for a parser that can try to parse an entity from a line of text.
  */
 export interface IEntityParser {
   // Public Properties ================================================================================================
+
   /**
-   * Whether this parser's entity type is a block Outline Entity.
+   * The type of entity this parser handles.
+   */
+  readonly entityType: EntityType;
+
+  /**
+   * Whether this entity type is a block entity.
    */
   readonly isBlockEntity: boolean;
 
@@ -47,17 +53,17 @@ export interface IEntityParser {
   // Public Methods ===================================================================================================
 
   /**
+   * Determines whether the stack should be popped before handling this entity.
+   * @param stack - The current parent stack.
+   * @returns True if the stack should be popped, false otherwise.
+   */
+  shouldPopStack(stack: OutlineEntity[]): boolean;
+
+  /**
    * Tries to parse an entity from a line of text.
    * @param line - The line of text to parse.
    * @param lineNumber - The line number in the document.
    * @returns The parsed entity or null if no entity was found.
    */
   tryParse(line: string, lineNumber: number): OutlineEntity | null;
-
-  /**
-   * Determines whether the stack should be popped before handling this entity.
-   * @param stack - The current parent stack.
-   * @returns True if the stack should be popped, false otherwise.
-   */
-  shouldPopStack(stack: OutlineEntity[]): boolean;
 }

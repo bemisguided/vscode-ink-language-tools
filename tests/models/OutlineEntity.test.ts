@@ -23,7 +23,7 @@
  */
 
 import * as vscode from "vscode";
-import { OutlineEntity, SymbolType } from "../../src/model/OutlineEntity";
+import { OutlineEntity, EntityType } from "../../src/model/OutlineEntity";
 
 describe("OutlineEntity", () => {
   function mockRange(line = 0, char = 0) {
@@ -34,16 +34,15 @@ describe("OutlineEntity", () => {
     // Setup
     const entity = new OutlineEntity(
       "myKnot",
-      SymbolType.knot,
-      1,
+      EntityType.knot,
       mockRange(1, 0),
       mockRange(1, 0)
     );
 
     // Assert
     expect(entity.name).toBe("myKnot");
-    expect(entity.type).toBe(SymbolType.knot);
-    expect(entity.definitionLine).toBe(1);
+    expect(entity.type).toBe(EntityType.knot);
+    expect(entity.definitionRange.start.line).toBe(1);
     expect(entity.definitionRange).toBeDefined();
     expect(entity.scopeRange).toBeDefined();
     expect(entity.parent).toBeUndefined();
@@ -54,15 +53,13 @@ describe("OutlineEntity", () => {
     // Setup
     const parent = new OutlineEntity(
       "parentKnot",
-      SymbolType.knot,
-      0,
+      EntityType.knot,
       mockRange(0, 0),
       mockRange(0, 0)
     );
     const child = new OutlineEntity(
       "childStitch",
-      SymbolType.stitch,
-      1,
+      EntityType.stitch,
       mockRange(1, 0),
       mockRange(1, 0)
     );
@@ -80,15 +77,13 @@ describe("OutlineEntity", () => {
     // Setup
     const parent = new OutlineEntity(
       "myVar",
-      SymbolType.variable,
-      0,
+      EntityType.variable,
       mockRange(0, 0),
       mockRange(0, 0)
     );
     const child = new OutlineEntity(
       "child",
-      SymbolType.stitch,
-      1,
+      EntityType.stitch,
       mockRange(1, 0),
       mockRange(1, 0)
     );

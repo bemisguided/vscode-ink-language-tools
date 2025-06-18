@@ -23,7 +23,7 @@
  */
 
 import { IncludeParser } from "../../../src/build/outline/IncludeParser";
-import { SymbolType } from "../../../src/model/OutlineEntity";
+import { EntityType } from "../../../src/model/OutlineEntity";
 
 describe("IncludeParser", () => {
   let parser: IncludeParser;
@@ -42,8 +42,8 @@ describe("IncludeParser", () => {
     // Assert
     expect(entity).not.toBeNull();
     expect(entity!.name).toBe("file.ink");
-    expect(entity!.type).toBe(SymbolType.include);
-    expect(entity!.definitionLine).toBe(0);
+    expect(entity!.type).toBe(EntityType.include);
+    expect(entity!.definitionRange.start.line).toBe(0);
   });
 
   it("parses an INCLUDE line with extra whitespace", () => {
@@ -56,8 +56,8 @@ describe("IncludeParser", () => {
     // Assert
     expect(entity).not.toBeNull();
     expect(entity!.name).toBe("anotherFile.ink");
-    expect(entity!.type).toBe(SymbolType.include);
-    expect(entity!.definitionLine).toBe(7);
+    expect(entity!.type).toBe(EntityType.include);
+    expect(entity!.definitionRange.start.line).toBe(7);
   });
 
   it("parses an INCLUDE line with slashes in the path", () => {
@@ -70,7 +70,7 @@ describe("IncludeParser", () => {
     // Assert
     expect(entity).not.toBeNull();
     expect(entity!.name).toBe("path/to/file.ink");
-    expect(entity!.type).toBe(SymbolType.include);
+    expect(entity!.type).toBe(EntityType.include);
   });
 
   it("parses an INCLUDE line with dots in the path", () => {
@@ -83,7 +83,7 @@ describe("IncludeParser", () => {
     // Assert
     expect(entity).not.toBeNull();
     expect(entity!.name).toBe("../relative/other.ink");
-    expect(entity!.type).toBe(SymbolType.include);
+    expect(entity!.type).toBe(EntityType.include);
   });
 
   it("parses an INCLUDE line with an absolute path", () => {
@@ -96,7 +96,7 @@ describe("IncludeParser", () => {
     // Assert
     expect(entity).not.toBeNull();
     expect(entity!.name).toBe("/absolute/path/to/file.ink");
-    expect(entity!.type).toBe(SymbolType.include);
+    expect(entity!.type).toBe(EntityType.include);
   });
 
   it("returns null for non-INCLUDE lines", () => {

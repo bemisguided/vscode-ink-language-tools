@@ -26,7 +26,7 @@ import * as vscode from "vscode";
 import { IncludeExtractionProcessor } from "../../src/build/IncludeExtractionProcessor";
 import { PipelineContext } from "../../src/build/PipelineContext";
 import { OutlineManager } from "../../src/model/OutlineManager";
-import { OutlineEntity, SymbolType } from "../../src/model/OutlineEntity";
+import { OutlineEntity, EntityType } from "../../src/model/OutlineEntity";
 import { VSCodeServiceLocator } from "../../src/services/VSCodeServiceLocator";
 import { MockVSCodeDocumentService } from "../__mocks__/MockVSCodeDocumentService";
 import { MockVSCodeDiagnosticsService } from "../__mocks__/MockVSCodeDiagnosticsService";
@@ -37,10 +37,10 @@ jest.mock("vscode", () => require("jest-mock-vscode").createVSCodeMock(jest));
 function createIncludeEntity(name: string, line = 0): OutlineEntity {
   return new OutlineEntity(
     name,
-    SymbolType.include,
-    line,
+    EntityType.include,
     new vscode.Range(line, 0, line, name.length),
-    new vscode.Range(line, 0, line, name.length)
+    new vscode.Range(line, 0, line, name.length),
+    false
   );
 }
 

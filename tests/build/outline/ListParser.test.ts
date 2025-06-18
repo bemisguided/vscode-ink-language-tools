@@ -23,7 +23,7 @@
  */
 
 import { ListParser } from "../../../src/build/outline/ListParser";
-import { SymbolType } from "../../../src/model/OutlineEntity";
+import { EntityType } from "../../../src/model/OutlineEntity";
 
 describe("ListParser", () => {
   let parser: ListParser;
@@ -42,8 +42,8 @@ describe("ListParser", () => {
     // Assert
     expect(entity).not.toBeNull();
     expect(entity!.name).toBe("myList");
-    expect(entity!.type).toBe(SymbolType.list);
-    expect(entity!.definitionLine).toBe(0);
+    expect(entity!.type).toBe(EntityType.list);
+    expect(entity!.definitionRange.start.line).toBe(0);
   });
 
   it("parses a LIST line with extra whitespace", () => {
@@ -56,8 +56,8 @@ describe("ListParser", () => {
     // Assert
     expect(entity).not.toBeNull();
     expect(entity!.name).toBe("spacedList");
-    expect(entity!.type).toBe(SymbolType.list);
-    expect(entity!.definitionLine).toBe(7);
+    expect(entity!.type).toBe(EntityType.list);
+    expect(entity!.definitionRange.start.line).toBe(7);
   });
 
   it("returns null for non-LIST lines", () => {

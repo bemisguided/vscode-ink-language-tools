@@ -24,7 +24,7 @@
 
 import * as vscode from "vscode";
 import { OutlineManager } from "../../src/model/OutlineManager";
-import { OutlineEntity, SymbolType } from "../../src/model/OutlineEntity";
+import { OutlineEntity, EntityType } from "../../src/model/OutlineEntity";
 
 describe("OutlineManager", () => {
   // Helper to create a mock Uri
@@ -36,7 +36,7 @@ describe("OutlineManager", () => {
   function mockEntity(name: string): OutlineEntity {
     // Use dummy ranges for testing
     const range = new vscode.Range(0, 0, 0, 1);
-    return new OutlineEntity(name, SymbolType.knot, 0, range, range);
+    return new OutlineEntity(name, EntityType.knot, range, range, false);
   }
 
   it("should set and get outlines for a URI", () => {

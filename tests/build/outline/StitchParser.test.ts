@@ -23,7 +23,7 @@
  */
 
 import { StitchParser } from "../../../src/build/outline/StitchParser";
-import { SymbolType } from "../../../src/model/OutlineEntity";
+import { EntityType } from "../../../src/model/OutlineEntity";
 
 describe("StitchParser", () => {
   let parser: StitchParser;
@@ -42,8 +42,8 @@ describe("StitchParser", () => {
     // Assert
     expect(entity).not.toBeNull();
     expect(entity!.name).toBe("myStitch");
-    expect(entity!.type).toBe(SymbolType.stitch);
-    expect(entity!.definitionLine).toBe(0);
+    expect(entity!.type).toBe(EntityType.stitch);
+    expect(entity!.definitionRange.start.line).toBe(0);
   });
 
   it("parses a stitch line with extra whitespace", () => {
@@ -56,8 +56,8 @@ describe("StitchParser", () => {
     // Assert
     expect(entity).not.toBeNull();
     expect(entity!.name).toBe("spacedStitch");
-    expect(entity!.type).toBe(SymbolType.stitch);
-    expect(entity!.definitionLine).toBe(7);
+    expect(entity!.type).toBe(EntityType.stitch);
+    expect(entity!.definitionRange.start.line).toBe(7);
   });
 
   it("returns null for non-stitch lines", () => {
@@ -74,14 +74,14 @@ describe("StitchParser", () => {
   it("shouldPopStack returns true if stack contains a stitch or knot", () => {
     // Execute & Assert
     expect(parser.shouldPopStack([])).toBe(false);
-    expect(parser.shouldPopStack([{ type: SymbolType.knot } as any])).toBe(
+    expect(parser.shouldPopStack([{ type: EntityType.knot } as any])).toBe(
       false
     );
-    expect(parser.shouldPopStack([{ type: SymbolType.stitch } as any])).toBe(
+    expect(parser.shouldPopStack([{ type: EntityType.stitch } as any])).toBe(
       true
     );
-    expect(parser.shouldPopStack([{ type: SymbolType.list } as any])).toBe(
-      false
+    expect(parser.shouldPopStack([{ type: EntityType.list } as any])).toBe(
+      true
     );
   });
 });

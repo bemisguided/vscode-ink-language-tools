@@ -24,7 +24,7 @@
 
 import * as vscode from "vscode";
 import { IEntityParser } from "./IEntityParser";
-import { OutlineEntity, SymbolType } from "../../model/OutlineEntity";
+import { OutlineEntity, EntityType } from "../../model/OutlineEntity";
 
 /**
  * Parser for the VAR keyword of an Ink story for the outline.
@@ -34,7 +34,21 @@ export class VariableParser implements IEntityParser {
 
   private regex = /^VAR\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=/;
 
+  // Public Properties ===============================================================================================
+
+  readonly entityType = EntityType.variable;
+
+  readonly isBlockEntity = false;
+
+  readonly isNestedEntity = false;
+
+  readonly isRootEntity = true;
+
   // Public Methods ===================================================================================================
+
+  shouldPopStack(stack: OutlineEntity[]): boolean {
+    return false;
+  }
 
   tryParse(line: string, lineNumber: number): OutlineEntity | null {
     const match = this.regex.exec(line.trim());
@@ -45,18 +59,10 @@ export class VariableParser implements IEntityParser {
     const range = new vscode.Range(lineNumber, 0, lineNumber, line.length);
     return new OutlineEntity(
       name,
-      SymbolType.variable,
-      lineNumber,
+      EntityType.variable,
       range,
-      range
+      range,
+      this.isBlockEntity
     );
   }
-
-  shouldPopStack(stack: OutlineEntity[]): boolean {
-    return false;
-  }
-
-  readonly isBlockEntity = false;
-  readonly isNestedEntity = false;
-  readonly isRootEntity = true;
 }

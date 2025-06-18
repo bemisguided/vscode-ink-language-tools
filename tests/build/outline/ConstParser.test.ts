@@ -23,7 +23,7 @@
  */
 
 import { ConstParser } from "../../../src/build/outline/ConstParser";
-import { SymbolType } from "../../../src/model/OutlineEntity";
+import { EntityType } from "../../../src/model/OutlineEntity";
 
 describe("ConstParser", () => {
   let parser: ConstParser;
@@ -42,8 +42,8 @@ describe("ConstParser", () => {
     // Assert
     expect(entity).not.toBeNull();
     expect(entity!.name).toBe("myConst");
-    expect(entity!.type).toBe(SymbolType.const);
-    expect(entity!.definitionLine).toBe(0);
+    expect(entity!.type).toBe(EntityType.const);
+    expect(entity!.definitionRange.start.line).toBe(0);
   });
 
   it("parses a VAR line with extra whitespace", () => {
@@ -56,8 +56,8 @@ describe("ConstParser", () => {
     // Assert
     expect(entity).not.toBeNull();
     expect(entity!.name).toBe("spacedConst");
-    expect(entity!.type).toBe(SymbolType.const);
-    expect(entity!.definitionLine).toBe(7);
+    expect(entity!.type).toBe(EntityType.const);
+    expect(entity!.definitionRange.start.line).toBe(7);
   });
 
   it("returns null for non-VAR lines", () => {

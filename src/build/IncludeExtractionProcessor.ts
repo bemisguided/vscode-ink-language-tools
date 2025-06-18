@@ -26,7 +26,7 @@ import * as vscode from "vscode";
 import { IPipelineProcessor } from "./IPipelineProcessor";
 import { PipelineContext } from "./PipelineContext";
 import { OutlineManager } from "../model/OutlineManager";
-import { SymbolType } from "../model/OutlineEntity";
+import { EntityType } from "../model/OutlineEntity";
 import { VSCodeServiceLocator } from "../services/VSCodeServiceLocator";
 import { VSCodeDocumentService } from "../services/VSCodeDocumentService";
 
@@ -67,7 +67,7 @@ export class IncludeExtractionProcessor implements IPipelineProcessor {
         return;
       }
       // Get all include entities for this document
-      const includes = outlineManager.queryByTypes(uri, SymbolType.include);
+      const includes = outlineManager.queryByTypes(uri, EntityType.include);
       for (const includeEntity of includes) {
         const includePath = includeEntity.name;
         const resolvedUri = this.docService.resolvePath(uri, includePath);
