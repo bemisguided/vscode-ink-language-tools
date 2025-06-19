@@ -7,7 +7,7 @@ import { DependencyManager } from "../model/DependencyManager";
 export class BuildSystem implements IExtensionPlugin {
   private engine: BuildEngine;
   private inkWatcher!: vscode.FileSystemWatcher;
-  private jsWatcher!: vscode.FileSystemWatcher;
+  // private jsWatcher!: vscode.FileSystemWatcher;
 
   constructor() {
     this.engine = BuildEngine.getInstance();
@@ -26,39 +26,39 @@ export class BuildSystem implements IExtensionPlugin {
 
     // Setup filesystem watchers
     this.inkWatcher = vscode.workspace.createFileSystemWatcher("**/*.ink");
-    this.jsWatcher = vscode.workspace.createFileSystemWatcher("**/*.js");
+    // this.jsWatcher = vscode.workspace.createFileSystemWatcher("**/*.js");
 
     context.subscriptions.push(
       this.engine.diagnostics,
       this.inkWatcher,
-      this.jsWatcher,
+      // this.jsWatcher,
       this.inkWatcher.onDidCreate((u) => this.onCreate(u)),
       this.inkWatcher.onDidChange((u) => this.engine.recompileDependents(u)),
-      this.inkWatcher.onDidDelete((u) => this.onDelete(u)),
-      this.jsWatcher.onDidCreate((u) => this.onCreate(u)),
-      this.jsWatcher.onDidChange((u) => this.engine.recompileDependents(u)),
-      this.jsWatcher.onDidDelete((u) => this.onDelete(u))
+      this.inkWatcher.onDidDelete((u) => this.onDelete(u))
+      // this.jsWatcher.onDidCreate((u) => this.onCreate(u)),
+      // this.jsWatcher.onDidChange((u) => this.engine.recompileDependents(u)),
+      // this.jsWatcher.onDidDelete((u) => this.onDelete(u))
     );
   }
 
   dispose(): void {
     this.inkWatcher.dispose();
-    this.jsWatcher.dispose();
+    // this.jsWatcher.dispose();
     this.engine.diagnostics.clear();
     this.engine.diagnostics.dispose();
   }
 
   private async seedGraph(): Promise<void> {
     const inkUris = await vscode.workspace.findFiles("**/*.ink");
-    const jsUris = await vscode.workspace.findFiles("**/*.js");
+    // const jsUris = await vscode.workspace.findFiles("**/*.js");
 
     const depManager = DependencyManager.getInstance();
     for (const uri of inkUris) {
       depManager.setNode(uri, DependencyNode.fromUri(uri, 0));
     }
-    for (const uri of jsUris) {
-      depManager.setNode(uri, DependencyNode.fromUri(uri, 0));
-    }
+    // for (const uri of jsUris) {
+    //   depManager.setNode(uri, DependencyNode.fromUri(uri, 0));
+    // }
   }
 
   private onCreate(uri: vscode.Uri): void {

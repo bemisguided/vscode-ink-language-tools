@@ -66,7 +66,37 @@
         "command": "ink.compileFile",
         "title": "Ink: Compile File"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Ink Language Tools",
+      "properties": {
+        "ink.compile.options.enableCountAllVisits": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the Ink compilation setting 'count all visits', when compiling Ink Story files"
+        },
+        "ink.compile.output.enableEmitStoryJSON": {
+          "type": "boolean",
+          "default": true,
+          "description": "Compilation will write Ink Story JSON to the output directory"
+        },
+        "ink.compile.output.directory": {
+          "type": "string",
+          "default": "out",
+          "description": "Directory where compiled Ink Story JSON files are written, when Emit Story JSON is enabled"
+        },
+        "ink.compile.output.ignoreInkIncludes": {
+          "type": "string",
+          "default": "**/_*.ink",
+          "description": "Glob pattern of Ink Story files, which are considered includes, to ignore writing to the output directory"
+        },
+        "ink.compile.behavior.debounceWait": {
+          "type": "number",
+          "default": 1000,
+          "description": "Debounce wait time in milliseconds after an Ink Story is changed before triggering compilation"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

@@ -31,6 +31,7 @@ import { PreviewCommand } from "./commands/PreviewCommand";
 import { VSCodeServiceLocator } from "./services/VSCodeServiceLocator";
 import { VSCodeDiagnosticsServiceImpl } from "./services/VSCodeDiagnosticsService";
 import { VSCodeDocumentServiceImpl } from "./services/VSCodeDocumentService";
+import { VSCodeConfigurationServiceImpl } from "./services/VSCodeConfigurationService";
 
 let systems: IExtensionPlugin[] = [];
 
@@ -42,6 +43,9 @@ let systems: IExtensionPlugin[] = [];
 export function activate(context: vscode.ExtensionContext): void {
   console.log("vscode-ink-language-tools: Activating");
 
+  // Setup Configuration Service
+  const configurationService = new VSCodeConfigurationServiceImpl();
+
   // Setup Diagnostics Service
   const diagnostics = vscode.languages.createDiagnosticCollection();
   const diagnosticsService = new VSCodeDiagnosticsServiceImpl(diagnostics);
@@ -52,6 +56,7 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(documentService);
 
   // Setup Service Locator
+  VSCodeServiceLocator.setConfigurationService(configurationService);
   VSCodeServiceLocator.setDiagnosticsService(diagnosticsService);
   VSCodeServiceLocator.setDocumentService(documentService);
 
