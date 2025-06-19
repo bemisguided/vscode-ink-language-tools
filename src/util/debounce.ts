@@ -22,17 +22,30 @@
  * SOFTWARE.
  */
 
-const debounce = <T extends unknown[]>(
-  callback: (...args: T) => void,
-  delay: number
-) => {
-  let timeoutTimer: ReturnType<typeof setTimeout>;
+/**
+ * Debounce a function call.
+ *
+ * It expects the function to be called with a key and a delay.
+ * The function will be called after the delay has passed without being called again.
+ *
+ * @param callback The function to debounce.
+ * @returns A function that debounces the given function.
+ */
+export function debounce<K, T extends unknown[]>(
+  callback: (key: K, ...args: T) => void
+) {
+  const timers = new Map<K, ReturnType<typeof setTimeout>>();
 
-  return (...args: T) => {
-    clearTimeout(timeoutTimer);
-
-    timeoutTimer = setTimeout(() => {
-      callback(...args);
-    }, delay);
+  return (key: K, delay: number, ...args: T) => {
+    if (timers.has(key)) {
+      clearTimeout(timers.get(key));
+    }
+    timers.set(
+      key,
+      setTimeout(() => {
+        callback(key, ...args);
+        timers.delete(key);
+      }, delay)
+    );
   };
-};
+}

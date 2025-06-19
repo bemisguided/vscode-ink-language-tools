@@ -92,7 +92,7 @@
         },
         "ink.compile.behavior.debounceWait": {
           "type": "number",
-          "default": 1000,
+          "default": 500,
           "description": "Debounce wait time in milliseconds after an Ink Story is changed before triggering compilation"
         }
       }
