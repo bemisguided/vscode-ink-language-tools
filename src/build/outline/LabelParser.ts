@@ -23,63 +23,50 @@
  */
 
 import * as vscode from "vscode";
+import { IEntityParser } from "./IEntityParser";
+import { OutlineEntity, EntityType } from "../../model/OutlineEntity";
 
 /**
- * Enum for Ink Entity types.
+ * Parser for choice and gather labels in Ink.
  */
-export enum EntityType {
-  const = "const",
-  external = "external",
-  function = "function",
-  include = "include",
-  knot = "knot",
-  label = "label",
-  list = "list",
-  listItem = "listItem",
-  stitch = "stitch",
-  variable = "variable",
-}
+export class LabelParser implements IEntityParser {
+  // Private Properties ===============================================================================================
+  private regex = /^\s*([*+\-\s]+)\(\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\)/;
 
-/**
- * Represents any entity in the Ink outline.
- */
-export class OutlineEntity {
   // Public Properties ===============================================================================================
 
-  public name: string;
-  public type: EntityType;
-  public definitionRange: vscode.Range;
-  public scopeRange: vscode.Range;
-  public parent?: OutlineEntity;
-  public children: OutlineEntity[] = [];
-  public isBlock: boolean;
+  readonly entityType = EntityType.label;
 
-  // Constructor ======================================================================================================
+  readonly isBlockEntity = false;
 
-  constructor(
-    name: string,
-    type: EntityType,
-    definitionRange: vscode.Range,
-    scopeRange: vscode.Range,
-    isBlock: boolean = false,
-    parent?: OutlineEntity
-  ) {
-    this.name = name;
-    this.type = type;
-    this.definitionRange = definitionRange;
-    this.scopeRange = scopeRange;
-    this.isBlock = isBlock;
-    this.parent = parent;
-  }
+  readonly isNestedEntity = true;
+
+  readonly isRootEntity = false;
 
   // Public Methods ===================================================================================================
 
-  /**
-   * Add a child entity to this entity.
-   * @param child - The child entity to add.
-   */
-  addChild(child: OutlineEntity) {
-    child.parent = this;
-    this.children.push(child);
+  tryParse(line: string, lineNumber: number): OutlineEntity | null {
+    const match = this.regex.exec(line.trim());
+    if (!match) {
+      return null;
+    }
+    const labelName = match[2].trim();
+    const range = new vscode.Range(lineNumber, 0, lineNumber, line.length);
+    return new OutlineEntity(
+      labelName,
+      EntityType.label,
+      range,
+      range,
+      this.isBlockEntity
+    );
+  }
+
+  shouldPopStack(stack: OutlineEntity[]): boolean {
+    // Only pop if the parent is NOT a Knot or Stitch
+    if (stack.length === 0) {
+      return false;
+    }
+    const parent = stack[stack.length - 1];
+    return parent.type !== EntityType.knot && parent.type !== EntityType.stitch;
   }
 }

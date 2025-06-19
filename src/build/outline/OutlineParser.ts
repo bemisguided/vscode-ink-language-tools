@@ -34,6 +34,7 @@ import { ListParser } from "./ListParser";
 import { ConstParser } from "./ConstParser";
 import { stripComments } from "./stripComments";
 import { IEntityParser } from "./IEntityParser";
+import { LabelParser } from "./LabelParser";
 
 /**
  * Parser for the outline of an Ink story.
@@ -70,6 +71,7 @@ export class OutlineParser {
       new ListParser(),
       new StitchParser(),
       new VariableParser(),
+      new LabelParser(),
     ];
     this.blockTypes = new Set(
       this.strategies.filter((s) => s.isBlockEntity).map((s) => s.entityType)
@@ -79,11 +81,59 @@ export class OutlineParser {
   // Private Methods ===================================================================================================
 
   /**
-   * Strips comments and splits the document into lines.
+   * Assigns parent/child relationships to the extracted entities.
    */
-  private preprocessDocument(document: vscode.TextDocument): string[] {
-    const cleanedText = stripComments(document.getText());
-    return cleanedText.split(/\r?\n/);
+  private assignParentChildRelationships(entities: OutlineEntity[]): void {
+    const parentStack: OutlineEntity[] = [];
+    for (const entity of entities) {
+      // Find the strategy for this entity type
+      const entityStrategy = this.getStrategy(entity.type);
+
+      // Pop stack as long as the parser says to
+      while (entityStrategy.shouldPopStack(parentStack)) {
+        parentStack.pop();
+      }
+      if (entityStrategy.isRootEntity) {
+        // Root entity: clear stack if block, then push
+        if (entity.isBlock) {
+          parentStack.length = 0;
+          parentStack.push(entity);
+        }
+        // No parent assignment needed for root
+      } else {
+        // Attach to parent if present and nestable, else leave as root
+        const parent = parentStack[parentStack.length - 1];
+        const parentStrategy = parent ? this.getStrategy(parent.type) : null;
+        if (parentStrategy && parentStrategy.isNestedEntity) {
+          parent.addChild(entity);
+        }
+
+        // Push to stack if nested and block
+        if (entityStrategy.isNestedEntity && entity.isBlock) {
+          parentStack.push(entity);
+        }
+      }
+    }
+  }
+
+  /**
+   * Assigns scope ranges to all block entities (e.g., knots, stitches).
+   */
+  private assignScopeRanges(entities: OutlineEntity[], lines: string[]): void {
+    this.setScopeRangesRecursive(entities, lines);
+  }
+
+  /**
+   * Gets the strategy for a given entity type.
+   * @param type - The entity type.
+   * @returns The strategy for the entity type.
+   */
+  private getStrategy(type: EntityType): IEntityParser {
+    const strategy = this.strategies.find((s) => s.entityType === type);
+    if (!strategy) {
+      throw new Error(`No strategy found for entity type: ${type}`);
+    }
+    return strategy;
   }
 
   /**
@@ -109,52 +159,11 @@ export class OutlineParser {
   }
 
   /**
-   * Assigns parent/child relationships to the extracted entities.
+   * Strips comments and splits the document into lines.
    */
-  private assignParentChildRelationships(entities: OutlineEntity[]): void {
-    const parentStack: OutlineEntity[] = [];
-    for (const entity of entities) {
-      // Find the strategy for this entity type
-      const strategy = this.strategies.find(
-        (s) => s.entityType === entity.type
-      );
-      if (!strategy) {
-        continue;
-      }
-      // Pop stack as long as the parser says to
-      while (strategy.shouldPopStack(parentStack)) {
-        parentStack.pop();
-      }
-      if (strategy.isRootEntity) {
-        // Root entity: clear stack if block, then push
-        if (entity.isBlock) {
-          parentStack.length = 0;
-          parentStack.push(entity);
-        }
-        // No parent assignment needed for root
-      } else {
-        // Attach to parent if present, else leave as root
-        const parent = parentStack[parentStack.length - 1];
-        if (parent) {
-          try {
-            parent.addChild(entity);
-          } catch (e) {
-            // If parent cannot have children, leave as root
-          }
-        }
-        // Push to stack if nested and block
-        if (strategy.isNestedEntity && entity.isBlock) {
-          parentStack.push(entity);
-        }
-      }
-    }
-  }
-
-  /**
-   * Assigns scope ranges to all block entities (e.g., knots, stitches).
-   */
-  private assignScopeRanges(entities: OutlineEntity[], lines: string[]): void {
-    this.setScopeRangesRecursive(entities, lines);
+  private preprocessDocument(document: vscode.TextDocument): string[] {
+    const cleanedText = stripComments(document.getText());
+    return cleanedText.split(/\r?\n/);
   }
 
   /**

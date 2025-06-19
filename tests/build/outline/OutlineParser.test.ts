@@ -456,4 +456,69 @@ describe("OutlineParser", () => {
       expect(entity.children.length).toBe(0);
     }
   });
+
+  it("parses labels as children of knots and stitches and at root", async () => {
+    // Setup
+    const lines = [
+      "- (rootlabel) Top-level label",
+      "== knotA",
+      "- (foo) Label under knotA",
+      "= stitchA",
+      "+ (bar) Label under stitchA",
+      "== knotB",
+      "- (baz) Label under knotB",
+    ];
+    const doc = createMockDocument(lines);
+
+    // Execute
+    const outline = await parser.parse(doc);
+
+    // Assert
+    expectOutlineEntity(outline[0], {
+      type: EntityType.label,
+      name: "rootlabel",
+      definition: { line: 0 },
+      isBlock: false,
+    });
+    expectOutlineEntity(outline[1], {
+      type: EntityType.knot,
+      name: "knotA",
+      definition: { line: 1 },
+      isBlock: true,
+    });
+    expectOutlineEntity(outline[1].children[0], {
+      type: EntityType.label,
+      name: "foo",
+      definition: { line: 2 },
+      isBlock: false,
+      parent: { name: "knotA", type: EntityType.knot },
+    });
+    expectOutlineEntity(outline[1].children[1], {
+      type: EntityType.stitch,
+      name: "stitchA",
+      definition: { line: 3 },
+      isBlock: true,
+      parent: { name: "knotA", type: EntityType.knot },
+    });
+    expectOutlineEntity(outline[1].children[1].children[0], {
+      type: EntityType.label,
+      name: "bar",
+      definition: { line: 4 },
+      isBlock: false,
+      parent: { name: "stitchA", type: EntityType.stitch },
+    });
+    expectOutlineEntity(outline[2], {
+      type: EntityType.knot,
+      name: "knotB",
+      definition: { line: 5 },
+      isBlock: true,
+    });
+    expectOutlineEntity(outline[2].children[0], {
+      type: EntityType.label,
+      name: "baz",
+      definition: { line: 6 },
+      isBlock: false,
+      parent: { name: "knotB", type: EntityType.knot },
+    });
+  });
 });

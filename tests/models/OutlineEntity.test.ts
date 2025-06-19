@@ -72,25 +72,4 @@ describe("OutlineEntity", () => {
     expect(parent.children[0]).toBe(child);
     expect(child.parent).toBe(parent);
   });
-
-  it("addChild throws for disallowed parent types", () => {
-    // Setup
-    const parent = new OutlineEntity(
-      "myVar",
-      EntityType.variable,
-      mockRange(0, 0),
-      mockRange(0, 0)
-    );
-    const child = new OutlineEntity(
-      "child",
-      EntityType.stitch,
-      mockRange(1, 0),
-      mockRange(1, 0)
-    );
-
-    // Execute & Assert
-    expect(() => parent.addChild(child)).toThrow(
-      "Entities of type 'variable' cannot have children."
-    );
-  });
 });

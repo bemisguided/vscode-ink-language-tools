@@ -30,9 +30,11 @@ function getSymbolKind(type: EntityType): vscode.SymbolKind {
     case EntityType.const:
       return vscode.SymbolKind.Constant;
     case EntityType.external:
-      return vscode.SymbolKind.Function;
+      return vscode.SymbolKind.Event;
     case EntityType.function:
       return vscode.SymbolKind.Function;
+    case EntityType.label:
+      return vscode.SymbolKind.Key;
     case EntityType.list:
       return vscode.SymbolKind.Enum;
     case EntityType.listItem:
@@ -40,9 +42,9 @@ function getSymbolKind(type: EntityType): vscode.SymbolKind {
     case EntityType.include:
       return vscode.SymbolKind.File;
     case EntityType.knot:
-      return vscode.SymbolKind.Object;
+      return vscode.SymbolKind.Package;
     case EntityType.stitch:
-      return vscode.SymbolKind.Method;
+      return vscode.SymbolKind.Object;
     case EntityType.variable:
       return vscode.SymbolKind.Variable;
     default:
@@ -60,6 +62,8 @@ function getDescription(type: EntityType): string {
       return "External Function";
     case EntityType.include:
       return "Include";
+    case EntityType.label:
+      return "Label";
     case EntityType.list:
       return "List";
     case EntityType.listItem:

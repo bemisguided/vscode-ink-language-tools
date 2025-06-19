@@ -55,7 +55,7 @@ describe("mapOutlineEntitiesToSymbols", () => {
     // Assert
     expect(symbols).toHaveLength(1);
     expect(symbols[0].name).toBe("knot1");
-    expect(symbols[0].kind).toBe(vscode.SymbolKind.Object);
+    expect(symbols[0].kind).toBe(vscode.SymbolKind.Package);
     expect(symbols[0].detail).toBe("Knot");
   });
 
@@ -139,7 +139,7 @@ describe("mapOutlineEntitiesToSymbols", () => {
     const symbols = mapOutlineEntitiesToSymbols([entity]);
 
     // Assert
-    expect(symbols[0].kind).toBe(vscode.SymbolKind.Function);
+    expect(symbols[0].kind).toBe(vscode.SymbolKind.Event);
     expect(symbols[0].detail).toBe("External Function");
   });
 
@@ -154,6 +154,17 @@ describe("mapOutlineEntitiesToSymbols", () => {
     // Assert
     expect(symbols[0].children).toHaveLength(1);
     expect(symbols[0].children[0].name).toBe("child");
-    expect(symbols[0].children[0].kind).toBe(vscode.SymbolKind.Method);
+    expect(symbols[0].children[0].kind).toBe(vscode.SymbolKind.Object);
+  });
+
+  it("maps a label entity to a DocumentSymbol", () => {
+    // Setup
+    const entity = makeEntity("label", EntityType.label);
+
+    // Execute
+    const symbols = mapOutlineEntitiesToSymbols([entity]);
+
+    // Assert
+    expect(symbols[0].kind).toBe(vscode.SymbolKind.Key);
   });
 });
