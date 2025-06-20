@@ -23,10 +23,12 @@
  */
 
 import * as vscode from "vscode";
+import * as path from "path";
 import { VSCodeDocumentService } from "../../src/services/VSCodeDocumentService";
 
 export class MockVSCodeDocumentService implements VSCodeDocumentService {
   private docs = new Map<string, vscode.TextDocument>();
+  public writtenFiles = new Map<string, string>();
 
   // Add or override a mock document for a given URI
   mockTextDocument(uri: vscode.Uri, document?: vscode.TextDocument): void {
@@ -54,6 +56,40 @@ export class MockVSCodeDocumentService implements VSCodeDocumentService {
     }
     this.docs.set(uri.toString(), document);
   }
+
+  getWorkspaceFolder = (
+    uri: vscode.Uri
+  ): vscode.WorkspaceFolder | undefined => ({
+    uri: vscode.Uri.file("/"),
+    name: "mock-workspace",
+    index: 0,
+  });
+
+  resolveOutputUri = (
+    inputFile: vscode.Uri,
+    outputDirectory: string,
+    newExtension: string
+  ): vscode.Uri | undefined => {
+    const workspaceFolder = this.getWorkspaceFolder(inputFile);
+    if (!workspaceFolder) {
+      return undefined;
+    }
+
+    const outputDir = path.join(workspaceFolder.uri.fsPath, outputDirectory);
+    const inputFileName = path.basename(
+      inputFile.fsPath,
+      path.extname(inputFile.fsPath)
+    );
+    const outputFilePath = path.join(
+      outputDir,
+      `${inputFileName}.${newExtension}`
+    );
+    return vscode.Uri.file(outputFilePath);
+  };
+
+  writeTextFile = async (uri: vscode.Uri, content: string): Promise<void> => {
+    this.writtenFiles.set(uri.toString(), content);
+  };
 
   resolvePath = (baseUri: vscode.Uri, path: string): vscode.Uri | null =>
     vscode.Uri.file(path.startsWith("/") ? path : `/${path}`);

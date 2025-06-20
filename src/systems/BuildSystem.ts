@@ -26,8 +26,9 @@ export class BuildSystem implements IExtensionPlugin {
 
   private getDebounceWait(): number {
     const debounceWait =
-      VSCodeServiceLocator.getConfigurationService().getSetting<number>(
-        "ink.compile.behavior.debounceWait"
+      VSCodeServiceLocator.getConfigurationService().get<number>(
+        "ink.compile.behavior.debounceWait",
+        500
       );
     return debounceWait ?? 500;
   }
@@ -53,7 +54,7 @@ export class BuildSystem implements IExtensionPlugin {
 
   private onDelete(uri: vscode.Uri): void {
     DependencyManager.getInstance().deleteNode(uri);
-    this.engine.diagnostics.delete(uri);
+    this.engine.diagnostics.clear(uri);
   }
 
   private onDidChange(uri: vscode.Uri): void {

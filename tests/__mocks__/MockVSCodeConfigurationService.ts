@@ -30,10 +30,11 @@ export class MockVSCodeConfigurationService
 {
   public mockSettings: Record<string, any> = {};
 
-  public getSetting<T>(
+  public get<T>(
     key: string,
+    defaultValue: T,
     scope?: vscode.Uri | vscode.TextDocument
-  ): T | undefined {
-    return this.mockSettings[key];
+  ): T {
+    return this.mockSettings[key] ?? defaultValue;
   }
 }

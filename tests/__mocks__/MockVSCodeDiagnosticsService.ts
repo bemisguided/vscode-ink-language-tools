@@ -28,6 +28,10 @@ import { VSCodeDiagnosticsService } from "../../src/services/VSCodeDiagnosticsSe
 export class MockVSCodeDiagnosticsService implements VSCodeDiagnosticsService {
   private diagnostics = new Map<string, vscode.Diagnostic[]>();
 
+  // Helper for tests
+  mockDiagnosticsForUri(uri: vscode.Uri): vscode.Diagnostic[] | undefined {
+    return this.diagnostics.get(uri.toString());
+  }
   set(uri: vscode.Uri, diagnostics: vscode.Diagnostic[]): void {
     this.diagnostics.set(uri.toString(), diagnostics);
   }
@@ -40,16 +44,15 @@ export class MockVSCodeDiagnosticsService implements VSCodeDiagnosticsService {
     this.diagnostics.delete(uri.toString());
   }
 
-  clear(): void {
-    this.diagnostics.clear();
+  clear(uri?: vscode.Uri): void {
+    if (uri) {
+      this.diagnostics.delete(uri.toString());
+    } else {
+      this.diagnostics.clear();
+    }
   }
 
   dispose(): void {
     // No-op for mock
-  }
-
-  // Helper for tests
-  mockDiagnosticsForUri(uri: vscode.Uri): vscode.Diagnostic[] | undefined {
-    return this.diagnostics.get(uri.toString());
   }
 }

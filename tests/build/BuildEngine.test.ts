@@ -28,21 +28,22 @@ import { VSCodeServiceLocator } from "../../src/services/VSCodeServiceLocator";
 import { MockVSCodeDiagnosticsService } from "../__mocks__/MockVSCodeDiagnosticsService";
 import { MockVSCodeDocumentService } from "../__mocks__/MockVSCodeDocumentService";
 import { DependencyManager } from "../../src/model/DependencyManager";
-import {
-  DependencyNode,
-  DependencyNodeType,
-} from "../../src/model/DependencyNode";
+import { DependencyNode } from "../../src/model/DependencyNode";
+import { MockVSCodeConfigurationService } from "../__mocks__/MockVSCodeConfigurationService";
 
 describe("BuildEngine", () => {
   let diagnosticsService: MockVSCodeDiagnosticsService;
   let docService: MockVSCodeDocumentService;
+  let configService: MockVSCodeConfigurationService;
   let engine: BuildEngine;
 
   beforeEach(() => {
     diagnosticsService = new MockVSCodeDiagnosticsService();
     docService = new MockVSCodeDocumentService();
+    configService = new MockVSCodeConfigurationService();
     VSCodeServiceLocator.setDiagnosticsService(diagnosticsService);
     VSCodeServiceLocator.setDocumentService(docService);
+    VSCodeServiceLocator.setConfigurationService(configService);
     engine = BuildEngine.getInstance();
     DependencyManager.getInstance().clearGraph();
   });

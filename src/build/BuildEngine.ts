@@ -34,6 +34,7 @@ import { OutlineProcessor } from "./outline/OutlineProcessor";
 import { IncludeExtractionProcessor } from "./IncludeExtractionProcessor";
 import { CompilationProcessor } from "./compiler/CompilationProcessor";
 import { VSCodeServiceLocator } from "../services/VSCodeServiceLocator";
+import { JsonOutputProcessor } from "./JsonOutputProcessor";
 
 /**
  * The build engine for the Ink language.
@@ -48,6 +49,7 @@ export class BuildEngine {
     this.registerProcessor(new OutlineProcessor());
     this.registerProcessor(new IncludeExtractionProcessor());
     this.registerProcessor(new CompilationProcessor());
+    this.registerProcessor(new JsonOutputProcessor());
   }
 
   public static getInstance(): BuildEngine {
@@ -71,6 +73,7 @@ export class BuildEngine {
   public async compileStory(uri: vscode.Uri): Promise<ICompiledStoryResult> {
     const node = DependencyManager.getInstance().getNode(uri);
     if (!node) {
+      DependencyManager.getInstance().dumpGraph();
       throw new Error(`URI not in graph: ${uri.fsPath}`);
     }
     const compiled = await this.processFile(uri);

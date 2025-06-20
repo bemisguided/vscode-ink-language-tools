@@ -24,13 +24,27 @@
 
 import * as vscode from "vscode";
 
+/**
+ * Facade service to access VSCode Configuration API.
+ */
 export interface VSCodeConfigurationService {
-  getSetting<T>(
+  /**
+   * Retrieves a configuration setting using its full key.
+   * @param key The full configuration key, e.g., 'myExtension.someSetting'.
+   * @param defaultValue The default value to return if the setting is not found.
+   * @param scope Optional Uri or TextDocument used to resolve workspace folder settings.
+   * @returns The effective value at the given scope.
+   */
+  get<T>(
     key: string,
+    defaultValue: T,
     scope?: vscode.Uri | vscode.TextDocument
-  ): T | undefined;
+  ): T;
 }
 
+/**
+ * Implementation of the VSCodeConfigurationService.
+ */
 export class VSCodeConfigurationServiceImpl
   implements VSCodeConfigurationService
 {
@@ -54,17 +68,16 @@ export class VSCodeConfigurationServiceImpl
   }
 
   // Public Methods ===================================================================================================
-  /**
-   * Retrieves a configuration setting using its full key.
-   * @param key The full configuration key, e.g., 'myExtension.someSetting'.
-   * @param scope Optional Uri or TextDocument used to resolve workspace folder settings.
-   * @returns The effective value at the given scope.
-   */
-  public getSetting<T>(
+
+  public get<T>(
     key: string,
+    defaultValue: T,
     scope?: vscode.Uri | vscode.TextDocument
-  ): T | undefined {
+  ): T {
     const folderUri = this.resolveFolderUri(scope);
-    return vscode.workspace.getConfiguration(undefined, folderUri).get<T>(key);
+    const configValue = vscode.workspace
+      .getConfiguration(undefined, folderUri)
+      .get<T>(key);
+    return configValue ?? defaultValue;
   }
 }

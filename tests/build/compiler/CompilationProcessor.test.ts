@@ -25,11 +25,14 @@
 import * as vscode from "vscode";
 import { CompilationProcessor } from "../../../src/build/compiler/CompilationProcessor";
 import { PipelineContext } from "../../../src/build/PipelineContext";
+import { VSCodeServiceLocator } from "../../../src/services/VSCodeServiceLocator";
+import { MockVSCodeConfigurationService } from "../../__mocks__/MockVSCodeConfigurationService";
 
 describe("CompilationProcessor", () => {
   let processor: CompilationProcessor;
   let context: PipelineContext;
   let diagnostics: vscode.Diagnostic[];
+  let configService: MockVSCodeConfigurationService;
 
   function makeContext(story: string): PipelineContext {
     diagnostics = [];
@@ -51,6 +54,8 @@ describe("CompilationProcessor", () => {
   beforeEach(() => {
     // Setup
     processor = new CompilationProcessor();
+    configService = new MockVSCodeConfigurationService();
+    VSCodeServiceLocator.setConfigurationService(configService);
   });
 
   it("compiles a valid Ink story", async () => {

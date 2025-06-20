@@ -1,11 +1,31 @@
 import * as vscode from "vscode";
 
+/**
+ * Facade service to access VSCode DiagnosticCollection API.
+ */
 export interface VSCodeDiagnosticsService {
-  set(uri: vscode.Uri, diagnostics: vscode.Diagnostic[]): void;
-  get(uri: vscode.Uri): readonly vscode.Diagnostic[] | undefined;
-  delete(uri: vscode.Uri): void;
-  clear(): void;
+  /**
+   * Clear all diagnostics.
+   */
+  clear(uri?: vscode.Uri): void;
+
+  /**
+   * Dispose of the collection.
+   */
   dispose(): void;
+
+  /**
+   * Get diagnostics for a URI.
+   * @param uri The document URI.
+   */
+  get(uri: vscode.Uri): readonly vscode.Diagnostic[] | undefined;
+
+  /**
+   * Set diagnostics for a URI.
+   * @param uri The document URI.
+   * @param diagnostics The diagnostics to set.
+   */
+  set(uri: vscode.Uri, diagnostics: vscode.Diagnostic[]): void;
 }
 
 /**
@@ -26,41 +46,22 @@ export class VSCodeDiagnosticsServiceImpl implements VSCodeDiagnosticsService {
 
   // Public Methods ===================================================================================================
 
-  /**
-   * Set diagnostics for a URI.
-   * @param uri The document URI.
-   * @param diagnostics The diagnostics to set.
-   */
   set(uri: vscode.Uri, diagnostics: vscode.Diagnostic[]): void {
     this.collection.set(uri, diagnostics);
   }
 
-  /**
-   * Get diagnostics for a URI.
-   * @param uri The document URI.
-   */
   get(uri: vscode.Uri): readonly vscode.Diagnostic[] | undefined {
     return this.collection.get(uri);
   }
 
-  /**
-   * Delete diagnostics for a URI.
-   * @param uri The document URI.
-   */
-  delete(uri: vscode.Uri): void {
-    this.collection.delete(uri);
+  clear(uri?: vscode.Uri): void {
+    if (uri) {
+      this.collection.delete(uri);
+    } else {
+      this.collection.clear();
+    }
   }
 
-  /**
-   * Clear all diagnostics.
-   */
-  clear(): void {
-    this.collection.clear();
-  }
-
-  /**
-   * Dispose of the collection.
-   */
   dispose(): void {
     this.collection.dispose();
   }

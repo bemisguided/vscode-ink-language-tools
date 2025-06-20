@@ -27,6 +27,7 @@ import { DependencyNode } from "../model/DependencyNode";
 import { DependencyManager } from "../model/DependencyManager";
 import { VSCodeDiagnosticsService } from "../services/VSCodeDiagnosticsService";
 import { VSCodeDocumentService } from "../services/VSCodeDocumentService";
+import { Story } from "inkjs/engine/Story";
 
 /**
  * Context for a pipeline processor.
@@ -36,7 +37,7 @@ export class PipelineContext {
 
   public diagnostics: vscode.Diagnostic[] = [];
   /** Populated by CompilationProcessor */
-  public compiledStory?: any; // Will be Story, but avoid inkjs import here
+  public compiledStory?: Story;
 
   /**
    * Map of all include TextDocuments, keyed by their include path (as written in the INCLUDE statement).

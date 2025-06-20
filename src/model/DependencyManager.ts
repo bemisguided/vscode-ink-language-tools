@@ -71,4 +71,39 @@ export class DependencyManager {
   public getGraph(): Map<vscode.Uri, DependencyNode> {
     return this.graph;
   }
+
+  public dumpGraph(): void {
+    console.log("--- Dependency Graph ---");
+    if (this.graph.size === 0) {
+      console.log("Graph is empty.");
+      console.log("------------------------");
+      return;
+    }
+
+    for (const [uri, node] of this.graph.entries()) {
+      console.log(`Node: ${uri.fsPath}`);
+      console.log(`  Type: ${node.type}`);
+      console.log(`  Version: ${node.version}`);
+
+      if (node.deps.size > 0) {
+        console.log("  Dependencies:");
+        for (const dep of node.deps) {
+          console.log(`    - ${dep.fsPath}`);
+        }
+      } else {
+        console.log("  Dependencies: None");
+      }
+
+      if (node.revDeps.size > 0) {
+        console.log("  Referenced by:");
+        for (const revDep of node.revDeps) {
+          console.log(`    - ${revDep.fsPath}`);
+        }
+      } else {
+        console.log("  Referenced by: None");
+      }
+      console.log(""); // for spacing
+    }
+    console.log("------------------------");
+  }
 }

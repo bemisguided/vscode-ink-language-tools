@@ -28,12 +28,47 @@ import { Compiler, CompilerOptions } from "inkjs/compiler/Compiler";
 import { CompilationFileHandler } from "./CompilationFileHandler";
 import { ErrorType as InkjsErrorType } from "inkjs/engine/Error";
 import { parseCompilationError } from "./parseCompilationError";
+import { VSCodeServiceLocator } from "../../services/VSCodeServiceLocator";
 
 /**
  * Pipeline processor that compiles an Ink file into a Story object.
  */
 export class CompilationProcessor implements IPipelineProcessor {
   // Private Methods ==================================================================================================
+
+  private getCountAllVisits(context: PipelineContext): boolean {
+    const countAllVisits =
+      VSCodeServiceLocator.getConfigurationService().get<boolean>(
+        "ink.compile.behavior.countAllVisits",
+        true,
+        context.currentUri
+      );
+    return countAllVisits;
+  }
+
+  private async getCompilerOptions(
+    context: PipelineContext
+  ): Promise<CompilerOptions> {
+    const text = await context.getText();
+    return {
+      sourceFilename: context.currentUri.fsPath,
+      fileHandler: new CompilationFileHandler(context),
+      pluginNames: [],
+      countAllVisits: this.getCountAllVisits(context),
+      errorHandler: (message: string, type: InkjsErrorType) => {
+        const { message: msg, line } = parseCompilationError(message);
+        const severity = this.toSeverity(type);
+        const all = text.split(/\r?\n/);
+        const lineText = all[line] || "";
+        const range = new vscode.Range(
+          new vscode.Position(line, 0),
+          new vscode.Position(line, lineText.length)
+        );
+        context.report(range, msg, severity);
+      },
+    };
+  }
+
   private toSeverity(type: InkjsErrorType): vscode.DiagnosticSeverity {
     switch (type) {
       case InkjsErrorType.Author:
@@ -50,24 +85,7 @@ export class CompilationProcessor implements IPipelineProcessor {
   async run(context: PipelineContext): Promise<void> {
     const text = await context.getText();
     try {
-      const fileHandler = new CompilationFileHandler(context);
-      const compilerOptions: CompilerOptions = {
-        sourceFilename: context.currentUri.fsPath,
-        fileHandler,
-        pluginNames: [],
-        countAllVisits: false,
-        errorHandler: (message: string, type: InkjsErrorType) => {
-          const { message: msg, line } = parseCompilationError(message);
-          const severity = this.toSeverity(type);
-          const all = text.split(/\r?\n/);
-          const lineText = all[line] || "";
-          const range = new vscode.Range(
-            new vscode.Position(line, 0),
-            new vscode.Position(line, lineText.length)
-          );
-          context.report(range, msg, severity);
-        },
-      };
+      const compilerOptions = await this.getCompilerOptions(context);
       const compiler = new Compiler(text, compilerOptions);
       context.compiledStory = compiler.Compile();
     } catch (err: any) {
