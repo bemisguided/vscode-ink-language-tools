@@ -50,13 +50,14 @@ export class CompilationProcessor implements IPipelineProcessor {
     context: PipelineContext
   ): Promise<CompilerOptions> {
     const text = await context.getText();
+    const sourceFilename = context.uri.fsPath;
     return {
-      sourceFilename: context.uri.fsPath,
+      sourceFilename,
       fileHandler: new CompilationFileHandler(context),
       pluginNames: [],
       countAllVisits: this.getCountAllVisits(context),
       errorHandler: (message: string, type: InkjsErrorType) => {
-        const { message: msg, line } = parseCompilationError(message);
+        const { message: msg, filename, line } = parseCompilationError(message);
         const severity = this.toSeverity(type);
         const all = text.split(/\r?\n/);
         const lineText = all[line] || "";
@@ -64,7 +65,11 @@ export class CompilationProcessor implements IPipelineProcessor {
           new vscode.Position(line, 0),
           new vscode.Position(line, lineText.length)
         );
-        context.reportDiagnostic(range, msg, severity);
+        // We only report errors for the source file, not for included files
+        // these should be reported, when the include is compiled
+        if (filename === sourceFilename) {
+          context.reportDiagnostic(range, msg, severity);
+        }
       },
     };
   }

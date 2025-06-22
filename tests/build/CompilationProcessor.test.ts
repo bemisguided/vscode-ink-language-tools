@@ -28,6 +28,7 @@ import { PipelineContext } from "../../src/build/PipelineContext";
 import { VSCodeServiceLocator } from "../../src/services/VSCodeServiceLocator";
 import { MockVSCodeConfigurationService } from "../__mocks__/MockVSCodeConfigurationService";
 import { mockVSCodeUri } from "../__mocks__/mockVSCodeUri";
+import { mockVSCodeDocument } from "../__mocks__/mockVSCodeDocument";
 
 describe("CompilationProcessor", () => {
   let processor: CompilationProcessor;
@@ -132,5 +133,40 @@ describe("CompilationProcessor", () => {
     expect(context.hasWarnings()).toBe(false);
     expect(context.hasErrors()).toBe(false);
     expect(context.hasInformation()).toBe(true);
+  });
+
+  describe("when the story has an include", () => {
+    beforeEach(() => {
+      // Setup
+      const story = `
+        INCLUDE include.ink
+        -> knot1
+
+        === knot1 ===
+        Hello world.
+
+        -> END
+      `;
+      context = makeContext(story);
+
+      const include = `
+        -> knot2
+
+        === knot2 ===P
+        Hello world.
+      `;
+      context.includeDocuments.set(
+        "include.ink",
+        mockVSCodeDocument("/include.ink", include)
+      );
+    });
+
+    it("it does not report errors with the include", async () => {
+      // Execute
+      await processor.run(context);
+
+      // Assert
+      expect(context.getDiagnostics().length).toBe(0);
+    });
   });
 });
