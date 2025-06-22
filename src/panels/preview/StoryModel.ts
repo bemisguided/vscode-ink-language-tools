@@ -31,6 +31,7 @@ import {
   TextStoryEvent,
   FunctionStoryEvent,
 } from "./types";
+import { ISuccessfulBuildResult } from "../../build/IBuildResult";
 
 /**
  * Manages the story state and progression.
@@ -42,14 +43,11 @@ export class StoryModel {
   private currentError: any | null = null;
   private currentFunctionCalls: FunctionCall[] = [];
   private story: Story;
-  private readonly timestamp: number;
 
   // Constructor ======================================================================================================
 
-  constructor(compiledStory: CompiledStory) {
+  constructor(compiledStory: ISuccessfulBuildResult) {
     this.story = compiledStory.story;
-    this.timestamp = compiledStory.timestamp;
-    this.bindExternalFunctions(compiledStory.bindableFunctions);
     this.story.onError = (error) => {
       this.currentError = error;
     };
@@ -63,14 +61,6 @@ export class StoryModel {
    */
   public getCurrentError(): any | null {
     return this.currentError;
-  }
-
-  /**
-   * Gets the timestamp of the compiled story.
-   * @returns The timestamp of the compiled story
-   */
-  public getTimestamp(): number {
-    return this.timestamp;
   }
 
   /**

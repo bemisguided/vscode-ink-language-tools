@@ -41,7 +41,7 @@ export class PreviewCommand implements IExtensionPlugin {
    */
   activate(context: vscode.ExtensionContext): void {
     const previewCommand = vscode.commands.registerCommand(
-      "ink.openPreview",
+      "ink.previewStory",
       async () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
