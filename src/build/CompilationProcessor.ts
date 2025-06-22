@@ -46,10 +46,8 @@ export class CompilationProcessor implements IPipelineProcessor {
     return countAllVisits;
   }
 
-  private async getCompilerOptions(
-    context: PipelineContext
-  ): Promise<CompilerOptions> {
-    const text = await context.getText();
+  private getCompilerOptions(context: PipelineContext): CompilerOptions {
+    const text = context.getText();
     const sourceFilename = context.uri.fsPath;
     return {
       sourceFilename,
@@ -91,9 +89,9 @@ export class CompilationProcessor implements IPipelineProcessor {
    * @inheritdoc
    */
   async run(context: PipelineContext): Promise<void> {
-    const text = await context.getText();
+    const text = context.getText();
     try {
-      const compilerOptions = await this.getCompilerOptions(context);
+      const compilerOptions = this.getCompilerOptions(context);
       const compiler = new Compiler(text, compilerOptions);
       context.story = compiler.Compile();
     } catch (err: any) {

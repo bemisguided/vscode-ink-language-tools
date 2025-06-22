@@ -62,12 +62,10 @@ export class IncludePreProcessor implements IPipelineProcessor {
     }
 
     try {
-      console.log("adding include: uri=", resolvedUri.toString());
       const includeDoc = await this.docService.getTextDocument(resolvedUri);
       context.includeDocuments.set(includePath, includeDoc);
       context.addDependency(currentUri, resolvedUri);
     } catch (e) {
-      console.log("error adding include: uri=", resolvedUri.toString(), e);
       // no-op, as we let the Ink compiler handle the missing file reporting
     }
 

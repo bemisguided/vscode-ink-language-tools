@@ -70,18 +70,15 @@ export class PipelineContext {
    * @param dependency The dependency URI.
    */
   public addDependency(dependent: vscode.Uri, dependency: vscode.Uri) {
-    console.log(
-      "addDependency: dependent=",
-      dependent,
-      "dependency=",
-      dependency
-    );
     this.resolvedDependencies.set(dependent, [
       ...(this.resolvedDependencies.get(dependent) || []),
       dependency,
     ]);
   }
 
+  /**
+   * Dump the diagnostics to the console.
+   */
   public dumpDiagnostics() {
     let output = "";
     for (const diagnostic of this.diagnostics) {

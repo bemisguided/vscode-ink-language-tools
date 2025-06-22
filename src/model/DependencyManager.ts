@@ -305,7 +305,7 @@ export class DependencyManager {
   }
 
   /**
-   * Dumps the current state of the dependency graph to the console for debugging.
+   * Dumps the current state of the dependency graph to the console.
    */
   public dumpGraph(): void {
     let output = "";

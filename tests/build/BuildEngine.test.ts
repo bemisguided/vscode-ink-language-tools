@@ -177,7 +177,6 @@ describe("BuildEngine", () => {
       // Assert
       expect(results.hasResult(rootUri)).toBeTruthy();
       const rootResult = results.getResult(rootUri) as ISuccessfulBuildResult;
-      console.log(rootResult.diagnostics);
       expect(rootResult.success).toBeTruthy();
       expect(diagnosticsService.mockDiagnosticsForUri(rootUri)).toHaveLength(0);
     });

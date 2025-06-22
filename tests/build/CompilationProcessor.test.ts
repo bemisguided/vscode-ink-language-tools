@@ -22,7 +22,6 @@
  * SOFTWARE.
  */
 
-import * as vscode from "vscode";
 import { CompilationProcessor } from "../../src/build/CompilationProcessor";
 import { PipelineContext } from "../../src/build/PipelineContext";
 import { VSCodeServiceLocator } from "../../src/services/VSCodeServiceLocator";
@@ -36,9 +35,7 @@ describe("CompilationProcessor", () => {
   let configService: MockVSCodeConfigurationService;
 
   function makeContext(story: string): PipelineContext {
-    const doc = {
-      getText: jest.fn().mockResolvedValue(story),
-    } as unknown as vscode.TextDocument;
+    const doc = mockVSCodeDocument("/test.ink", story);
     return new PipelineContext(mockVSCodeUri("/test.ink"), doc);
   }
 
