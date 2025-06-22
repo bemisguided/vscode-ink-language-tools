@@ -26,6 +26,7 @@ import * as vscode from "vscode";
 import { StoryModel } from "./StoryModel";
 import { StoryView } from "./StoryView";
 import { StoryUpdate } from "./types";
+import { BuildEngine } from "../../build/BuildEngine";
 
 /**
  * Coordinates between the StoryModel and StoryView, managing the story lifecycle
@@ -102,19 +103,24 @@ export class StoryController {
    * This is called both on initial start and when the user requests a restart.
    */
   private async startStory(): Promise<void> {
-    // const document = this.ensureDocument();
-    // const storyManager = InkStoryManager.getInstance();
-    // const compiledStory = await storyManager.getCompiledStory(document);
-    // // Only rebuild model if timestamp is newer or model doesn't exist
-    // if (!this.model || compiledStory.timestamp > this.model.getTimestamp()) {
-    //   this.model = new StoryModel(compiledStory);
-    // }
-    // // Start the story, with continue story
-    // console.debug("[StoryController] 📖 Starting story");
-    // this.model.reset();
-    // this.view.startStory();
-    // const update = this.model.continueStory();
-    // this.updateView(update);
+    const document = this.ensureDocument();
+    const engine = BuildEngine.getInstance();
+    const compiledStory = await engine.compileStory(document.uri);
+    if (!compiledStory.success) {
+      this.view.showError("Compilation failed");
+      return;
+    }
+    // Start the story, with continue story
+    console.debug("[StoryController] 📖 Starting story");
+    this.model = new StoryModel(compiledStory);
+    this.model.reset();
+    this.view.startStory();
+    const update = this.model.continueStory() || {
+      hasEnded: false,
+      text: "",
+      choices: [],
+    };
+    this.updateView(update);
   }
 
   /**

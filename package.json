@@ -65,6 +65,10 @@
       {
         "command": "ink.compileFile",
         "title": "Ink: Compile File"
+      },
+      {
+        "command": "ink.previewStory",
+        "title": "Ink: Preview Story"
       }
     ],
     "menus": {
