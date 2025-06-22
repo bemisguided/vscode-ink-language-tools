@@ -163,6 +163,7 @@ export class BuildEngine {
    * @returns The compiled story and externals.
    */
   public async compileStory(uri: vscode.Uri): Promise<IBuildResult> {
+    console.log("compileStory: uri:", uri.fsPath);
     const context = await this.processFile(uri);
     return this.toBuildResult(context);
   }
@@ -172,7 +173,7 @@ export class BuildEngine {
    */
   public async recompileDependents(start: vscode.Uri): Promise<BuildResults> {
     const depManager = DependencyManager.getInstance();
-    const dependents = depManager.getAllDependents([start]);
+    const dependents = depManager.getAllDependents([start], true);
     const toRecompile = new Set([...dependents]);
     if (dependents.size === 0) {
       toRecompile.add(start);
@@ -181,6 +182,12 @@ export class BuildEngine {
     const results: IBuildResult[] = [];
 
     for (const uri of toRecompile) {
+      console.log(
+        "recompileDependents: start:",
+        start.fsPath,
+        "uri:",
+        uri.fsPath
+      );
       const context = await this.processFile(uri);
       results.push(this.toBuildResult(context));
     }

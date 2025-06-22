@@ -8,6 +8,7 @@ import { debounce } from "../util/debounce";
 export class BuildSystem implements IExtensionPlugin {
   // Private Properties ===============================================================================================
   private engine: BuildEngine;
+  private depManager: DependencyManager;
   private inkWatcher!: vscode.FileSystemWatcher;
   private recompile: (uri: vscode.Uri, delay: number) => void;
 
@@ -15,6 +16,7 @@ export class BuildSystem implements IExtensionPlugin {
 
   constructor() {
     this.engine = BuildEngine.getInstance();
+    this.depManager = DependencyManager.getInstance();
     this.recompile = debounce((uri: vscode.Uri) => {
       this.engine.recompileDependents(uri);
     });
@@ -39,21 +41,23 @@ export class BuildSystem implements IExtensionPlugin {
       depManager.createNode(uri);
     }
 
-    return inkUris;
+    return Array.from(depManager.getAllRoots());
   }
 
   private onCreate(uri: vscode.Uri): void {
-    const depManager = DependencyManager.getInstance();
-    depManager.createNode(uri);
+    console.log("onCreate: uri:", uri.fsPath);
+    this.depManager.createNode(uri);
     this.engine.recompileDependents(uri);
   }
 
   private onDelete(uri: vscode.Uri): void {
-    DependencyManager.getInstance().deleteNode(uri);
+    console.log("onDelete: uri:", uri.fsPath);
+    this.depManager.deleteNode(uri);
     this.engine.diagnostics.clear(uri);
   }
 
   private onDidChange(uri: vscode.Uri): void {
+    console.log("onDidChange: uri:", uri.fsPath);
     const debounceWait = this.getDebounceWait();
     this.recompile(uri, debounceWait);
   }
@@ -65,11 +69,9 @@ export class BuildSystem implements IExtensionPlugin {
    */
   activate(context: vscode.ExtensionContext): void {
     // Seed initial graph from workspace
-    this.seedGraph().then((inkUris) => {
-      for (const uri of inkUris) {
-        if (uri.path.endsWith(".ink")) {
-          this.engine.recompileDependents(uri);
-        }
+    this.seedGraph().then((roots) => {
+      for (const uri of roots) {
+        this.engine.compileStory(uri);
       }
     });
 

@@ -192,7 +192,8 @@ export class DependencyManager {
    */
   private traverse(
     startUris: vscode.Uri[],
-    edges: Map<string, Set<string>>
+    edges: Map<string, Set<string>>,
+    onlyRoots: boolean = false
   ): Set<vscode.Uri> {
     const allItems = new Set<vscode.Uri>();
     const toVisit = [...startUris];
@@ -207,7 +208,9 @@ export class DependencyManager {
         if (!visited.has(connString)) {
           visited.add(connString);
           const connUri = vscode.Uri.parse(connString);
-          allItems.add(connUri);
+          if (!onlyRoots || this.isRoot(connUri)) {
+            allItems.add(connUri);
+          }
           toVisit.push(connUri);
         }
       }
@@ -361,8 +364,11 @@ export class DependencyManager {
    * @param startUris An array of URIs to start the traversal from.
    * @returns A set of all unique dependent URIs.
    */
-  public getAllDependents(startUris: vscode.Uri[]): Set<vscode.Uri> {
-    return this.traverse(startUris, this.reverseDependencies);
+  public getAllDependents(
+    startUris: vscode.Uri[],
+    onlyRoots: boolean = false
+  ): Set<vscode.Uri> {
+    return this.traverse(startUris, this.reverseDependencies, onlyRoots);
   }
 
   /**

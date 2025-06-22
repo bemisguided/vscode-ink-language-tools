@@ -212,6 +212,25 @@ describe("DependencyManager", () => {
       expect(allRevDepsStrings).toContain(uriB.toString());
       expect(allRevDepsStrings.length).toBe(1);
     });
+
+    it("should not include non-root nodes if onlyRoots is true", () => {
+      // Setup
+      const storyUri = mockVSCodeUri("/story.ink");
+      const dep1Uri = mockVSCodeUri("/dep1.ink");
+      const dep2Uri = mockVSCodeUri("/dep2.ink");
+      manager.addDependency(storyUri, dep1Uri);
+      manager.addDependency(dep1Uri, dep2Uri);
+
+      // Execute
+      const allRevDeps = manager.getAllDependents([dep2Uri], true);
+
+      // Assert
+      const allRevDepsStrings = Array.from(allRevDeps).map((u) => u.toString());
+      expect(allRevDepsStrings).toContain(storyUri.toString());
+      expect(allRevDepsStrings).not.toContain(dep1Uri.toString());
+      expect(allRevDepsStrings).not.toContain(dep2Uri.toString());
+      expect(allRevDepsStrings.length).toBe(1);
+    });
   });
 
   describe("getAllRoots()", () => {
