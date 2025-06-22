@@ -23,9 +23,9 @@
  */
 
 import * as vscode from "vscode";
-import { VSCodeDiagnosticsService } from "../../src/services/VSCodeDiagnosticsService";
+import { IVSCodeDiagnosticsService } from "../../src/services/VSCodeDiagnosticsService";
 
-export class MockVSCodeDiagnosticsService implements VSCodeDiagnosticsService {
+export class MockVSCodeDiagnosticsService implements IVSCodeDiagnosticsService {
   private diagnostics = new Map<string, vscode.Diagnostic[]>();
 
   // Helper for tests

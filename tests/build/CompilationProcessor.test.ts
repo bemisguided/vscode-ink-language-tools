@@ -23,32 +23,22 @@
  */
 
 import * as vscode from "vscode";
-import { CompilationProcessor } from "../../../src/build/compiler/CompilationProcessor";
-import { PipelineContext } from "../../../src/build/PipelineContext";
-import { VSCodeServiceLocator } from "../../../src/services/VSCodeServiceLocator";
-import { MockVSCodeConfigurationService } from "../../__mocks__/MockVSCodeConfigurationService";
+import { CompilationProcessor } from "../../src/build/CompilationProcessor";
+import { PipelineContext } from "../../src/build/PipelineContext";
+import { VSCodeServiceLocator } from "../../src/services/VSCodeServiceLocator";
+import { MockVSCodeConfigurationService } from "../__mocks__/MockVSCodeConfigurationService";
+import { mockVSCodeUri } from "../__mocks__/mockVSCodeUri";
 
 describe("CompilationProcessor", () => {
   let processor: CompilationProcessor;
   let context: PipelineContext;
-  let diagnostics: vscode.Diagnostic[];
   let configService: MockVSCodeConfigurationService;
 
   function makeContext(story: string): PipelineContext {
-    diagnostics = [];
-    return {
-      currentUri: vscode.Uri.file("/test.ink"),
+    const doc = {
       getText: jest.fn().mockResolvedValue(story),
-      report: jest.fn((range, message, severity) => {
-        diagnostics.push(new vscode.Diagnostic(range, message, severity));
-      }),
-      compiledStory: undefined,
-      diagnostics,
-      includeDocuments: new Map(),
-      flushDiagnostics: jest.fn(),
-      resetDeps: jest.fn(),
-      addDep: jest.fn(),
-    } as unknown as PipelineContext;
+    } as unknown as vscode.TextDocument;
+    return new PipelineContext(mockVSCodeUri("/test.ink"), doc);
   }
 
   beforeEach(() => {
@@ -74,8 +64,8 @@ describe("CompilationProcessor", () => {
     await processor.run(context);
 
     // Assert
-    expect(context.compiledStory).toBeDefined();
-    expect(diagnostics.length).toBe(0);
+    expect(context.story).toBeDefined();
+    expect(context.getDiagnostics().length).toBe(0);
   });
 
   it("reports warnings", async () => {
@@ -92,10 +82,10 @@ describe("CompilationProcessor", () => {
     await processor.run(context);
 
     // Assert
-    expect(diagnostics.length).toBeGreaterThan(0);
-    expect(
-      diagnostics.some((d) => d.severity === vscode.DiagnosticSeverity.Warning)
-    ).toBe(true);
+    expect(context.getDiagnostics().length).toBeGreaterThan(0);
+    expect(context.hasWarnings()).toBe(true);
+    expect(context.hasErrors()).toBe(false);
+    expect(context.hasInformation()).toBe(false);
   });
 
   it("reports errors", async () => {
@@ -114,10 +104,10 @@ describe("CompilationProcessor", () => {
     await processor.run(context);
 
     // Assert
-    expect(diagnostics.length).toBeGreaterThan(0);
-    expect(
-      diagnostics.some((d) => d.severity === vscode.DiagnosticSeverity.Error)
-    ).toBe(true);
+    expect(context.getDiagnostics().length).toBeGreaterThan(0);
+    expect(context.hasWarnings()).toBe(false);
+    expect(context.hasErrors()).toBe(true);
+    expect(context.hasInformation()).toBe(false);
   });
 
   it("reports TODOs", async () => {
@@ -138,11 +128,9 @@ describe("CompilationProcessor", () => {
     await processor.run(context);
 
     // Assert
-    expect(diagnostics.length).toBeGreaterThan(0);
-    expect(
-      diagnostics.some(
-        (d) => d.severity === vscode.DiagnosticSeverity.Information
-      )
-    ).toBe(true);
+    expect(context.getDiagnostics().length).toBeGreaterThan(0);
+    expect(context.hasWarnings()).toBe(false);
+    expect(context.hasErrors()).toBe(false);
+    expect(context.hasInformation()).toBe(true);
   });
 });

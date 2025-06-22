@@ -48,10 +48,16 @@ export class FunctionParser implements IEntityParser {
 
   // Public Methods ===================================================================================================
 
+  /**
+   * @inheritdoc
+   */
   shouldPopStack(stack: OutlineEntity[]): boolean {
     return false;
   }
 
+  /**
+   * @inheritdoc
+   */
   tryParse(line: string, lineNumber: number): OutlineEntity | null {
     const match = this.regex.exec(line.trim());
     if (!match) {

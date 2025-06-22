@@ -25,13 +25,9 @@
 import * as vscode from "vscode";
 import { OutlineManager } from "../../src/model/OutlineManager";
 import { OutlineEntity, EntityType } from "../../src/model/OutlineEntity";
+import { mockVSCodeUri } from "../__mocks__/mockVSCodeUri";
 
 describe("OutlineManager", () => {
-  // Helper to create a mock Uri
-  function mockUri(path: string): vscode.Uri {
-    return vscode.Uri.file(path);
-  }
-
   // Helper to create a mock OutlineEntity
   function mockEntity(name: string): OutlineEntity {
     // Use dummy ranges for testing
@@ -42,7 +38,7 @@ describe("OutlineManager", () => {
   it("should set and get outlines for a URI", () => {
     // Setup
     const manager = OutlineManager.getInstance();
-    const uri = mockUri("/fake/path.ink");
+    const uri = mockVSCodeUri("/fake/path.ink");
     const entities = [mockEntity("knot1"), mockEntity("knot2")];
 
     // Execute
@@ -60,7 +56,7 @@ describe("OutlineManager", () => {
   it("should return undefined for URIs with no outline", () => {
     // Setup
     const manager = OutlineManager.getInstance();
-    const uri = mockUri("/no/outline.ink");
+    const uri = mockVSCodeUri("/no/outline.ink");
 
     // Execute
     const result = manager.getOutline(uri);

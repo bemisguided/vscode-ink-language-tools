@@ -3,7 +3,7 @@ import * as vscode from "vscode";
 /**
  * Facade service to access VSCode DiagnosticCollection API.
  */
-export interface VSCodeDiagnosticsService {
+export interface IVSCodeDiagnosticsService {
   /**
    * Clear all diagnostics.
    */
@@ -31,7 +31,7 @@ export interface VSCodeDiagnosticsService {
 /**
  * Service wrapper for VSCode DiagnosticCollection, to allow mocking and easier testing.
  */
-export class VSCodeDiagnosticsServiceImpl implements VSCodeDiagnosticsService {
+export class VSCodeDiagnosticsServiceImpl implements IVSCodeDiagnosticsService {
   // Private Properties ===============================================================================================
   private readonly collection: vscode.DiagnosticCollection;
 

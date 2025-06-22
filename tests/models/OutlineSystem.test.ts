@@ -22,27 +22,18 @@
  * SOFTWARE.
  */
 
-import * as vscode from "vscode";
 import { OutlineSystem } from "../../src/systems/OutlineSystem";
 import { OutlineManager } from "../../src/model/OutlineManager";
-import { OutlineEntity, EntityType } from "../../src/model/OutlineEntity";
-import { mapOutlineEntitiesToSymbols } from "../../src/build/outline/mapOutlineEntitiesToSymbols";
+import { mockVSCodeDocument } from "../__mocks__/mockVSCodeDocument";
 
 describe("OutlineSystem (integration)", () => {
-  function mockDocument(uri: string, text: string): vscode.TextDocument {
-    return {
-      uri: vscode.Uri.file(uri),
-      getText: () => text,
-    } as vscode.TextDocument;
-  }
-
   beforeEach(() => {
     OutlineManager.getInstance().clear();
   });
 
   it("parses and caches if outline does not exist", async () => {
     // Setup
-    const doc = mockDocument("/foo/bar.ink", "== knot1 ==");
+    const doc = mockVSCodeDocument("/foo/bar.ink", "== knot1 ==");
     const outlineSystem = new OutlineSystem();
     OutlineManager.getInstance().clear();
 

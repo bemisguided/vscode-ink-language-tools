@@ -28,7 +28,7 @@ import * as path from "path";
 /**
  * Facade service to access VSCode Document API.
  */
-export interface VSCodeDocumentService {
+export interface IVSCodeDocumentService {
   /**
    * Dispose of the document service.
    */
@@ -61,18 +61,6 @@ export interface VSCodeDocumentService {
   getWorkspaceFolder(uri: vscode.Uri): vscode.WorkspaceFolder | undefined;
 
   /**
-   * Write a text file to the workspace.
-   * @param uri The URI of the file to write.
-   * @param content The content to write to the file.
-   * @param createDirectory Whether to create the directory if it doesn't exist.
-   */
-  writeTextFile(
-    uri: vscode.Uri,
-    content: string,
-    createDirectory: boolean
-  ): Promise<void>;
-
-  /**
    * Resolve an output URI based on an input file, output directory, and new extension.
    * @param inputFile The input file URI.
    * @param outputDirectory The output directory.
@@ -103,18 +91,35 @@ export interface VSCodeDocumentService {
     baseUri: vscode.Uri,
     path?: string
   ): Promise<vscode.TextDocument | undefined>;
+
+  /**
+   * Write a text file to the workspace.
+   * @param uri The URI of the file to write.
+   * @param content The content to write to the file.
+   * @param createDirectory Whether to create the directory if it doesn't exist.
+   */
+  writeTextFile(
+    uri: vscode.Uri,
+    content: string,
+    createDirectory: boolean
+  ): Promise<void>;
 }
 
-export class VSCodeDocumentServiceImpl implements VSCodeDocumentService {
+/**
+ * Implementation of the VSCodeDocumentService.
+ */
+export class VSCodeDocumentServiceImpl implements IVSCodeDocumentService {
+  // Public Methods ===================================================================================================
+
   /**
-   * Dispose of the document service.
+   * @inheritdoc
    */
   public dispose(): void {
     // No-op
   }
 
   /**
-   * Check if a document exists at the resolved path.
+   * @inheritdoc
    */
   public async exists(baseUri: vscode.Uri, path: string): Promise<boolean> {
     const resolvedUri = this.resolvePath(baseUri, path);
@@ -123,7 +128,7 @@ export class VSCodeDocumentServiceImpl implements VSCodeDocumentService {
     }
 
     try {
-      await vscode.workspace.fs.stat(resolvedUri);
+      await this.stat(resolvedUri);
       return true;
     } catch {
       return false;
@@ -131,7 +136,7 @@ export class VSCodeDocumentServiceImpl implements VSCodeDocumentService {
   }
 
   /**
-   * Get the TextDocument at the resolved URI.
+   * @inheritdoc
    */
   public async getTextDocument(
     baseUri: vscode.Uri,
@@ -145,32 +150,16 @@ export class VSCodeDocumentServiceImpl implements VSCodeDocumentService {
   }
 
   /**
-   * Get the workspace folder for a URI.
+   * @inheritdoc
    */
   public getWorkspaceFolder(
     uri: vscode.Uri
   ): vscode.WorkspaceFolder | undefined {
-    return vscode.workspace.getWorkspaceFolder(uri);
+    return this.getWorkspaceFolderOf(uri);
   }
 
   /**
-   * Write a text file to the workspace.
-   */
-  public async writeTextFile(
-    uri: vscode.Uri,
-    content: string,
-    createDirectory = false
-  ): Promise<void> {
-    if (createDirectory) {
-      await vscode.workspace.fs.createDirectory(
-        vscode.Uri.file(path.dirname(uri.fsPath))
-      );
-    }
-    await vscode.workspace.fs.writeFile(uri, Buffer.from(content, "utf8"));
-  }
-
-  /**
-   * Resolve an output URI based on an input file, output directory, and new extension.
+   * @inheritdoc
    */
   public resolveOutputUri(
     inputFile: vscode.Uri,
@@ -195,13 +184,11 @@ export class VSCodeDocumentServiceImpl implements VSCodeDocumentService {
   }
 
   /**
-   * Resolve a URI based on a base URI and a path.
-   * - If path starts with "/", it's treated as workspace-rooted.
-   * - Otherwise, it's relative to baseUri.
+   * @inheritdoc
    */
   public resolvePath(baseUri: vscode.Uri, path: string): vscode.Uri | null {
     if (path.startsWith("/")) {
-      const workspaceFolder = vscode.workspace.getWorkspaceFolder(baseUri);
+      const workspaceFolder = this.getWorkspaceFolder(baseUri);
       if (!workspaceFolder) {
         return null;
       }
@@ -215,7 +202,7 @@ export class VSCodeDocumentServiceImpl implements VSCodeDocumentService {
   }
 
   /**
-   * Attempt to get the TextDocument at the resolved URI.
+   * @inheritdoc
    */
   public async tryGetTextDocument(
     baseUri: vscode.Uri,
@@ -232,9 +219,73 @@ export class VSCodeDocumentServiceImpl implements VSCodeDocumentService {
       resolvedUri = maybeUri;
     }
     try {
-      return await vscode.workspace.openTextDocument(resolvedUri);
+      return await this.openTextDocument(resolvedUri);
     } catch {
       return undefined;
     }
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public async writeTextFile(
+    uri: vscode.Uri,
+    content: string,
+    createDirectory = false
+  ): Promise<void> {
+    if (createDirectory) {
+      await this.createDirectory(vscode.Uri.file(path.dirname(uri.fsPath)));
+    }
+    await this.writeFile(uri, Buffer.from(content, "utf8"));
+  }
+
+  // Protected Methods ==============================================================================================
+
+  /**
+   * Create a directory.
+   * @param uri The URI of the directory to create.
+   */
+  protected async createDirectory(uri: vscode.Uri): Promise<void> {
+    await vscode.workspace.fs.createDirectory(uri);
+  }
+
+  /**
+   * Get the workspace folder for a URI.
+   * @param uri The URI.
+   * @returns The workspace folder, or undefined if the URI is not in a workspace.
+   */
+  protected getWorkspaceFolderOf(
+    uri: vscode.Uri
+  ): vscode.WorkspaceFolder | undefined {
+    return vscode.workspace.getWorkspaceFolder(uri);
+  }
+
+  /**
+   * Open a text document.
+   * @param uri The URI of the document to open.
+   * @returns The opened text document.
+   */
+  protected async openTextDocument(
+    uri: vscode.Uri
+  ): Promise<vscode.TextDocument> {
+    return await vscode.workspace.openTextDocument(uri);
+  }
+
+  /**
+   * Get file status.
+   * @param uri The URI of the file to stat.
+   * @returns The file stat.
+   */
+  protected async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
+    return await vscode.workspace.fs.stat(uri);
+  }
+
+  /**
+   * Write a file.
+   * @param uri The URI of the file to write.
+   * @param content The content to write.
+   */
+  protected async writeFile(uri: vscode.Uri, content: Buffer): Promise<void> {
+    await vscode.workspace.fs.writeFile(uri, content);
   }
 }

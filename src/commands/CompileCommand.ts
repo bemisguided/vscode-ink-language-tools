@@ -42,6 +42,9 @@ export class CompileCommand implements IExtensionPlugin {
 
   // Public Methods ===================================================================================================
 
+  /**
+   * @inheritdoc
+   */
   activate(context: vscode.ExtensionContext): void {
     const compileCommand = vscode.commands.registerCommand(
       "ink.compileFile",
@@ -74,6 +77,9 @@ export class CompileCommand implements IExtensionPlugin {
     context.subscriptions.push(compileCommand);
   }
 
+  /**
+   * @inheritdoc
+   */
   dispose(): void {
     // No explicit resources to dispose in this implementation
   }

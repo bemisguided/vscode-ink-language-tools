@@ -61,7 +61,12 @@
         "path": "./snippets/ink.code-snippets"
       }
     ],
-    "commands": [],
+    "commands": [
+      {
+        "command": "ink.compileFile",
+        "title": "Ink: Compile File"
+      }
+    ],
     "configuration": {
       "title": "Ink Language Tools",
       "properties": {
@@ -87,7 +92,7 @@
         },
         "ink.compile.behavior.debounceWait": {
           "type": "number",
-          "default": 500,
+          "default": 0,
           "description": "Debounce wait time in milliseconds after an Ink Story is changed before triggering compilation"
         }
       }
@@ -100,9 +105,9 @@
     "package": "npm run compile && vsce package",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test": "jest --runInBand",
+    "test:watch": "jest --runInBand --watch",
+    "test:coverage": "jest --runInBand --coverage"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",

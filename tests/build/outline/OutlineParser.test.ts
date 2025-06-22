@@ -23,7 +23,7 @@
  */
 
 import * as vscode from "vscode";
-import { OutlineParser } from "../../../src/build/outline/OutlineParser";
+import { OutlineParser } from "../../../src/build/OutlineParser";
 import { EntityType } from "../../../src/model/OutlineEntity";
 import { OutlineEntity } from "../../../src/model/OutlineEntity";
 

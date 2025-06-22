@@ -23,52 +23,53 @@
  */
 
 import * as vscode from "vscode";
-import { IEntityParser } from "./IEntityParser";
-import { OutlineEntity, EntityType } from "../../model/OutlineEntity";
+import { IBuildResult } from "./IBuildResult";
 
 /**
- * Parser for the VAR keyword of an Ink story for the outline.
+ * Represents a set of compilation results for one or more Ink Stories.
  */
-export class VariableParser implements IEntityParser {
+export class BuildResults {
   // Private Properties ===============================================================================================
 
-  private regex = /^VAR\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=/;
+  private readonly results: Map<string, IBuildResult> = new Map();
 
-  // Public Properties ===============================================================================================
+  // Constructors =====================================================================================================
 
-  readonly entityType = EntityType.variable;
-
-  readonly isBlockEntity = false;
-
-  readonly isNestedEntity = false;
-
-  readonly isRootEntity = true;
+  constructor(results: IBuildResult[]) {
+    for (const result of results) {
+      this.results.set(result.uri.toString(), result);
+    }
+  }
 
   // Public Methods ===================================================================================================
 
   /**
-   * @inheritdoc
+   * Gets the compilation result for a given URI.
+   * @param uri The URI of the story to get the result for.
+   * @returns The compilation result for the story, or undefined if the story was not compiled.
    */
-  shouldPopStack(stack: OutlineEntity[]): boolean {
-    return false;
+  public getResult(uri: vscode.Uri): IBuildResult {
+    const result = this.results.get(uri.toString());
+    if (!result) {
+      throw new Error(`No build result found for ${uri.toString()}`);
+    }
+    return result;
   }
 
   /**
-   * @inheritdoc
+   * Gets all the compilation results.
+   * @returns An array of all the compilation results.
    */
-  tryParse(line: string, lineNumber: number): OutlineEntity | null {
-    const match = this.regex.exec(line.trim());
-    if (!match) {
-      return null;
-    }
-    const [_, name] = match;
-    const range = new vscode.Range(lineNumber, 0, lineNumber, line.length);
-    return new OutlineEntity(
-      name,
-      EntityType.variable,
-      range,
-      range,
-      this.isBlockEntity
-    );
+  public getResults(): IBuildResult[] {
+    return Array.from(this.results.values());
+  }
+
+  /**
+   * Checks if a compilation result exists for a given URI.
+   * @param uri The URI of the story to check for.
+   * @returns `true` if the story has a compilation result, otherwise `false`.
+   */
+  public hasResult(uri: vscode.Uri): boolean {
+    return this.results.has(uri.toString());
   }
 }

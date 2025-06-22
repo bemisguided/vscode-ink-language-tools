@@ -45,6 +45,21 @@ export class LabelParser implements IEntityParser {
 
   // Public Methods ===================================================================================================
 
+  /**
+   * @inheritdoc
+   */
+  shouldPopStack(stack: OutlineEntity[]): boolean {
+    // Only pop if the parent is NOT a Knot or Stitch
+    if (stack.length === 0) {
+      return false;
+    }
+    const parent = stack[stack.length - 1];
+    return parent.type !== EntityType.knot && parent.type !== EntityType.stitch;
+  }
+
+  /**
+   * @inheritdoc
+   */
   tryParse(line: string, lineNumber: number): OutlineEntity | null {
     const match = this.regex.exec(line.trim());
     if (!match) {
@@ -59,14 +74,5 @@ export class LabelParser implements IEntityParser {
       range,
       this.isBlockEntity
     );
-  }
-
-  shouldPopStack(stack: OutlineEntity[]): boolean {
-    // Only pop if the parent is NOT a Knot or Stitch
-    if (stack.length === 0) {
-      return false;
-    }
-    const parent = stack[stack.length - 1];
-    return parent.type !== EntityType.knot && parent.type !== EntityType.stitch;
   }
 }

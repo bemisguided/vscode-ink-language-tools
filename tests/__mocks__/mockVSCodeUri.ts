@@ -25,39 +25,10 @@
 import * as vscode from "vscode";
 
 /**
- * Identifies the type of DependencyNode.
+ * Create a mock URI for a file.
+ * @param path The path to the file.
+ * @returns The mock URI.
  */
-export enum DependencyNodeType {
-  story = "story",
-  externalFunctions = "externalFunctions",
-}
-
-/**
- * Represents a node in the Dependency Graph.
- */
-export class DependencyNode {
-  // Public Properties ===============================================================================================
-
-  /**
-   * Unique identifier for the file.
-   */
-  public uri: vscode.Uri;
-
-  /**
-   * Document version or file modification time.
-   */
-  public version: number;
-
-  /**
-   * The type of dependency node (e.g., story, externalFunctions).
-   */
-  public type: DependencyNodeType;
-
-  // Constructor ======================================================================================================
-
-  constructor(uri: vscode.Uri, version: number, type: DependencyNodeType) {
-    this.uri = uri;
-    this.version = version;
-    this.type = type;
-  }
+export function mockVSCodeUri(path: string): vscode.Uri {
+  return vscode.Uri.file(path);
 }

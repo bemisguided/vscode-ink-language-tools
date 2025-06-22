@@ -23,28 +23,27 @@
  */
 
 import * as vscode from "vscode";
-import * as path from "path";
 import { IPipelineProcessor } from "./IPipelineProcessor";
 import { PipelineContext } from "./PipelineContext";
 import { VSCodeServiceLocator } from "../services/VSCodeServiceLocator";
 import { glob } from "../util/glob";
-import { VSCodeConfigurationService } from "../services/VSCodeConfigurationService";
-import { VSCodeDocumentService } from "../services/VSCodeDocumentService";
+import { IVSCodeConfigurationService } from "../services/VSCodeConfigurationService";
+import { IVSCodeDocumentService } from "../services/VSCodeDocumentService";
 
 /**
  * A pipeline processor that writes the compiled story's JSON to a file.
  */
-export class JsonOutputProcessor implements IPipelineProcessor {
+export class JsonOutputPostProcessor implements IPipelineProcessor {
   // Private Properties ===============================================================================================
 
-  private configService: VSCodeConfigurationService;
-  private documentService: VSCodeDocumentService;
+  private configService: IVSCodeConfigurationService;
+  private documentService: IVSCodeDocumentService;
 
   // Constructor ======================================================================================================
 
   constructor(
-    configService?: VSCodeConfigurationService,
-    documentService?: VSCodeDocumentService
+    configService?: IVSCodeConfigurationService,
+    documentService?: IVSCodeDocumentService
   ) {
     this.configService =
       configService ?? VSCodeServiceLocator.getConfigurationService();
@@ -58,7 +57,7 @@ export class JsonOutputProcessor implements IPipelineProcessor {
     const enabled = this.configService.get<boolean>(
       "ink.compile.output.enableEmitStoryJSON",
       false,
-      context.currentUri
+      context.uri
     );
 
     if (!enabled) {
@@ -68,10 +67,10 @@ export class JsonOutputProcessor implements IPipelineProcessor {
     const ignorePattern = this.configService.get<string>(
       "ink.compile.output.ignoreInkIncludes",
       "**/_*.ink",
-      context.currentUri
+      context.uri
     );
 
-    if (ignorePattern && glob(context.currentUri, ignorePattern)) {
+    if (ignorePattern && glob(context.uri, ignorePattern)) {
       return false;
     }
 
@@ -82,18 +81,18 @@ export class JsonOutputProcessor implements IPipelineProcessor {
     const outputDirSetting = this.configService.get<string>(
       "ink.compile.output.directory",
       "out",
-      context.currentUri
+      context.uri
     );
 
     return this.documentService.resolveOutputUri(
-      context.currentUri,
+      context.uri,
       outputDirSetting,
       "json"
     );
   }
 
   private reportError(context: PipelineContext, message: string): void {
-    context.report(
+    context.reportDiagnostic(
       new vscode.Range(0, 0, 0, 1),
       message,
       vscode.DiagnosticSeverity.Error
@@ -117,10 +116,13 @@ export class JsonOutputProcessor implements IPipelineProcessor {
 
   // Public Methods ===================================================================================================
 
+  /**
+   * @inheritdoc
+   */
   public async run(context: PipelineContext): Promise<void> {
     // Resolve the compiled Story JSON and determine if
     // we should emit a file.
-    const jsonContent = context.compiledStory?.ToJson();
+    const jsonContent = context.story?.ToJson();
     if (!jsonContent || !this.shouldEmitJson(context)) {
       return;
     }

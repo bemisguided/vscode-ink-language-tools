@@ -36,6 +36,9 @@ export class PreviewCommand implements IExtensionPlugin {
 
   // Public Methods ===================================================================================================
 
+  /**
+   * @inheritdoc
+   */
   activate(context: vscode.ExtensionContext): void {
     const previewCommand = vscode.commands.registerCommand(
       "ink.openPreview",
@@ -77,6 +80,9 @@ export class PreviewCommand implements IExtensionPlugin {
     context.subscriptions.push(previewCommand);
   }
 
+  /**
+   * @inheritdoc
+   */
   dispose(): void {
     // No explicit resources to dispose in this implementation
   }

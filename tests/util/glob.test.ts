@@ -24,12 +24,9 @@
 
 import * as vscode from "vscode";
 import { glob } from "../../src/util/glob";
+import { mockVSCodeUri } from "../__mocks__/mockVSCodeUri";
 
 describe("glob()", () => {
-  function mockUri(path: string): vscode.Uri {
-    return vscode.Uri.file(path);
-  }
-
   (vscode.workspace as any).asRelativePath = (uri: vscode.Uri, _?: boolean) => {
     // Remove the root from the start of the path
     const fullPath = uri.fsPath.replace(/\\/g, "/");
@@ -40,38 +37,44 @@ describe("glob()", () => {
   };
 
   it("matches simple * patterns", () => {
-    expect(glob(mockUri("/foo/bar.txt"), "*.txt")).toBe(false);
-    expect(glob(mockUri("/foo/bar.txt"), "foo/*.txt")).toBe(false);
-    expect(glob(mockUri("/foo/bar.txt"), "**/*.txt")).toBe(true);
-    expect(glob(mockUri("/foo/bar.txt"), "foo/bar.*")).toBe(false);
-    expect(glob(mockUri("/foo/bar.txt"), "**/bar.*")).toBe(true);
+    expect(glob(mockVSCodeUri("/foo/bar.txt"), "*.txt")).toBe(false);
+    expect(glob(mockVSCodeUri("/foo/bar.txt"), "foo/*.txt")).toBe(false);
+    expect(glob(mockVSCodeUri("/foo/bar.txt"), "**/*.txt")).toBe(true);
+    expect(glob(mockVSCodeUri("/foo/bar.txt"), "foo/bar.*")).toBe(false);
+    expect(glob(mockVSCodeUri("/foo/bar.txt"), "**/bar.*")).toBe(true);
   });
 
   it("matches ? patterns", () => {
-    expect(glob(mockUri("/foo/bar.txt"), "foo/ba?.txt")).toBe(false);
-    expect(glob(mockUri("/foo/bar.txt"), "**/ba?.txt")).toBe(true);
-    expect(glob(mockUri("/foo/baz.txt"), "**/ba?.txt")).toBe(true);
-    expect(glob(mockUri("/foo/ba.txt"), "**/ba?.txt")).toBe(false);
+    expect(glob(mockVSCodeUri("/foo/bar.txt"), "foo/ba?.txt")).toBe(false);
+    expect(glob(mockVSCodeUri("/foo/bar.txt"), "**/ba?.txt")).toBe(true);
+    expect(glob(mockVSCodeUri("/foo/baz.txt"), "**/ba?.txt")).toBe(true);
+    expect(glob(mockVSCodeUri("/foo/ba.txt"), "**/ba?.txt")).toBe(false);
   });
 
   it("matches ** patterns", () => {
-    expect(glob(mockUri("/foo/bar/baz.txt"), "foo/**/baz.txt")).toBe(false);
-    expect(glob(mockUri("/foo/bar/baz.txt"), "**/baz.txt")).toBe(true);
-    expect(glob(mockUri("/foo/bar/baz.txt"), "foo/bar/**/baz.txt")).toBe(false);
-    expect(glob(mockUri("/foo/bar/baz.txt"), "**/bar/**/baz.txt")).toBe(true);
+    expect(glob(mockVSCodeUri("/foo/bar/baz.txt"), "foo/**/baz.txt")).toBe(
+      false
+    );
+    expect(glob(mockVSCodeUri("/foo/bar/baz.txt"), "**/baz.txt")).toBe(true);
+    expect(glob(mockVSCodeUri("/foo/bar/baz.txt"), "foo/bar/**/baz.txt")).toBe(
+      false
+    );
+    expect(glob(mockVSCodeUri("/foo/bar/baz.txt"), "**/bar/**/baz.txt")).toBe(
+      true
+    );
   });
 
   it("matches with root argument (relative path)", () => {
-    const root = mockUri("/foo");
-    const file = mockUri("/foo/bar/baz.txt");
+    const root = mockVSCodeUri("/foo");
+    const file = mockVSCodeUri("/foo/bar/baz.txt");
     expect(glob(file, "bar/*.txt", root)).toBe(true);
     expect(glob(file, "bar/baz.txt", root)).toBe(true);
     expect(glob(file, "**/baz.txt", root)).toBe(true);
   });
 
   it("does not match when pattern is not satisfied", () => {
-    expect(glob(mockUri("/foo/bar.txt"), "baz/*.txt")).toBe(false);
-    expect(glob(mockUri("/foo/bar.txt"), "foo/baz.*")).toBe(false);
-    expect(glob(mockUri("/foo/bar.txt"), "**/baz.txt")).toBe(false);
+    expect(glob(mockVSCodeUri("/foo/bar.txt"), "baz/*.txt")).toBe(false);
+    expect(glob(mockVSCodeUri("/foo/bar.txt"), "foo/baz.*")).toBe(false);
+    expect(glob(mockVSCodeUri("/foo/bar.txt"), "**/baz.txt")).toBe(false);
   });
 });

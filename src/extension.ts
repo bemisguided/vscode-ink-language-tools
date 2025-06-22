@@ -63,7 +63,7 @@ export function activate(context: vscode.ExtensionContext): void {
   // Setup Systems
   systems.push(new OutlineSystem());
   systems.push(new BuildSystem());
-  // systems.push(new CompileCommand());
+  systems.push(new CompileCommand());
   // systems.push(new PreviewCommand());
   systems.forEach((s) => s.activate(context));
 }

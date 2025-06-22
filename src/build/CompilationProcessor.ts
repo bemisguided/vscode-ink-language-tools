@@ -22,13 +22,13 @@
  * SOFTWARE.
  */
 import * as vscode from "vscode";
-import { IPipelineProcessor } from "../IPipelineProcessor";
-import { PipelineContext } from "../PipelineContext";
+import { IPipelineProcessor } from "./IPipelineProcessor";
+import { PipelineContext } from "./PipelineContext";
 import { Compiler, CompilerOptions } from "inkjs/compiler/Compiler";
-import { CompilationFileHandler } from "./CompilationFileHandler";
+import { CompilationFileHandler } from "./compiler/CompilationFileHandler";
 import { ErrorType as InkjsErrorType } from "inkjs/engine/Error";
-import { parseCompilationError } from "./parseCompilationError";
-import { VSCodeServiceLocator } from "../../services/VSCodeServiceLocator";
+import { parseCompilationError } from "./compiler/parseCompilationError";
+import { VSCodeServiceLocator } from "../services/VSCodeServiceLocator";
 
 /**
  * Pipeline processor that compiles an Ink file into a Story object.
@@ -41,7 +41,7 @@ export class CompilationProcessor implements IPipelineProcessor {
       VSCodeServiceLocator.getConfigurationService().get<boolean>(
         "ink.compile.behavior.countAllVisits",
         true,
-        context.currentUri
+        context.uri
       );
     return countAllVisits;
   }
@@ -51,7 +51,7 @@ export class CompilationProcessor implements IPipelineProcessor {
   ): Promise<CompilerOptions> {
     const text = await context.getText();
     return {
-      sourceFilename: context.currentUri.fsPath,
+      sourceFilename: context.uri.fsPath,
       fileHandler: new CompilationFileHandler(context),
       pluginNames: [],
       countAllVisits: this.getCountAllVisits(context),
@@ -64,7 +64,7 @@ export class CompilationProcessor implements IPipelineProcessor {
           new vscode.Position(line, 0),
           new vscode.Position(line, lineText.length)
         );
-        context.report(range, msg, severity);
+        context.reportDiagnostic(range, msg, severity);
       },
     };
   }
@@ -82,12 +82,15 @@ export class CompilationProcessor implements IPipelineProcessor {
 
   // Public Methods ===================================================================================================
 
+  /**
+   * @inheritdoc
+   */
   async run(context: PipelineContext): Promise<void> {
     const text = await context.getText();
     try {
       const compilerOptions = await this.getCompilerOptions(context);
       const compiler = new Compiler(text, compilerOptions);
-      context.compiledStory = compiler.Compile();
+      context.story = compiler.Compile();
     } catch (err: any) {
       // No-op as the error will be handled by the error handler in CompilerOptions
     }

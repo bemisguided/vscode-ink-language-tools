@@ -23,34 +23,27 @@
  */
 
 import * as vscode from "vscode";
-import { Story } from "inkjs";
 import { IPipelineProcessor } from "./IPipelineProcessor";
-import { ICompiledStoryResult } from "./ICompiledStoryResult";
+import { BuildResults } from "./BuildResults";
+import { IBuildResult } from "./IBuildResult";
+import { IBuildDiagnostic } from "./IBuildDiagnostic";
 import { PipelineContext } from "./PipelineContext";
 import { DependencyManager } from "../model/DependencyManager";
-import { DependencyNodeType } from "../model/DependencyNode";
-import { DependencyNode } from "../model/DependencyNode";
-import { OutlineProcessor } from "./outline/OutlineProcessor";
-import { IncludeExtractionProcessor } from "./IncludeExtractionProcessor";
-import { CompilationProcessor } from "./compiler/CompilationProcessor";
+import { OutlinePreProcessor } from "./OutlinePreProcessor";
+import { IncludePreProcessor } from "./IncludePreProcessor";
+import { CompilationProcessor } from "./CompilationProcessor";
 import { VSCodeServiceLocator } from "../services/VSCodeServiceLocator";
-import { JsonOutputProcessor } from "./JsonOutputProcessor";
+import { JsonOutputPostProcessor } from "./JsonOutputPostProcessor";
 
 /**
  * The build engine for the Ink language.
  */
 export class BuildEngine {
-  // Private Properties ===============================================================================================
+  // Private Static Properties =========================================================================================
 
   private static instance: BuildEngine;
-  private processors: IPipelineProcessor[] = [];
 
-  private constructor() {
-    this.registerProcessor(new OutlineProcessor());
-    this.registerProcessor(new IncludeExtractionProcessor());
-    this.registerProcessor(new CompilationProcessor());
-    this.registerProcessor(new JsonOutputProcessor());
-  }
+  // Public Static Methods ============================================================================================
 
   public static getInstance(): BuildEngine {
     if (!BuildEngine.instance) {
@@ -60,6 +53,101 @@ export class BuildEngine {
   }
 
   /**
+   * Test-only method to clear the singleton instance.
+   */
+  public static clearInstance(): void {
+    BuildEngine.instance = undefined!;
+  }
+
+  // Private Properties ===============================================================================================
+
+  private processors: IPipelineProcessor[] = [];
+
+  // Private Methods ==================================================================================================
+
+  /**
+   * Flush the diagnostics to the diagnostics service.
+   * @param context The context to flush the diagnostics from.
+   */
+  private flushDiagnostics(context: PipelineContext) {
+    const diagnosticsService = VSCodeServiceLocator.getDiagnosticsService();
+    const vscodeDiagnostics: vscode.Diagnostic[] = [];
+    for (const d of context.getDiagnostics() as IBuildDiagnostic[]) {
+      vscodeDiagnostics.push(
+        new vscode.Diagnostic(d.range, d.message, d.severity)
+      );
+    }
+    diagnosticsService.set(context.uri, vscodeDiagnostics);
+  }
+
+  /**
+   * Register a pipeline processor.
+   * @param processor The pipeline processor to register.
+   */
+  private registerProcessor(processor: IPipelineProcessor) {
+    this.processors.push(processor);
+  }
+
+  /**
+   * Run all pipeline processors on a single file.
+   * @param uri The URI of the story to process.
+   * @returns The compiled story, or undefined if the story has errors.
+   */
+  private async processFile(uri: vscode.Uri): Promise<PipelineContext> {
+    const depManager = DependencyManager.getInstance();
+    const docService = VSCodeServiceLocator.getDocumentService();
+
+    try {
+      const doc = await docService.getTextDocument(uri);
+      depManager.createNode(uri, doc.version);
+
+      // Execute the pipeline
+      const context = new PipelineContext(uri, doc);
+      for (const proc of this.processors) {
+        await proc.run(context);
+      }
+
+      // Update the dependency graph with the results
+      depManager.updateDependencies(context.getDependencies());
+
+      // Flush the diagnostics to the diagnostics service
+      this.flushDiagnostics(context);
+
+      return context;
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      throw new Error(`Failed to process file ${uri.toString()}: ${message}`);
+    }
+  }
+
+  private toBuildResult(context: PipelineContext): IBuildResult {
+    if (context.story === undefined) {
+      return {
+        uri: context.uri,
+        success: false,
+        diagnostics: context.getDiagnostics(),
+      };
+    }
+    return {
+      uri: context.uri,
+      story: context.story,
+      success: true,
+      diagnostics: context.getDiagnostics(),
+    };
+  }
+
+  // Constructors =====================================================================================================
+
+  private constructor() {
+    this.registerProcessor(new OutlinePreProcessor());
+    this.registerProcessor(new IncludePreProcessor());
+    this.registerProcessor(new CompilationProcessor());
+    this.registerProcessor(new JsonOutputPostProcessor());
+  }
+
+  // Public Methods ===================================================================================================
+
+  /**
    * Expose the diagnostics service for lifecycle management.
    */
   public get diagnostics() {
@@ -67,96 +155,36 @@ export class BuildEngine {
   }
 
   /**
-   * Compile a root Ink story and return the compiled story and externals.
-   * Always recompiles (no cache).
+   * Compile an Ink story and return the compiled story and externals.
+   * If the story is not in the dependency graph, it will be added.
+   * If the story has errors, an error will be thrown.
+   * If the story has included stories, they will be added to the dependency graph.
+   * @param uri The URI of the story to compile.
+   * @returns The compiled story and externals.
    */
-  public async compileStory(uri: vscode.Uri): Promise<ICompiledStoryResult> {
-    const node = DependencyManager.getInstance().getNode(uri);
-    if (!node) {
-      DependencyManager.getInstance().dumpGraph();
-      throw new Error(`URI not in graph: ${uri.fsPath}`);
-    }
-    const compiled = await this.processFile(uri);
-    if (!compiled) {
-      throw new Error(`Failed to compile story: ${uri.fsPath}`);
-    }
-    const externals = Array.from(node.deps).filter(
-      (d) =>
-        DependencyManager.getInstance().getNode(d)?.type ===
-        DependencyNodeType.externalFunctions
-    );
-    return { story: compiled, externals };
+  public async compileStory(uri: vscode.Uri): Promise<IBuildResult> {
+    const context = await this.processFile(uri);
+    return this.toBuildResult(context);
   }
 
   /**
    * Recompile the changed file and all dependents, returning a map of each recompiled root story URI to its Story and externals.
    */
-  public async recompileDependents(
-    start: vscode.Uri
-  ): Promise<Map<vscode.Uri, ICompiledStoryResult>> {
-    const toVisit = [start];
-    const seen = new Set<string>();
-    const results = new Map<
-      vscode.Uri,
-      { story: Story; externals: vscode.Uri[] }
-    >();
-
-    while (toVisit.length) {
-      const uri = toVisit.shift()!;
-      const key = uri.toString();
-      if (seen.has(key)) {
-        continue;
-      }
-      seen.add(key);
-
-      const compiled = await this.processFile(uri);
-      if (compiled) {
-        const deps = DependencyManager.getInstance().getNode(uri)!.deps;
-        const externals = Array.from(deps).filter(
-          (d) =>
-            DependencyManager.getInstance().getNode(d)?.type ===
-            DependencyNodeType.externalFunctions
-        );
-        results.set(uri, { story: compiled, externals });
-      }
-
-      const node = DependencyManager.getInstance().getNode(uri)!;
-      for (const parent of node.revDeps) {
-        toVisit.push(parent);
-      }
-    }
-
-    return results;
-  }
-
-  // Private pipeline processor registration
-  private registerProcessor(processor: IPipelineProcessor) {
-    this.processors.push(processor);
-  }
-
-  // Private method to run all pipeline processors on a single file
-  private async processFile(uri: vscode.Uri): Promise<Story | undefined> {
+  public async recompileDependents(start: vscode.Uri): Promise<BuildResults> {
     const depManager = DependencyManager.getInstance();
-    if (!depManager.getNode(uri)) {
-      depManager.setNode(uri, DependencyNode.fromUri(uri, 0));
+    const dependents = depManager.getAllDependents([start]);
+    const toRecompile = new Set([...dependents]);
+    if (dependents.size === 0) {
+      toRecompile.add(start);
     }
-    const docService = VSCodeServiceLocator.getDocumentService();
-    try {
-      const doc = await docService.getTextDocument(uri);
-      DependencyManager.getInstance().getNode(uri)!.version = doc.version;
-    } catch {}
 
-    const diagnosticsService = VSCodeServiceLocator.getDiagnosticsService();
-    const context = new PipelineContext(uri, diagnosticsService, docService);
-    context.resetDeps();
-    for (const proc of this.processors) {
-      await proc.run(context);
-      try {
-        const updated = await docService.getTextDocument(uri);
-        DependencyManager.getInstance().getNode(uri)!.version = updated.version;
-      } catch {}
+    const results: IBuildResult[] = [];
+
+    for (const uri of toRecompile) {
+      const context = await this.processFile(uri);
+      results.push(this.toBuildResult(context));
     }
-    context.flushDiagnostics();
-    return context.compiledStory;
+
+    return new BuildResults(results);
   }
 }

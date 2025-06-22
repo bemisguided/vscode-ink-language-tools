@@ -23,118 +23,117 @@
  */
 
 import * as vscode from "vscode";
-import * as path from "path";
-import { VSCodeDocumentService } from "../../src/services/VSCodeDocumentService";
+import { mockVSCodeDocument } from "./mockVSCodeDocument";
+import { VSCodeDocumentServiceImpl } from "../../src/services/VSCodeDocumentService";
+import { mockVSCodeUri } from "./mockVSCodeUri";
 
-export class MockVSCodeDocumentService implements VSCodeDocumentService {
+export class MockVSCodeDocumentService extends VSCodeDocumentServiceImpl {
+  // Private Properties ===============================================================================================
+
   private docs = new Map<string, vscode.TextDocument>();
   public writtenFiles = new Map<string, string>();
 
-  // Add or override a mock document for a given URI
-  mockTextDocument(uri: vscode.Uri, document?: vscode.TextDocument): void {
-    if (!document) {
-      document = {
-        uri,
-        fileName: uri.fsPath,
-        isUntitled: false,
-        languageId: "ink",
-        version: 1,
-        isDirty: false,
-        isClosed: false,
-        save: jest.fn(),
-        eol: 1,
-        lineCount: 1,
-        lineAt: jest.fn(),
-        offsetAt: jest.fn(),
-        positionAt: jest.fn(),
-        getText: () => "",
-        getWordRangeAtPosition: jest.fn(),
-        validateRange: jest.fn(),
-        validatePosition: jest.fn(),
-        encoding: "utf8",
-      } as unknown as vscode.TextDocument;
-    }
-    this.docs.set(uri.toString(), document);
+  // Private Methods ===================================================================================================
+
+  private getKey(uri: vscode.Uri): string {
+    const uriString = uri.toString().replace("file://", "");
+    return uriString.replace(/\/\/+/g, "/");
   }
 
-  getWorkspaceFolder = (
+  // Public Methods ===================================================================================================
+
+  /**
+   * Add or override a mock document for a given URI.
+   * @param uri The URI of the document.
+   * @param content The content of the document.
+   * @param version The version number of the document.
+   * @returns The mocked text document.
+   */
+  public mockTextDocument(
+    uri: vscode.Uri | string,
+    content: string,
+    version: number = 1
+  ): vscode.TextDocument {
+    const document = mockVSCodeDocument(uri, content, version);
+    this.docs.set(this.getKey(document.uri), document);
+    return document;
+  }
+
+  /**
+   * Get the content of a mock written file for a given URI.
+   * @param uri The URI of the file.
+   * @param content The content of the file.
+   */
+  public mockGetWrittenFile(uri: vscode.Uri | string): string | undefined {
+    const key = typeof uri === "string" ? uri : this.getKey(uri);
+    if (!this.writtenFiles.has(key)) {
+      throw new Error(
+        `Mock written file not found for ${uri.toString()} (key=${key})`
+      );
+    }
+    return this.writtenFiles.get(key);
+  }
+
+  // Protected Methods ==============================================================================================
+
+  /**
+   * @inheritdoc
+   */
+  protected override async createDirectory(uri: vscode.Uri): Promise<void> {
+    // No-op for mock
+  }
+
+  /**
+   * @inheritdoc
+   */
+  protected override getWorkspaceFolderOf(
     uri: vscode.Uri
-  ): vscode.WorkspaceFolder | undefined => ({
-    uri: vscode.Uri.file("/"),
-    name: "mock-workspace",
-    index: 0,
-  });
+  ): vscode.WorkspaceFolder | undefined {
+    return {
+      uri: mockVSCodeUri("/"),
+      name: "mock-workspace",
+      index: 0,
+    };
+  }
 
-  resolveOutputUri = (
-    inputFile: vscode.Uri,
-    outputDirectory: string,
-    newExtension: string
-  ): vscode.Uri | undefined => {
-    const workspaceFolder = this.getWorkspaceFolder(inputFile);
-    if (!workspaceFolder) {
-      return undefined;
-    }
-
-    const outputDir = path.join(workspaceFolder.uri.fsPath, outputDirectory);
-    const inputFileName = path.basename(
-      inputFile.fsPath,
-      path.extname(inputFile.fsPath)
-    );
-    const outputFilePath = path.join(
-      outputDir,
-      `${inputFileName}.${newExtension}`
-    );
-    return vscode.Uri.file(outputFilePath);
-  };
-
-  writeTextFile = async (uri: vscode.Uri, content: string): Promise<void> => {
-    this.writtenFiles.set(uri.toString(), content);
-  };
-
-  resolvePath = (baseUri: vscode.Uri, path: string): vscode.Uri | null =>
-    vscode.Uri.file(path.startsWith("/") ? path : `/${path}`);
-
-  exists = async (baseUri: vscode.Uri, path?: string): Promise<boolean> => {
-    let uri: vscode.Uri;
-    if (!path) {
-      uri = baseUri;
-    } else {
-      uri = vscode.Uri.file(path.startsWith("/") ? path : `/${path}`);
-    }
-    return this.docs.has(uri.toString());
-  };
-
-  getTextDocument = async (
-    baseUri: vscode.Uri,
-    path?: string
-  ): Promise<vscode.TextDocument> => {
-    let uri: vscode.Uri;
-    if (!path) {
-      uri = baseUri;
-    } else {
-      uri = vscode.Uri.file(path.startsWith("/") ? path : `/${path}`);
-    }
-    const doc = this.docs.get(uri.toString());
+  /**
+   * @inheritdoc
+   */
+  protected override async openTextDocument(
+    uri: vscode.Uri
+  ): Promise<vscode.TextDocument> {
+    const key = this.getKey(uri);
+    const doc = this.docs.get(key);
     if (!doc) {
       throw new Error(`Mock document not found for ${uri.toString()}`);
     }
     return doc;
-  };
+  }
 
-  tryGetTextDocument = async (
-    baseUri: vscode.Uri,
-    path?: string
-  ): Promise<vscode.TextDocument | undefined> => {
-    let uri: vscode.Uri;
-    if (!path) {
-      uri = baseUri;
-    } else {
-      uri = vscode.Uri.file(path.startsWith("/") ? path : `/${path}`);
+  /**
+   * @inheritdoc
+   */
+  protected override async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
+    const key = this.getKey(uri);
+    if (this.docs.has(key)) {
+      return {
+        type: vscode.FileType.File,
+        ctime: 0,
+        mtime: 0,
+        size: 0,
+      };
     }
-    return this.docs.get(uri.toString());
-  };
+    throw new Error(`File not found: ${uri.toString()}`);
+  }
 
-  dispose(): void {
-    // No-op
+  /**
+   * @inheritdoc
+   */
+  protected override async writeFile(
+    uri: vscode.Uri,
+    content: Buffer
+  ): Promise<void> {
+    const key = this.getKey(uri);
+    this.writtenFiles.set(key, content.toString("utf8"));
   }
 }

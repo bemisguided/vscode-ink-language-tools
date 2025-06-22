@@ -46,6 +46,9 @@ export class StitchParser implements IEntityParser {
 
   // Public Methods ===================================================================================================
 
+  /**
+   * @inheritdoc
+   */
   shouldPopStack(stack: OutlineEntity[]): boolean {
     // Only pop if the parent is NOT a Knot
     if (stack.length === 0) {
@@ -55,6 +58,9 @@ export class StitchParser implements IEntityParser {
     return parent.type !== EntityType.knot;
   }
 
+  /**
+   * @inheritdoc
+   */
   tryParse(line: string, lineNumber: number): OutlineEntity | null {
     const match = this.regex.exec(line.trim());
     if (!match) {

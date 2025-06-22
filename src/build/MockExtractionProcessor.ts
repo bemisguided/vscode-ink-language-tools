@@ -47,17 +47,7 @@ export class MockExtractionProcessor implements IPipelineProcessor {
         new vscode.Position(line, startChar),
         new vscode.Position(line, endChar)
       );
-      const target = vscode.Uri.joinPath(context.currentUri, "..", path);
-      try {
-        await vscode.workspace.fs.stat(target);
-        context.addDep(target);
-      } catch {
-        context.report(
-          range,
-          `Mock file not found: ${path}`,
-          vscode.DiagnosticSeverity.Warning
-        );
-      }
+      const target = vscode.Uri.joinPath(context.uri, "..", path);
     }
   }
 }

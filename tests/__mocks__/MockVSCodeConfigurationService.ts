@@ -22,11 +22,11 @@
  * SOFTWARE.
  */
 
-import { VSCodeConfigurationService } from "../../src/services/VSCodeConfigurationService";
+import { IVSCodeConfigurationService } from "../../src/services/VSCodeConfigurationService";
 import * as vscode from "vscode";
 
 export class MockVSCodeConfigurationService
-  implements VSCodeConfigurationService
+  implements IVSCodeConfigurationService
 {
   public mockSettings: Record<string, any> = {};
 

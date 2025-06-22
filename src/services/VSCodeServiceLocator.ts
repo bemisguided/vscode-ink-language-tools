@@ -1,24 +1,24 @@
-import { VSCodeConfigurationService } from "./VSCodeConfigurationService";
-import { VSCodeDiagnosticsService } from "./VSCodeDiagnosticsService";
-import { VSCodeDocumentService } from "./VSCodeDocumentService";
+import { IVSCodeConfigurationService } from "./VSCodeConfigurationService";
+import { IVSCodeDiagnosticsService } from "./VSCodeDiagnosticsService";
+import { IVSCodeDocumentService } from "./VSCodeDocumentService";
 
 /**
  * Centralized service locator for VSCode service facades.
  */
 export class VSCodeServiceLocator {
   // Private Properties ===============================================================================================
-  private static configurationService: VSCodeConfigurationService;
+  private static configurationService: IVSCodeConfigurationService;
 
-  private static diagnosticsService: VSCodeDiagnosticsService;
+  private static diagnosticsService: IVSCodeDiagnosticsService;
 
-  private static documentService: VSCodeDocumentService;
+  private static documentService: IVSCodeDocumentService;
 
   // Public Methods ===================================================================================================
 
   /**
    * Get the configuration service implementation.
    */
-  public static getConfigurationService(): VSCodeConfigurationService {
+  public static getConfigurationService(): IVSCodeConfigurationService {
     if (!this.configurationService) {
       throw new Error("VSCodeConfigurationService service not registered");
     }
@@ -28,7 +28,7 @@ export class VSCodeServiceLocator {
   /**
    * Get the diagnostics service implementation.
    */
-  public static getDiagnosticsService(): VSCodeDiagnosticsService {
+  public static getDiagnosticsService(): IVSCodeDiagnosticsService {
     if (!this.diagnosticsService) {
       throw new Error("VSCodeDiagnosticsService service not registered");
     }
@@ -38,7 +38,7 @@ export class VSCodeServiceLocator {
   /**
    * Get the document service implementation.
    */
-  public static getDocumentService(): VSCodeDocumentService {
+  public static getDocumentService(): IVSCodeDocumentService {
     if (!this.documentService) {
       throw new Error("VSCodeDocumentService service not registered");
     }
@@ -49,7 +49,7 @@ export class VSCodeServiceLocator {
    * Set the configuration service implementation.
    */
   public static setConfigurationService(
-    service: VSCodeConfigurationService
+    service: IVSCodeConfigurationService
   ): void {
     this.configurationService = service;
   }
@@ -57,14 +57,16 @@ export class VSCodeServiceLocator {
   /**
    * Set the document service implementation.
    */
-  public static setDocumentService(service: VSCodeDocumentService): void {
+  public static setDocumentService(service: IVSCodeDocumentService): void {
     this.documentService = service;
   }
 
   /**
    * Set the diagnostics service implementation.
    */
-  public static setDiagnosticsService(service: VSCodeDiagnosticsService): void {
+  public static setDiagnosticsService(
+    service: IVSCodeDiagnosticsService
+  ): void {
     this.diagnosticsService = service;
   }
 }

@@ -37,18 +37,14 @@ export class CompilationFileHandler implements IFileHandler {
   // Public Methods ===================================================================================================
 
   /**
-   * Resolves the filename of an ink file.
-   * @param filename - The filename to resolve.
-   * @returns The resolved filename.
+   * @inheritdoc
    */
   public get ResolveInkFilename(): (filename: string) => string {
     return (filename: string) => filename;
   }
 
   /**
-   * Loads the contents of an ink file.
-   * @param filename - The filename to load.
-   * @returns The contents of the file.
+   * @inheritdoc
    */
   public get LoadInkFileContents(): (filename: string) => string {
     return (filename: string) => {

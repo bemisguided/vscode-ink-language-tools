@@ -22,22 +22,52 @@
  * SOFTWARE.
  */
 
-import { IPipelineProcessor } from "../IPipelineProcessor";
-import { PipelineContext } from "../PipelineContext";
-import { OutlineParser } from "../outline/OutlineParser";
-import { OutlineManager } from "../../model/OutlineManager";
+import * as vscode from "vscode";
+import { Story } from "inkjs";
+import { IBuildDiagnostic } from "./IBuildDiagnostic";
 
 /**
- * Pipeline processor for generating the outline of an Ink story.
+ * Represents the result of a successful build.
  */
-export class OutlineProcessor implements IPipelineProcessor {
-  // Public Methods ===================================================================================================
+export interface ISuccessfulBuildResult {
+  /**
+   * The diagnostics for the build.
+   */
+  diagnostics: Readonly<IBuildDiagnostic[]>;
 
-  async run(context: PipelineContext): Promise<void> {
-    const parser = OutlineParser.getInstance();
-    const outlineManager = OutlineManager.getInstance();
-    const document = await context.getTextDocument();
-    const entities = await parser.parse(document);
-    outlineManager.setOutline(document.uri, entities);
-  }
+  /**
+   * The compiled story.
+   */
+  story: Story;
+  /**
+   * The result is successful.
+   */
+  success: true;
+  /**
+   * The URI of the compiled story.
+   */
+  uri: vscode.Uri;
 }
+
+/**
+ * Represents the result of a failed build.
+ */
+export interface IFailedBuildResult {
+  /**
+   * The diagnostics for the build.
+   */
+  diagnostics: Readonly<IBuildDiagnostic[]>;
+  /**
+   * The result is failed.
+   */
+  success: false;
+  /**
+   * The URI of the story that failed to build.
+   */
+  uri: vscode.Uri;
+}
+
+/**
+ * Represents the compilation result of an Ink Story.
+ */
+export type IBuildResult = ISuccessfulBuildResult | IFailedBuildResult;

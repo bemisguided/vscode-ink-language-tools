@@ -22,53 +22,25 @@
  * SOFTWARE.
  */
 
-import * as vscode from "vscode";
-import { IEntityParser } from "./IEntityParser";
-import { OutlineEntity, EntityType } from "../../model/OutlineEntity";
+import { IPipelineProcessor } from "./IPipelineProcessor";
+import { PipelineContext } from "./PipelineContext";
+import { OutlineParser } from "./OutlineParser";
+import { OutlineManager } from "../model/OutlineManager";
 
 /**
- * Parser for the VAR keyword of an Ink story for the outline.
+ * Pipeline processor for generating the outline of an Ink story.
  */
-export class VariableParser implements IEntityParser {
-  // Private Properties ===============================================================================================
-
-  private regex = /^VAR\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=/;
-
-  // Public Properties ===============================================================================================
-
-  readonly entityType = EntityType.variable;
-
-  readonly isBlockEntity = false;
-
-  readonly isNestedEntity = false;
-
-  readonly isRootEntity = true;
-
+export class OutlinePreProcessor implements IPipelineProcessor {
   // Public Methods ===================================================================================================
 
   /**
    * @inheritdoc
    */
-  shouldPopStack(stack: OutlineEntity[]): boolean {
-    return false;
-  }
-
-  /**
-   * @inheritdoc
-   */
-  tryParse(line: string, lineNumber: number): OutlineEntity | null {
-    const match = this.regex.exec(line.trim());
-    if (!match) {
-      return null;
-    }
-    const [_, name] = match;
-    const range = new vscode.Range(lineNumber, 0, lineNumber, line.length);
-    return new OutlineEntity(
-      name,
-      EntityType.variable,
-      range,
-      range,
-      this.isBlockEntity
-    );
+  async run(context: PipelineContext): Promise<void> {
+    const parser = OutlineParser.getInstance();
+    const outlineManager = OutlineManager.getInstance();
+    const document = await context.getTextDocument();
+    const entities = await parser.parse(document);
+    outlineManager.setOutline(document.uri, entities);
   }
 }

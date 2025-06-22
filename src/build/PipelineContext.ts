@@ -23,87 +23,176 @@
  */
 
 import * as vscode from "vscode";
-import { DependencyNode } from "../model/DependencyNode";
-import { DependencyManager } from "../model/DependencyManager";
-import { VSCodeDiagnosticsService } from "../services/VSCodeDiagnosticsService";
-import { VSCodeDocumentService } from "../services/VSCodeDocumentService";
 import { Story } from "inkjs/engine/Story";
+import { IBuildDiagnostic } from "./IBuildDiagnostic";
 
 /**
  * Context for a pipeline processor.
  */
 export class PipelineContext {
+  // Private Properties ===============================================================================================
+  private readonly document: vscode.TextDocument;
+
+  private readonly diagnostics = new Array<IBuildDiagnostic>();
+
+  private readonly resolvedDependencies = new Map<vscode.Uri, vscode.Uri[]>();
+
   // Public Properties ===============================================================================================
 
-  public diagnostics: vscode.Diagnostic[] = [];
-  /** Populated by CompilationProcessor */
-  public compiledStory?: Story;
+  /**
+   * The compiled Ink Story, if successful, for this PipelineContext.
+   */
+  public story?: Story;
 
   /**
-   * Map of all include TextDocuments, keyed by their include path (as written in the INCLUDE statement).
-   * Populated by IncludeExtractionProcessor. Does not include the root document.
+   * Map of all included Ink Story TextDocuments for this PipelineContext.
    */
-  public includeDocuments: Map<string, vscode.TextDocument> = new Map();
+  public readonly includeDocuments: Map<string, vscode.TextDocument> =
+    new Map();
 
-  // Private Properties ===============================================================================================
-  private cachedDoc?: vscode.TextDocument;
-  private readonly docService: VSCodeDocumentService;
+  /**
+   * The URI of the current document for this PipelineContext.
+   */
+  public readonly uri: vscode.Uri;
 
   // Constructor ======================================================================================================
 
-  constructor(
-    public readonly currentUri: vscode.Uri,
-    private readonly diagnosticsService: VSCodeDiagnosticsService,
-    docService: VSCodeDocumentService
-  ) {
-    this.docService = docService;
+  constructor(uri: vscode.Uri, document: vscode.TextDocument) {
+    this.uri = uri;
+    this.document = document;
   }
 
   // Public Methods ===================================================================================================
 
-  public async getText(): Promise<string> {
-    const doc = await this.getTextDocument();
-    return doc.getText();
+  /**
+   * Add a dependency relationship to the PipelineContext.
+   * @param dependent The dependent URI.
+   * @param dependency The dependency URI.
+   */
+  public addDependency(dependent: vscode.Uri, dependency: vscode.Uri) {
+    console.log(
+      "addDependency: dependent=",
+      dependent,
+      "dependency=",
+      dependency
+    );
+    this.resolvedDependencies.set(dependent, [
+      ...(this.resolvedDependencies.get(dependent) || []),
+      dependency,
+    ]);
   }
 
-  public async getTextDocument(): Promise<vscode.TextDocument> {
-    if (this.cachedDoc) {
-      return this.cachedDoc;
+  public dumpDiagnostics() {
+    let output = "";
+    for (const diagnostic of this.diagnostics) {
+      output += `${diagnostic.uri.fsPath}:${diagnostic.range.start.line}:${diagnostic.range.start.character} - ${diagnostic.message}\n`;
     }
-    this.cachedDoc = await this.docService.getTextDocument(this.currentUri);
-    return this.cachedDoc;
+    console.log(output);
   }
 
-  public report(
+  /**
+   * Filter the diagnostics collected for this PipelineContext.
+   * @param filter The filter to apply to the diagnostics.
+   * @returns The filtered diagnostics.
+   */
+  public filterDiagnostics(
+    filter: (diagnostic: IBuildDiagnostic) => boolean
+  ): IBuildDiagnostic[] {
+    return this.diagnostics.filter(filter);
+  }
+
+  /**
+   * Filter the diagnostics collected for this PipelineContext by severity.
+   * @param severity The severity to filter by.
+   * @returns The filtered diagnostics.
+   */
+  public filterDiagnosticsBySeverity(
+    severity: vscode.DiagnosticSeverity
+  ): IBuildDiagnostic[] {
+    return this.filterDiagnostics((d) => d.severity === severity);
+  }
+
+  /**
+   * Get all dependencies for this PipelineContext.
+   * @returns The dependencies for this PipelineContext.
+   */
+  public getDependencies(): Map<vscode.Uri, vscode.Uri[]> {
+    return this.resolvedDependencies;
+  }
+
+  /**
+   * Get the diagnostics collected for this PipelineContext.
+   * @returns The diagnostics collected for this PipelineContext.
+   */
+  public getDiagnostics(): Readonly<IBuildDiagnostic[]> {
+    return this.diagnostics;
+  }
+
+  /**
+   * Get the text of the current document.
+   * @returns The text of the current document.
+   */
+  public getText(): string {
+    return this.document.getText();
+  }
+
+  /**
+   * Get the current document.
+   * @returns The current document.
+   */
+  public getTextDocument(): vscode.TextDocument {
+    return this.document;
+  }
+
+  /**
+   * Check if the PipelineContext has error level diagnostics.
+   * @returns True if the PipelineContext has errors, false otherwise.
+   */
+  public hasErrors(): boolean {
+    return (
+      this.filterDiagnosticsBySeverity(vscode.DiagnosticSeverity.Error).length >
+      0
+    );
+  }
+
+  /**
+   * Check if the PipelineContext has warning level diagnostics.
+   * @returns True if the PipelineContext has warnings, false otherwise.
+   */
+  public hasWarnings(): boolean {
+    return (
+      this.filterDiagnosticsBySeverity(vscode.DiagnosticSeverity.Warning)
+        .length > 0
+    );
+  }
+
+  /**
+   * Check if the PipelineContext has information.
+   * @returns True if the PipelineContext has information, false otherwise.
+   */
+  public hasInformation(): boolean {
+    return (
+      this.filterDiagnosticsBySeverity(vscode.DiagnosticSeverity.Information)
+        .length > 0
+    );
+  }
+
+  /**
+   * Report a diagnostic for the PipelineContext.
+   * @param range The range of the diagnostic.
+   * @param message The message of the diagnostic.
+   * @param severity The severity of the diagnostic.
+   */
+  public reportDiagnostic(
     range: vscode.Range,
     message: string,
     severity: vscode.DiagnosticSeverity = vscode.DiagnosticSeverity.Error
   ) {
-    this.diagnostics.push(new vscode.Diagnostic(range, message, severity));
-  }
-
-  public flushDiagnostics() {
-    this.diagnosticsService.set(this.currentUri, this.diagnostics);
-    this.diagnostics = [];
-  }
-
-  public resetDeps() {
-    const node = DependencyManager.getInstance().getNode(this.currentUri)!;
-    for (const dep of node.deps) {
-      DependencyManager.getInstance()
-        .getNode(dep)!
-        .revDeps.delete(this.currentUri);
-    }
-    node.deps.clear();
-  }
-
-  public addDep(dep: vscode.Uri) {
-    const depManager = DependencyManager.getInstance();
-    if (!depManager.getNode(dep)) {
-      depManager.setNode(dep, DependencyNode.fromUri(dep, 0));
-    }
-    const node = depManager.getNode(this.currentUri)!;
-    node.deps.add(dep);
-    depManager.getNode(dep)!.revDeps.add(this.currentUri);
+    this.diagnostics.push({
+      uri: this.uri,
+      range,
+      message,
+      severity,
+    });
   }
 }

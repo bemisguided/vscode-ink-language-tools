@@ -28,92 +28,158 @@ import { VSCodeServiceLocator } from "../../src/services/VSCodeServiceLocator";
 import { MockVSCodeDiagnosticsService } from "../__mocks__/MockVSCodeDiagnosticsService";
 import { MockVSCodeDocumentService } from "../__mocks__/MockVSCodeDocumentService";
 import { DependencyManager } from "../../src/model/DependencyManager";
-import { DependencyNode } from "../../src/model/DependencyNode";
 import { MockVSCodeConfigurationService } from "../__mocks__/MockVSCodeConfigurationService";
+import { OutlineManager } from "../../src/model/OutlineManager";
+import { ISuccessfulBuildResult } from "../../src/build/IBuildResult";
+import { mockVSCodeUri } from "../__mocks__/mockVSCodeUri";
+import { OutlineParser } from "../../src/build/OutlineParser";
 
 describe("BuildEngine", () => {
+  let depManager: DependencyManager;
+  let outlineManager: OutlineManager;
   let diagnosticsService: MockVSCodeDiagnosticsService;
   let docService: MockVSCodeDocumentService;
   let configService: MockVSCodeConfigurationService;
   let engine: BuildEngine;
 
   beforeEach(() => {
+    // Reset Singletons
+    BuildEngine.clearInstance();
+    OutlineParser.clearInstance();
+
+    // Setup Dependency Manager
+    depManager = DependencyManager.getInstance();
+    depManager.clear();
+
+    // Setup Outline Manager
+    outlineManager = OutlineManager.getInstance();
+    outlineManager.clear();
+
+    // Setup Services & Mock Services
     diagnosticsService = new MockVSCodeDiagnosticsService();
     docService = new MockVSCodeDocumentService();
     configService = new MockVSCodeConfigurationService();
     VSCodeServiceLocator.setDiagnosticsService(diagnosticsService);
     VSCodeServiceLocator.setDocumentService(docService);
     VSCodeServiceLocator.setConfigurationService(configService);
+
+    // Setup Build Engine
     engine = BuildEngine.getInstance();
-    DependencyManager.getInstance().clearGraph();
   });
 
-  afterEach(() => {
-    DependencyManager.getInstance().clearGraph();
+  describe("compileStory()", () => {
+    let uri: vscode.Uri;
+
+    beforeEach(() => {
+      uri = mockVSCodeUri("/story.ink");
+      docService.mockTextDocument(uri, "Hello, world!");
+    });
+
+    it("compiles a story without errors", async () => {
+      // Execute
+      const result = await engine.compileStory(uri);
+
+      // Assert
+      expect(result.uri).toEqual(uri);
+      expect(result.success).toBe(true);
+      const successfulResult = result as ISuccessfulBuildResult;
+      expect(successfulResult.story).toBeDefined();
+    });
+
+    it("adds the story to the dependency graph", async () => {
+      // Execute
+      await engine.compileStory(uri);
+
+      // Assert
+      expect(depManager.hasNode(uri)).toBeTruthy();
+    });
+
+    it("creates a diagnostics entry for the story", async () => {
+      // Execute
+      await engine.compileStory(uri);
+
+      // Assert
+      expect(diagnosticsService.get(uri)).toBeDefined();
+    });
+
+    describe("when the story has errors", () => {
+      beforeEach(() => {
+        docService.mockTextDocument(uri, "Hello, world! {");
+      });
+
+      it("returns a failed build result", async () => {
+        // Execute
+        const result = await engine.compileStory(uri);
+
+        // Assert
+        expect(result.uri).toEqual(uri);
+        expect(result.success).toBeFalsy();
+      });
+
+      it("returns the diagnostics", async () => {
+        // Execute
+        const result = await engine.compileStory(uri);
+
+        // Assert
+        expect(result.diagnostics).toHaveLength(2);
+        expect(result.diagnostics[0].message).toContain("Expected some kind");
+        expect(result.diagnostics[1].message).toContain("Expected end of line");
+      });
+    });
+
+    describe("when the story has included stories", () => {
+      let includedUri: vscode.Uri;
+
+      beforeEach(() => {
+        docService.mockTextDocument(uri, "INCLUDE /included.ink");
+        includedUri = mockVSCodeUri("/included.ink");
+        docService.mockTextDocument(includedUri, "Hello, world!");
+      });
+
+      it("adds the included stories to the dependency graph", async () => {
+        // Execute
+        await engine.compileStory(uri);
+
+        // Assert
+        expect(depManager.hasNode(uri)).toBeTruthy();
+        expect(depManager.hasNode(includedUri)).toBeTruthy();
+      });
+    });
   });
 
-  it("throws if URI is not in dependency graph", async () => {
-    // Setup
-    const uri = vscode.Uri.file("/not-in-graph.ink");
+  describe("recompileDependents()", () => {
+    let rootUri: vscode.Uri;
+    let depUri: vscode.Uri;
 
-    // Execute & Assert
-    await expect(engine.compileStory(uri)).rejects.toThrow(/URI not in graph/);
+    beforeEach(async () => {
+      // Setup documents
+      rootUri = mockVSCodeUri("/root.ink");
+      depUri = mockVSCodeUri("/dep.ink");
+      docService.mockTextDocument(rootUri, `INCLUDE dep.ink`);
+      docService.mockTextDocument(depUri, "Some content");
+
+      // Setup dependency manager
+      depManager.createNode(rootUri);
+      depManager.createNode(depUri);
+      depManager.addDependency(rootUri, depUri);
+
+      // Assert: The graph should be correct
+      expect(depManager.hasNode(rootUri)).toBeTruthy();
+      expect(depManager.hasNode(depUri)).toBeTruthy();
+      expect(depManager.hasDependency(rootUri, depUri)).toBeTruthy();
+      expect(depManager.hasReverseDependency(depUri, rootUri)).toBeTruthy();
+    });
+
+    it("recompiles dependents when a dependency changes", async () => {
+      // Execute
+      const results = await engine.recompileDependents(depUri);
+
+      // Assert
+      expect(results.hasResult(rootUri)).toBeTruthy();
+      const rootResult = results.getResult(rootUri) as ISuccessfulBuildResult;
+      console.log(rootResult.diagnostics);
+      expect(rootResult.success).toBeTruthy();
+      expect(diagnosticsService.mockDiagnosticsForUri(rootUri)).toHaveLength(0);
+    });
   });
-
-  it("compiles a story and sets diagnostics", async () => {
-    // Setup
-    const uri = vscode.Uri.file("/story.ink");
-    DependencyManager.getInstance().setNode(
-      uri,
-      DependencyNode.fromUri(uri, 0)
-    );
-    docService.mockTextDocument(uri);
-
-    // Execute & Assert
-    await expect(engine.compileStory(uri)).resolves.toBeDefined();
-    expect(diagnosticsService.mockDiagnosticsForUri(uri)).toBeDefined();
-  });
-
-  it("recompiles dependents and sets diagnostics", async () => {
-    // Setup
-    const uri = vscode.Uri.file("/root.ink");
-    const depUri = vscode.Uri.file("/dep.ink");
-    const rootNode = DependencyNode.fromUri(uri, 0);
-    const depNode = DependencyNode.fromUri(depUri, 0);
-    rootNode.deps.add(depUri);
-    depNode.revDeps.add(uri);
-    DependencyManager.getInstance().setNode(uri, rootNode);
-    DependencyManager.getInstance().setNode(depUri, depNode);
-    docService.mockTextDocument(uri);
-    docService.mockTextDocument(depUri);
-
-    // Execute
-    const result = await engine.recompileDependents(depUri);
-
-    // Assert
-    expect(result.size).toBeGreaterThan(0);
-    expect(diagnosticsService.mockDiagnosticsForUri(uri)).toBeDefined();
-  });
-
-  // it("returns externals in compileStory", async () => {
-  //   // Setup
-  //   const uri = vscode.Uri.file("/story.ink");
-  //   const extUri = vscode.Uri.file("/external.js");
-  //   const node = DependencyNode.fromUri(uri, 0);
-  //   node.deps.add(extUri);
-  //   DependencyManager.getInstance().setNode(uri, node);
-  //   const extNode = DependencyNode.fromUri(extUri, 0);
-  //   extNode.type = DependencyNodeType.externalFunctions;
-  //   DependencyManager.getInstance().setNode(extUri, extNode);
-  //   docService.mockTextDocument(uri);
-  //   docService.mockTextDocument(extUri);
-
-  //   // Execute
-  //   const result = await engine.compileStory(uri);
-
-  //   // Assert
-  //   expect(result.externals.map((u) => u.toString())).toContain(
-  //     extUri.toString()
-  //   );
-  // });
 });

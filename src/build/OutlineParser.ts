@@ -23,18 +23,18 @@
  */
 
 import * as vscode from "vscode";
-import { KnotParser } from "./KnotParser";
-import { StitchParser } from "./StitchParser";
-import { FunctionParser } from "./FunctionParser";
-import { ExternalParser } from "./ExternalParser";
-import { VariableParser } from "./VariableParser";
-import { IncludeParser } from "./IncludeParser";
-import { OutlineEntity, EntityType } from "../../model/OutlineEntity";
-import { ListParser } from "./ListParser";
-import { ConstParser } from "./ConstParser";
-import { stripComments } from "./stripComments";
-import { IEntityParser } from "./IEntityParser";
-import { LabelParser } from "./LabelParser";
+import { KnotParser } from "./outline/KnotParser";
+import { StitchParser } from "./outline/StitchParser";
+import { FunctionParser } from "./outline/FunctionParser";
+import { ExternalParser } from "./outline/ExternalParser";
+import { VariableParser } from "./outline/VariableParser";
+import { IncludeParser } from "./outline/IncludeParser";
+import { OutlineEntity, EntityType } from "../model/OutlineEntity";
+import { ListParser } from "./outline/ListParser";
+import { ConstParser } from "./outline/ConstParser";
+import { stripComments } from "./outline/stripComments";
+import { IEntityParser } from "./outline/IEntityParser";
+import { LabelParser } from "./outline/LabelParser";
 
 /**
  * Parser for the outline of an Ink story.
@@ -57,6 +57,13 @@ export class OutlineParser {
       this.instance = new OutlineParser();
     }
     return this.instance;
+  }
+
+  /**
+   * Test-only method to clear the singleton instance.
+   */
+  public static clearInstance(): void {
+    this.instance = null;
   }
 
   // Constructor ======================================================================================================

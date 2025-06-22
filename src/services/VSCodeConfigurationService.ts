@@ -27,7 +27,7 @@ import * as vscode from "vscode";
 /**
  * Facade service to access VSCode Configuration API.
  */
-export interface VSCodeConfigurationService {
+export interface IVSCodeConfigurationService {
   /**
    * Retrieves a configuration setting using its full key.
    * @param key The full configuration key, e.g., 'myExtension.someSetting'.
@@ -46,7 +46,7 @@ export interface VSCodeConfigurationService {
  * Implementation of the VSCodeConfigurationService.
  */
 export class VSCodeConfigurationServiceImpl
-  implements VSCodeConfigurationService
+  implements IVSCodeConfigurationService
 {
   // Private Methods ===================================================================================================
 
