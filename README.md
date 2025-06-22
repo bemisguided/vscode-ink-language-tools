@@ -45,7 +45,7 @@ The extension provides robust, real-time compilation of your Ink stories directl
 
 Files with the `.ink` extension are real-time compiled whenever they are saved or their content is updated. This ensures that you always have the most up-to-date feedback on your story's validity.
 
-You can also manually trigger a compilation for the currently active Ink story file by opening the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`) and selecting `Ink: Compile File`.
+You can also manually trigger a compilation for the currently active Ink story file by using the keyboard shortcut `Shift+Alt+K` (`Shift+Option+K` on macOS). Alternatively, you can open the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`) and select `Ink: Compile File`.
 
 #### Compilation Behavior
 

@@ -67,6 +67,13 @@
         "title": "Ink: Compile File"
       }
     ],
+    "keybindings": [
+      {
+        "command": "ink.compileFile",
+        "key": "shift+alt+k",
+        "when": "editorLangId == ink && editorTextFocus"
+      }
+    ],
     "configuration": {
       "title": "Ink Language Tools",
       "properties": {
