@@ -144,6 +144,54 @@ describe("BuildEngine", () => {
         expect(depManager.hasNode(uri)).toBeTruthy();
         expect(depManager.hasNode(includedUri)).toBeTruthy();
       });
+
+      it("creates a diagnostics entry for the included story", async () => {
+        // Execute
+        await engine.compileStory(uri);
+
+        // Assert
+        expect(diagnosticsService.get(includedUri)).toBeDefined();
+      });
+
+      describe("when the previous compilation had errors", () => {
+        beforeEach(() => {
+          diagnosticsService.set(includedUri, [
+            new vscode.Diagnostic(
+              new vscode.Range(0, 0, 0, 0),
+              "Error",
+              vscode.DiagnosticSeverity.Error
+            ),
+          ]);
+        });
+
+        it("clears the diagnostics for the included story on the next compilation", async () => {
+          // Execute
+          await engine.compileStory(uri);
+
+          // Assert
+          expect(diagnosticsService.get(includedUri)).toHaveLength(0);
+        });
+      });
+    });
+
+    describe("when the previous compilation had errors", () => {
+      beforeEach(() => {
+        diagnosticsService.set(uri, [
+          new vscode.Diagnostic(
+            new vscode.Range(0, 0, 0, 0),
+            "Error",
+            vscode.DiagnosticSeverity.Error
+          ),
+        ]);
+      });
+
+      it("clears the diagnostics for the story on the next compilation", async () => {
+        // Execute
+        await engine.compileStory(uri);
+
+        // Assert
+        expect(diagnosticsService.get(uri)).toHaveLength(0);
+      });
     });
   });
 

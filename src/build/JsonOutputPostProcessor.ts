@@ -93,6 +93,7 @@ export class JsonOutputPostProcessor implements IPipelineProcessor {
 
   private reportError(context: PipelineContext, message: string): void {
     context.reportDiagnostic(
+      context.uri,
       new vscode.Range(0, 0, 0, 1),
       message,
       vscode.DiagnosticSeverity.Error

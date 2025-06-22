@@ -63,6 +63,15 @@ export class BuildEngine {
 
   private processors: IPipelineProcessor[] = [];
 
+  // Constructors =====================================================================================================
+
+  private constructor() {
+    this.registerProcessor(new OutlinePreProcessor());
+    this.registerProcessor(new IncludePreProcessor());
+    this.registerProcessor(new CompilationProcessor());
+    this.registerProcessor(new JsonOutputPostProcessor());
+  }
+
   // Private Methods ==================================================================================================
 
   /**
@@ -71,15 +80,27 @@ export class BuildEngine {
    */
   private flushDiagnostics(context: PipelineContext) {
     const diagnosticsService = VSCodeServiceLocator.getDiagnosticsService();
-    const vscodeDiagnostics: vscode.Diagnostic[] = [];
-    for (const d of context.getDiagnostics() as IBuildDiagnostic[]) {
-      vscodeDiagnostics.push(
-        new vscode.Diagnostic(d.range, d.message, d.severity)
-      );
-    }
-    diagnosticsService.set(context.uri, vscodeDiagnostics);
-  }
 
+    // Reset all Diagnostics for the context and included documents
+    const vscodeDiagnostics = new Map<vscode.Uri, vscode.Diagnostic[]>();
+    vscodeDiagnostics.set(context.uri, []);
+    context.includeDocuments.forEach((d) => {
+      vscodeDiagnostics.set(d.uri, []);
+    });
+
+    // Build a map of URI to Diagnostic sets
+    for (const d of context.getDiagnostics()) {
+      const uri = d.uri;
+      const diagnostics = vscodeDiagnostics.get(uri) || [];
+      diagnostics.push(new vscode.Diagnostic(d.range, d.message, d.severity));
+      vscodeDiagnostics.set(uri, diagnostics);
+    }
+
+    // Update VSCode Diagnostics Service, with the new diagnostics
+    for (const [uri, diagnostics] of vscodeDiagnostics) {
+      diagnosticsService.set(uri, diagnostics);
+    }
+  }
   /**
    * Register a pipeline processor.
    * @param processor The pipeline processor to register.
@@ -111,7 +132,9 @@ export class BuildEngine {
       depManager.updateDependencies(context.getDependencies());
 
       // Flush the diagnostics to the diagnostics service
+      console.log("processFile: flushing diagnostics");
       this.flushDiagnostics(context);
+      console.log("processFile: flushed diagnostics");
 
       return context;
     } catch (e: unknown) {
@@ -134,15 +157,6 @@ export class BuildEngine {
       success: true,
       diagnostics: context.getDiagnostics(),
     };
-  }
-
-  // Constructors =====================================================================================================
-
-  private constructor() {
-    this.registerProcessor(new OutlinePreProcessor());
-    this.registerProcessor(new IncludePreProcessor());
-    this.registerProcessor(new CompilationProcessor());
-    this.registerProcessor(new JsonOutputPostProcessor());
   }
 
   // Public Methods ===================================================================================================

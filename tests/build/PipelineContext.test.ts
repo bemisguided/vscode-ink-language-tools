@@ -77,11 +77,13 @@ describe("PipelineContext", () => {
     it("should return diagnostics that match the filter", () => {
       // Setup
       context.reportDiagnostic(
+        uri,
         new vscode.Range(0, 0, 0, 0),
         "Error message",
         vscode.DiagnosticSeverity.Error
       );
       context.reportDiagnostic(
+        uri,
         new vscode.Range(1, 0, 1, 0),
         "Warning message",
         vscode.DiagnosticSeverity.Warning
@@ -102,16 +104,19 @@ describe("PipelineContext", () => {
     it("should return diagnostics that match the severity", () => {
       // Setup
       context.reportDiagnostic(
+        uri,
         new vscode.Range(0, 0, 0, 0),
         "Error message",
         vscode.DiagnosticSeverity.Error
       );
       context.reportDiagnostic(
+        uri,
         new vscode.Range(1, 0, 1, 0),
         "Another error",
         vscode.DiagnosticSeverity.Error
       );
       context.reportDiagnostic(
+        uri,
         new vscode.Range(2, 0, 2, 0),
         "Warning message",
         vscode.DiagnosticSeverity.Warning
@@ -155,11 +160,13 @@ describe("PipelineContext", () => {
     it("should return all reported diagnostics", () => {
       // Setup
       context.reportDiagnostic(
+        uri,
         new vscode.Range(0, 0, 0, 0),
         "Info message",
         vscode.DiagnosticSeverity.Information
       );
       context.reportDiagnostic(
+        uri,
         new vscode.Range(1, 0, 1, 0),
         "Error message",
         vscode.DiagnosticSeverity.Error
@@ -197,6 +204,7 @@ describe("PipelineContext", () => {
     it("should return true if there are error diagnostics", () => {
       // Setup
       context.reportDiagnostic(
+        uri,
         new vscode.Range(0, 0, 0, 0),
         "Error",
         vscode.DiagnosticSeverity.Error
@@ -209,6 +217,7 @@ describe("PipelineContext", () => {
     it("should return false if there are no error diagnostics", () => {
       // Setup
       context.reportDiagnostic(
+        uri,
         new vscode.Range(0, 0, 0, 0),
         "Warning",
         vscode.DiagnosticSeverity.Warning
@@ -223,6 +232,7 @@ describe("PipelineContext", () => {
     it("should return true if there are info diagnostics", () => {
       // Setup
       context.reportDiagnostic(
+        uri,
         new vscode.Range(0, 0, 0, 0),
         "Info",
         vscode.DiagnosticSeverity.Information
@@ -235,6 +245,7 @@ describe("PipelineContext", () => {
     it("should return false if there are no info diagnostics", () => {
       // Setup
       context.reportDiagnostic(
+        uri,
         new vscode.Range(0, 0, 0, 0),
         "Warning",
         vscode.DiagnosticSeverity.Warning
@@ -249,6 +260,7 @@ describe("PipelineContext", () => {
     it("should return true if there are warning diagnostics", () => {
       // Setup
       context.reportDiagnostic(
+        uri,
         new vscode.Range(0, 0, 0, 0),
         "Warning",
         vscode.DiagnosticSeverity.Warning
@@ -261,6 +273,7 @@ describe("PipelineContext", () => {
     it("should return false if there are no warning diagnostics", () => {
       // Setup
       context.reportDiagnostic(
+        uri,
         new vscode.Range(0, 0, 0, 0),
         "Error",
         vscode.DiagnosticSeverity.Error
@@ -279,29 +292,16 @@ describe("PipelineContext", () => {
       const severity = vscode.DiagnosticSeverity.Error;
 
       // Execute
-      context.reportDiagnostic(range, message, severity);
+      context.reportDiagnostic(uri, range, message, severity);
 
       // Assert
       const diagnostics = context.getDiagnostics();
       expect(diagnostics).toHaveLength(1);
       const diagnostic = diagnostics[0];
+      expect(diagnostic.uri).toBe(uri);
       expect(diagnostic.range).toBe(range);
       expect(diagnostic.message).toBe(message);
       expect(diagnostic.severity).toBe(severity);
-      expect(diagnostic.uri).toBe(uri);
-    });
-
-    it("should default to error severity", () => {
-      // Setup
-      const range = new vscode.Range(0, 0, 0, 10);
-      const message = "Test diagnostic";
-
-      // Execute
-      context.reportDiagnostic(range, message);
-
-      // Assert
-      const diagnostics = context.getDiagnostics();
-      expect(diagnostics[0].severity).toBe(vscode.DiagnosticSeverity.Error);
     });
   });
 });

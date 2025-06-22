@@ -179,17 +179,20 @@ export class PipelineContext {
    * @param range The range of the diagnostic.
    * @param message The message of the diagnostic.
    * @param severity The severity of the diagnostic.
+   * @param uri The URI of the diagnostic.
    */
   public reportDiagnostic(
+    uri: vscode.Uri,
     range: vscode.Range,
     message: string,
-    severity: vscode.DiagnosticSeverity = vscode.DiagnosticSeverity.Error
+    severity: vscode.DiagnosticSeverity,
   ) {
-    this.diagnostics.push({
-      uri: this.uri,
+    const d: IBuildDiagnostic = {
+      uri,
       range,
       message,
       severity,
-    });
+    };
+    this.diagnostics.push(d);
   }
 }

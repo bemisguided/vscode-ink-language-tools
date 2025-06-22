@@ -63,13 +63,24 @@ export class CompilationProcessor implements IPipelineProcessor {
           new vscode.Position(line, 0),
           new vscode.Position(line, lineText.length)
         );
-        // We only report errors for the source file, not for included files
-        // these should be reported, when the include is compiled
-        if (filename === sourceFilename) {
-          context.reportDiagnostic(range, msg, severity);
-        }
+        const uri = this.toDiagnosticUri(context, filename);
+        context.reportDiagnostic(uri, range, msg, severity);
       },
     };
+  }
+
+  private toDiagnosticUri(
+    context: PipelineContext,
+    filename: string | undefined
+  ): vscode.Uri {
+    if (!filename) {
+      return context.uri;
+    }
+    const include = context.includeDocuments.get(filename);
+    if (include) {
+      return include.uri;
+    }
+    return context.uri;
   }
 
   private toSeverity(type: InkjsErrorType): vscode.DiagnosticSeverity {

@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 
+import * as vscode from "vscode";
 import { CompilationProcessor } from "../../src/build/CompilationProcessor";
 import { PipelineContext } from "../../src/build/PipelineContext";
 import { VSCodeServiceLocator } from "../../src/services/VSCodeServiceLocator";
@@ -130,9 +131,12 @@ describe("CompilationProcessor", () => {
     expect(context.hasWarnings()).toBe(false);
     expect(context.hasErrors()).toBe(false);
     expect(context.hasInformation()).toBe(true);
+    expect(context.getDiagnostics()[0].uri).toBe(context.uri);
   });
 
   describe("when the story has an include", () => {
+    let includeUri: vscode.Uri;
+
     beforeEach(() => {
       // Setup
       const story = `
@@ -152,9 +156,11 @@ describe("CompilationProcessor", () => {
         === knot2 ===P
         Hello world.
       `;
+
+      includeUri = mockVSCodeUri("/include.ink");
       context.includeDocuments.set(
         "include.ink",
-        mockVSCodeDocument("/include.ink", include)
+        mockVSCodeDocument(includeUri, include)
       );
     });
 
@@ -163,7 +169,8 @@ describe("CompilationProcessor", () => {
       await processor.run(context);
 
       // Assert
-      expect(context.getDiagnostics().length).toBe(0);
+      expect(context.getDiagnostics().length).toBe(1);
+      expect(context.getDiagnostics()[0].uri).toBe(includeUri);
     });
   });
 });
