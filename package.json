@@ -2,7 +2,7 @@
   "name": "vscode-ink-language-tools",
   "displayName": "Ink Language Tools",
   "description": "Language tools for Inkle's Ink narrative scripting language",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "bemisguided",
   "engines": {
     "vscode": "^1.85.0"
