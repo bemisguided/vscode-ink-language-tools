@@ -132,9 +132,7 @@ export class BuildEngine {
       depManager.updateDependencies(context.getDependencies());
 
       // Flush the diagnostics to the diagnostics service
-      console.log("processFile: flushing diagnostics");
       this.flushDiagnostics(context);
-      console.log("processFile: flushed diagnostics");
 
       return context;
     } catch (e: unknown) {
@@ -177,7 +175,7 @@ export class BuildEngine {
    * @returns The compiled story and externals.
    */
   public async compileStory(uri: vscode.Uri): Promise<IBuildResult> {
-    console.log("compileStory: uri:", uri.fsPath);
+    console.log("[BuildEngine] 🏗️ Compiling story:", uri.fsPath);
     const context = await this.processFile(uri);
     return this.toBuildResult(context);
   }
@@ -186,6 +184,7 @@ export class BuildEngine {
    * Recompile the changed file and all dependents, returning a map of each recompiled root story URI to its Story and externals.
    */
   public async recompileDependents(start: vscode.Uri): Promise<BuildResults> {
+    console.log("[BuildEngine] 🏗️ Recompiling dependents:", start.fsPath);
     const depManager = DependencyManager.getInstance();
     const dependents = depManager.getAllDependents([start], true);
     const toRecompile = new Set([...dependents]);
@@ -196,12 +195,7 @@ export class BuildEngine {
     const results: IBuildResult[] = [];
 
     for (const uri of toRecompile) {
-      console.log(
-        "recompileDependents: start:",
-        start.fsPath,
-        "uri:",
-        uri.fsPath
-      );
+      console.log("[BuildEngine] 🏗️ Recompiling story:", uri.fsPath);
       const context = await this.processFile(uri);
       results.push(this.toBuildResult(context));
     }
