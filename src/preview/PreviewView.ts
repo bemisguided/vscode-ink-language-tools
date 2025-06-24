@@ -25,13 +25,9 @@
 import * as vscode from "vscode";
 import path from "path";
 import { StoryUpdate } from "./types";
-import {
-  inboundMessages,
-  outboundMessages,
-  Message,
-} from "./messages/StoryMessages";
+import { inboundMessages, outboundMessages, Message } from "./PreviewMessages";
 
-export class StoryView {
+export class PreviewView {
   // Private Properties ===============================================================================================
 
   private readonly webviewPanel: vscode.WebviewPanel;
@@ -135,7 +131,7 @@ export class StoryView {
       command,
       payload,
     });
-    console.debug(`[StoryView] 📩 Posted message: ${command}:`, payload);
+    console.debug(`[PreviewView] 📩 Posted message: ${command}:`, payload);
   }
 
   private registerMessageHandler(
@@ -147,7 +143,7 @@ export class StoryView {
       if (message.command !== command) {
         return;
       }
-      const logMessage = `[StoryView] 📥 Received message: ${command}:`;
+      const logMessage = `[PreviewView] 📥 Received message: ${command}:`;
       console.debug(logMessage, message.payload);
       callback(message.payload);
     };
@@ -159,11 +155,11 @@ export class StoryView {
   }
 
   private setupWebview(): void {
-    console.debug("[StoryView] 👀 Initializing preview webview");
+    console.debug("[PreviewView] 👀 Initializing preview webview");
 
     // Register log handler
     this.registerMessageHandler(inboundMessages.log, (payload) => {
-      console.debug(`[StoryView] [Webview] ${payload.message}`);
+      console.debug(`[PreviewView] [Webview] ${payload.message}`);
     });
   }
 }

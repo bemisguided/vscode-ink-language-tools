@@ -26,7 +26,6 @@ import * as vscode from "vscode";
 import { IPipelineProcessor } from "./IPipelineProcessor";
 import { BuildResults } from "./BuildResults";
 import { IBuildResult } from "./IBuildResult";
-import { IBuildDiagnostic } from "./IBuildDiagnostic";
 import { PipelineContext } from "./PipelineContext";
 import { DependencyManager } from "../model/DependencyManager";
 import { OutlinePreProcessor } from "./OutlinePreProcessor";

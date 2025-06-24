@@ -23,7 +23,7 @@
  */
 
 import { Story } from "inkjs/engine/Story";
-import { BindableFunction, CompiledStory } from "../../types";
+import { BindableFunction, CompiledStory } from "../types";
 import {
   StoryUpdate,
   FunctionCall,
@@ -31,13 +31,13 @@ import {
   TextStoryEvent,
   FunctionStoryEvent,
 } from "./types";
-import { ISuccessfulBuildResult } from "../../build/IBuildResult";
+import { ISuccessfulBuildResult } from "../build/IBuildResult";
 
 /**
  * Manages the story state and progression.
  * Handles story continuation, choice selection, and function calls.
  */
-export class StoryModel {
+export class PreviewModel {
   // Private Properties ===============================================================================================
 
   private currentError: any | null = null;

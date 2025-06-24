@@ -24,7 +24,7 @@
 
 import * as vscode from "vscode";
 import { IExtensionPlugin } from "../IExtensionPlugin";
-import { InkPreviewPanel } from "../panels/preview/InkPreviewPanel";
+import { PreviewManager } from "../preview/PreviewManager";
 
 /**
  * Implements the VSCode Command for previewing an Ink story.
@@ -32,7 +32,13 @@ import { InkPreviewPanel } from "../panels/preview/InkPreviewPanel";
 export class PreviewCommand implements IExtensionPlugin {
   // Private Properties ===============================================================================================
 
-  private previewInProgress: boolean = false;
+  private previewManager: PreviewManager;
+
+  // Constructors =====================================================================================================
+
+  constructor() {
+    this.previewManager = PreviewManager.getInstance();
+  }
 
   // Public Methods ===================================================================================================
 
@@ -43,11 +49,14 @@ export class PreviewCommand implements IExtensionPlugin {
     const previewCommand = vscode.commands.registerCommand(
       "ink.previewStory",
       async () => {
+        // Ensure there is an active document
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
           vscode.window.showErrorMessage("No active document.");
           return;
         }
+
+        // Ensure the active document is an Ink story
         const document = editor.document;
         if (document.languageId !== "ink") {
           vscode.window.showErrorMessage(
@@ -55,26 +64,12 @@ export class PreviewCommand implements IExtensionPlugin {
           );
           return;
         }
+
+        // Save the document
         await document.save();
-        if (this.previewInProgress) {
-          return;
-        }
-        this.previewInProgress = true;
-        try {
-          const panel = InkPreviewPanel.getInstance();
-          if (panel) {
-            panel.initialize(document);
-          }
-          vscode.window.showInformationMessage(
-            "Ink story previewed successfully."
-          );
-        } catch (err: any) {
-          vscode.window.showErrorMessage(
-            `Failed to preview Ink story: ${err.message || err}`
-          );
-        } finally {
-          this.previewInProgress = false;
-        }
+
+        // Preview the story
+        await this.previewManager.preview(document);
       }
     );
     context.subscriptions.push(previewCommand);
