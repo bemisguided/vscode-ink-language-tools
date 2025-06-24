@@ -23,16 +23,45 @@
  */
 
 import * as vscode from "vscode";
-import { StoryController } from "./StoryController";
-import { StoryView } from "./StoryView";
-import { ExtensionUtils } from "../../services/ExtensionUtils";
+import { PreviewController } from "./PreviewController";
+import { PreviewView } from "./PreviewView";
+import { ExtensionUtils } from "../services/ExtensionUtils";
+import { VSCodeServiceLocator } from "../services/VSCodeServiceLocator";
+import { BuildEngine } from "../build/BuildEngine";
 
-export class InkPreviewPanel {
+export class PreviewManager {
+  // Private Static Properties ========================================================================================
+
+  private static instance: PreviewManager | undefined;
+
   // Private Properties ===============================================================================================
 
-  private static singleton: InkPreviewPanel | undefined;
-  private webviewPanel: vscode.WebviewPanel;
-  private controller: StoryController | undefined;
+  private readonly webviewPanel: vscode.WebviewPanel;
+
+  private readonly controller: PreviewController;
+
+  private uri: vscode.Uri | undefined;
+
+  private version: number = 0;
+
+  // Public Static Methods ============================================================================================
+
+  public static getInstance(): PreviewManager {
+    const column = vscode.window.activeTextEditor
+      ? vscode.ViewColumn.Beside
+      : undefined;
+
+    // If we already have a panel, show it
+    if (PreviewManager.instance) {
+      PreviewManager.instance.webviewPanel.reveal(column);
+      return PreviewManager.instance;
+    }
+
+    // Otherwise, create a new panel
+    console.log("[InkPreviewPanel] Creating new instance");
+    PreviewManager.instance = new PreviewManager();
+    return PreviewManager.instance;
+  }
 
   // Constructor ======================================================================================================
 
@@ -51,46 +80,42 @@ export class InkPreviewPanel {
 
     this.webviewPanel.webview.html = this.getWebviewContent();
 
+    const view = new PreviewView(this.webviewPanel);
+    this.controller = new PreviewController(view);
+
     this.webviewPanel.onDidDispose(() => this.dispose());
   }
 
   // Public Methods ===================================================================================================
 
-  public static getInstance(): InkPreviewPanel {
-    const column = vscode.window.activeTextEditor
-      ? vscode.ViewColumn.Beside
-      : undefined;
-
-    // If we already have a panel, show it
-    if (InkPreviewPanel.singleton) {
-      InkPreviewPanel.singleton.webviewPanel.reveal(column);
-      return InkPreviewPanel.singleton;
+  public async preview(document: vscode.TextDocument) {
+    console.log(
+      "[InkPreviewPanel] Previewing document",
+      document.uri.fsPath,
+      this.uri?.fsPath,
+      this.version,
+      document.version
+    );
+    if (
+      this.uri &&
+      this.uri === document.uri &&
+      this.version === document.version
+    ) {
+      console.log(
+        "[InkPreviewPanel] Document is the same as the current document"
+      );
+      return;
     }
-
-    // Otherwise, create a new panel
-    console.log("[InkPreviewPanel] Creating new instance");
-    InkPreviewPanel.singleton = new InkPreviewPanel();
-    return InkPreviewPanel.singleton;
-  }
-
-  public initialize(document: vscode.TextDocument) {
-    try {
-      const view = new StoryView(this.webviewPanel);
-      this.controller = new StoryController(view);
-      this.controller.initialize(document);
-    } catch (error) {
-      console.error("❌ Failed to load story:", error);
-      vscode.window.showErrorMessage(`Failed to load story: ${error}`);
-    }
+    this.uri = document.uri;
+    this.version = document.version;
+    console.log("[InkPreviewPanel] Previewing controller");
+    await this.controller.preview(document);
   }
 
   public dispose(): void {
     console.log("[InkPreviewPanel] Disposing");
-    if (this.controller) {
-      this.controller = undefined;
-    }
     this.webviewPanel.dispose();
-    InkPreviewPanel.singleton = undefined;
+    PreviewManager.instance = undefined;
   }
 
   private getWebviewContent(): string {

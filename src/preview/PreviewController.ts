@@ -23,26 +23,28 @@
  */
 
 import * as vscode from "vscode";
-import { StoryModel } from "./StoryModel";
-import { StoryView } from "./StoryView";
+import { PreviewModel } from "./PreviewModel";
+import { PreviewView } from "./PreviewView";
 import { StoryUpdate } from "./types";
-import { BuildEngine } from "../../build/BuildEngine";
+import { BuildEngine } from "../build/BuildEngine";
+import { Deferred } from "../util/deferred";
 
 /**
- * Coordinates between the StoryModel and StoryView, managing the story lifecycle
+ * Coordinates between the PreviewModel and PreviewView, managing the story lifecycle
  * and handling user interactions.
  */
-export class StoryController {
+export class PreviewController {
   // Private Properties ===============================================================================================
 
   private document?: vscode.TextDocument;
-  private model?: StoryModel;
-  private view: StoryView;
+  private model?: PreviewModel;
+  private view: PreviewView;
   private isInitialized: boolean = false;
+  private viewReadyDeferred: Deferred<void> | null = null;
 
   // Constructor ======================================================================================================
 
-  constructor(view: StoryView) {
+  constructor(view: PreviewView) {
     this.view = view;
   }
 
@@ -52,14 +54,19 @@ export class StoryController {
    * Initializes the controller and sets up event handlers.
    * This should be called after construction.
    */
-  public initialize(document: vscode.TextDocument): void {
+  public async preview(document: vscode.TextDocument): Promise<void> {
     this.document = document;
     if (this.isInitialized) {
+      await this.startStory();
       return;
     }
+
+    this.isInitialized = true;
+    this.viewReadyDeferred = new Deferred<void>();
     this.setupEventHandlers();
     this.view.initialize();
-    this.isInitialized = true;
+    await this.viewReadyDeferred.promise;
+    await this.startStory();
   }
 
   // Private Methods ==================================================================================================
@@ -71,9 +78,9 @@ export class StoryController {
     return this.document;
   }
 
-  private ensureModel(): StoryModel {
+  private ensureModel(): PreviewModel {
     if (!this.model) {
-      throw new Error("StoryModel not initialized");
+      throw new Error("PreviewModel not initialized");
     }
     return this.model;
   }
@@ -85,6 +92,10 @@ export class StoryController {
     // Handle webview ready
     this.view.onReady(() => {
       this.startStory();
+      if (this.viewReadyDeferred) {
+        this.viewReadyDeferred.resolve();
+        this.viewReadyDeferred = null;
+      }
     });
 
     // Handle choice selection
@@ -111,8 +122,8 @@ export class StoryController {
       return;
     }
     // Start the story, with continue story
-    console.debug("[StoryController] 📖 Starting story");
-    this.model = new StoryModel(compiledStory);
+    console.debug("[PreviewController] 📖 Starting story");
+    this.model = new PreviewModel(compiledStory);
     this.model.reset();
     this.view.startStory();
     const update = this.model.continueStory() || {
@@ -128,7 +139,7 @@ export class StoryController {
    * @param index - The index of the selected choice
    */
   private handleChoice(index: number): void {
-    console.debug("[StoryController] 📖 Selecting choice", index);
+    console.debug("[PreviewController] 📖 Selecting choice", index);
     const model = this.ensureModel();
 
     // Select the choice
@@ -150,13 +161,13 @@ export class StoryController {
    * @param update - The story update to display
    */
   private updateView(update: StoryUpdate): void {
+    console.debug("[PreviewController] 📖 Updating story");
+    this.view.updateStory(update);
     if (update.hasEnded) {
-      console.debug("[StoryController] 📖 Story has ended");
+      console.debug("[PreviewController] 📖 Story has ended");
       this.view.endStory();
       return;
     }
-    console.debug("[StoryController] 📖 Updating story");
-    this.view.updateStory(update);
   }
 
   /**

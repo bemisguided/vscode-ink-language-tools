@@ -237,7 +237,7 @@ const storyView = {
    * This should be called when the webview is loaded.
    */
   initialize() {
-    logLocal("[preview.js] 📝 StoryView: Initializing");
+    logLocal("[preview.js] 📝 View: Initializing");
     this.initializeElements();
     this.reset();
     this.setupEventListeners();
@@ -478,12 +478,7 @@ const storyView = {
         storyController.actionSelectChoice(choice.index);
       });
 
-      setTimeout(() => {
-        this.elements.choicesContainer.appendChild(choiceButton);
-        if (index === choices.length - 1) {
-          setTimeout(() => this.scrollToBottom(), 100);
-        }
-      }, index * 50);
+      this.elements.choicesContainer.appendChild(choiceButton);
     });
   },
 
@@ -627,7 +622,7 @@ const storyController = {
     if (this.isInitialized) {
       return;
     }
-    logLocal("[preview.js] 📝 StoryController: Initializing");
+    logLocal("[preview.js] 📝 Controller: Initializing");
     this.setupEventListeners();
     messageHandler.postMessage(outboundMessages.ready, {});
     this.isInitialized = true;
@@ -704,7 +699,6 @@ const storyController = {
   handleEndStory() {
     logLocal("Message: Story ended");
     // Mark all current content as historical before showing end message
-    storyView.markCurrentContentAsHistorical();
     storyView.renderStoryEnded();
   },
 
