@@ -69,6 +69,7 @@ export class PreviewCommand implements IExtensionPlugin {
         await document.save();
 
         // Preview the story
+        this.previewManager.reveal();
         await this.previewManager.preview(document);
       }
     );
