@@ -91,6 +91,7 @@ export class PreviewController {
   private setupEventHandlers(): void {
     // Handle webview ready
     this.view.onReady(() => {
+      console.debug("[PreviewController] 📖 Webview ready");
       this.startStory();
       if (this.viewReadyDeferred) {
         this.viewReadyDeferred.resolve();
