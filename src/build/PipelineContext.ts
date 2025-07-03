@@ -208,11 +208,16 @@ export class PipelineContext {
 
   /**
    * Resolve a path using the configured path resolution strategy.
-   * @param contextUri The context URI (typically the file containing the path).
+   * @param contextUri The context URI (typically the main story file).
    * @param path The path to resolve.
+   * @param parentUri The parent URI (file containing the include statement). Optional, defaults to contextUri.
    * @returns The resolved URI, or null if the path cannot be resolved.
    */
-  public resolvePath(contextUri: vscode.Uri, path: string): vscode.Uri | null {
-    return this.pathResolutionStrategy.resolvePath(contextUri, path);
+  public resolvePath(
+    contextUri: vscode.Uri,
+    path: string,
+    parentUri?: vscode.Uri
+  ): vscode.Uri | null {
+    return this.pathResolutionStrategy.resolvePath(contextUri, path, parentUri);
   }
 }

@@ -97,12 +97,12 @@
           "default": "**/_*.ink",
           "description": "Glob pattern of Ink Story files, which are considered includes, to ignore writing to the output directory"
         },
-        "ink.compile.output.advancedIncludePathResolution": {
+        "ink.compile.behaviour.advancedPathResolution": {
           "type": "boolean",
           "default": false,
-          "description": "Enable advanced path resolution for Ink Story includes, which will deviate from the default behavior Inky uses to resolve includes"
+          "description": "Enable advanced path resolution for resolving referenced files, such as Ink Story includes. NOTE: When this is enabled, path resolution will deviate from the default behavior by Inky"
         },
-        "ink.compile.behavior.debounceWait": {
+        "ink.compile.behaviour.debounceWait": {
           "type": "number",
           "default": 0,
           "description": "Debounce wait time in milliseconds after an Ink Story is changed before triggering compilation"

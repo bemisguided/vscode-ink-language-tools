@@ -311,10 +311,11 @@ describe("PipelineContext", () => {
       it("should resolve relative paths", () => {
         // Setup
         const contextUri = mockVSCodeUri("/context.ink");
+        const parentUri = mockVSCodeUri("/parent.ink");
         const path = "relative.ink";
 
         // Execute
-        const result = context.resolvePath(contextUri, path);
+        const result = context.resolvePath(contextUri, path, parentUri);
 
         // Assert
         expect(result).not.toBeNull();
@@ -326,10 +327,11 @@ describe("PipelineContext", () => {
       it("should resolve relative paths with subdirectories", () => {
         // Setup
         const contextUri = mockVSCodeUri("/subdir/context.ink");
+        const parentUri = mockVSCodeUri("/subdir/parent.ink");
         const path = "relative.ink";
 
         // Execute
-        const result = context.resolvePath(contextUri, path);
+        const result = context.resolvePath(contextUri, path, parentUri);
 
         // Assert
         expect(result).not.toBeNull();
@@ -341,10 +343,11 @@ describe("PipelineContext", () => {
       it("should resolve relative paths with parent directory traversal", () => {
         // Setup
         const contextUri = mockVSCodeUri("/subdir/context.ink");
+        const parentUri = mockVSCodeUri("/subdir/parent.ink");
         const path = "../parent.ink";
 
         // Execute
-        const result = context.resolvePath(contextUri, path);
+        const result = context.resolvePath(contextUri, path, parentUri);
 
         // Assert
         expect(result).not.toBeNull();
@@ -356,10 +359,11 @@ describe("PipelineContext", () => {
       it("should reject absolute paths starting with forward slash", () => {
         // Setup
         const contextUri = mockVSCodeUri("/context.ink");
+        const parentUri = mockVSCodeUri("/parent.ink");
         const path = "/absolute.ink";
 
         // Execute
-        const result = context.resolvePath(contextUri, path);
+        const result = context.resolvePath(contextUri, path, parentUri);
 
         // Assert
         expect(result).toBeNull();
@@ -368,10 +372,11 @@ describe("PipelineContext", () => {
       it("should return directory for empty paths", () => {
         // Setup
         const contextUri = mockVSCodeUri("/subdir/context.ink");
+        const parentUri = mockVSCodeUri("/subdir/parent.ink");
         const path = "";
 
         // Execute
-        const result = context.resolvePath(contextUri, path);
+        const result = context.resolvePath(contextUri, path, parentUri);
 
         // Assert
         expect(result).not.toBeNull();
@@ -409,10 +414,11 @@ describe("PipelineContext", () => {
       it("should resolve relative paths", () => {
         // Setup
         const contextUri = mockVSCodeUri("/context.ink");
+        const parentUri = mockVSCodeUri("/parent.ink");
         const path = "relative.ink";
 
         // Execute
-        const result = advancedContext.resolvePath(contextUri, path);
+        const result = advancedContext.resolvePath(contextUri, path, parentUri);
 
         // Assert
         expect(result).not.toBeNull();
@@ -424,10 +430,11 @@ describe("PipelineContext", () => {
       it("should resolve relative paths with subdirectories", () => {
         // Setup
         const contextUri = mockVSCodeUri("/subdir/context.ink");
+        const parentUri = mockVSCodeUri("/subdir/parent.ink");
         const path = "relative.ink";
 
         // Execute
-        const result = advancedContext.resolvePath(contextUri, path);
+        const result = advancedContext.resolvePath(contextUri, path, parentUri);
 
         // Assert
         expect(result).not.toBeNull();
@@ -439,10 +446,11 @@ describe("PipelineContext", () => {
       it("should resolve relative paths with parent directory traversal", () => {
         // Setup
         const contextUri = mockVSCodeUri("/subdir/context.ink");
+        const parentUri = mockVSCodeUri("/subdir/parent.ink");
         const path = "../parent.ink";
 
         // Execute
-        const result = advancedContext.resolvePath(contextUri, path);
+        const result = advancedContext.resolvePath(contextUri, path, parentUri);
 
         // Assert
         expect(result).not.toBeNull();
@@ -454,10 +462,11 @@ describe("PipelineContext", () => {
       it("should resolve absolute paths from workspace root", () => {
         // Setup
         const contextUri = mockVSCodeUri("/workspace/context.ink");
+        const parentUri = mockVSCodeUri("/workspace/parent.ink");
         const path = "/absolute.ink";
 
         // Execute
-        const result = advancedContext.resolvePath(contextUri, path);
+        const result = advancedContext.resolvePath(contextUri, path, parentUri);
 
         // Assert
         expect(result).not.toBeNull();
@@ -467,10 +476,11 @@ describe("PipelineContext", () => {
       it("should resolve absolute paths with multiple segments", () => {
         // Setup
         const contextUri = mockVSCodeUri("/workspace/context.ink");
+        const parentUri = mockVSCodeUri("/workspace/parent.ink");
         const path = "/subdir/absolute.ink";
 
         // Execute
-        const result = advancedContext.resolvePath(contextUri, path);
+        const result = advancedContext.resolvePath(contextUri, path, parentUri);
 
         // Assert
         expect(result).not.toBeNull();
@@ -482,10 +492,11 @@ describe("PipelineContext", () => {
         const contextUri = mockVSCodeUri(
           "/workspace/deeply/nested/context.ink"
         );
+        const parentUri = mockVSCodeUri("/workspace/deeply/nested/parent.ink");
         const path = "/absolute.ink";
 
         // Execute
-        const result = advancedContext.resolvePath(contextUri, path);
+        const result = advancedContext.resolvePath(contextUri, path, parentUri);
 
         // Assert
         expect(result).not.toBeNull();
@@ -495,15 +506,83 @@ describe("PipelineContext", () => {
       it("should return directory for empty paths", () => {
         // Setup
         const contextUri = mockVSCodeUri("/workspace/subdir/context.ink");
+        const parentUri = mockVSCodeUri("/workspace/subdir/parent.ink");
         const path = "";
 
         // Execute
-        const result = advancedContext.resolvePath(contextUri, path);
+        const result = advancedContext.resolvePath(contextUri, path, parentUri);
 
         // Assert
         expect(result).not.toBeNull();
         expect(result?.fsPath).toBe("/workspace/subdir");
       });
+    });
+  });
+
+  describe("fallback behavior", () => {
+    it("should handle missing parentUri with InkyDefaultPathResolutionStrategy", () => {
+      // Setup
+      const contextUri = mockVSCodeUri("/context.ink");
+      const path = "relative.ink";
+
+      // Execute
+      const result = context.resolvePath(contextUri, path);
+
+      // Assert
+      expect(result).not.toBeNull();
+      expect(result?.toString()).toBe(
+        mockVSCodeUri("/relative.ink").toString()
+      );
+    });
+
+    it("should handle undefined parentUri with InkyDefaultPathResolutionStrategy", () => {
+      // Setup
+      const contextUri = mockVSCodeUri("/context.ink");
+      const path = "relative.ink";
+
+      // Execute
+      const result = context.resolvePath(contextUri, path, undefined);
+
+      // Assert
+      expect(result).not.toBeNull();
+      expect(result?.toString()).toBe(
+        mockVSCodeUri("/relative.ink").toString()
+      );
+    });
+
+    it("should handle missing parentUri with AdvancedPathResolutionStrategy", () => {
+      // Setup
+      let advancedContext: PipelineContext;
+      let originalGetWorkspaceFolder: typeof vscode.workspace.getWorkspaceFolder;
+
+      // Mock workspace.getWorkspaceFolder for AdvancedPathResolutionStrategy
+      originalGetWorkspaceFolder = vscode.workspace.getWorkspaceFolder;
+      (vscode.workspace as any).getWorkspaceFolder = jest.fn().mockReturnValue({
+        uri: mockVSCodeUri("/workspace"),
+        name: "test-workspace",
+        index: 0,
+      });
+
+      const uri = mockVSCodeUri("/test.ink");
+      const document = mockVSCodeDocument(uri, "Test content");
+      const strategy = new AdvancedPathResolutionStrategy();
+      advancedContext = new PipelineContext(uri, document, strategy);
+
+      const contextUri = mockVSCodeUri("/workspace/context.ink");
+      const path = "/absolute.ink";
+
+      try {
+        // Execute
+        const result = advancedContext.resolvePath(contextUri, path);
+
+        // Assert
+        expect(result).not.toBeNull();
+        expect(result?.fsPath).toBe("/workspace/absolute.ink");
+      } finally {
+        // Restore original function
+        (vscode.workspace as any).getWorkspaceFolder =
+          originalGetWorkspaceFolder;
+      }
     });
   });
 });

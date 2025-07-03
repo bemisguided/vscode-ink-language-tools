@@ -27,7 +27,7 @@ export class BuildSystem implements IExtensionPlugin {
   private getDebounceWait(): number {
     const debounceWait =
       VSCodeServiceLocator.getConfigurationService().get<number>(
-        "ink.compile.behavior.debounceWait",
+        "ink.compile.behaviour.debounceWait",
         500
       );
     return debounceWait ?? 500;

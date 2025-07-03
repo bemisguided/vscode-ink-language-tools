@@ -33,10 +33,14 @@ export class AdvancedPathResolutionStrategy implements IPathResolutionStrategy {
   /**
    * @inheritdoc
    */
-  public resolvePath(context: vscode.Uri, path: string): vscode.Uri | null {
+  public resolvePath(
+    contextUri: vscode.Uri,
+    path: string,
+    parentUri?: vscode.Uri
+  ): vscode.Uri | null {
     if (path.startsWith("/")) {
       // Absolute path relative to workspace root
-      const workspaceFolder = vscode.workspace.getWorkspaceFolder(context);
+      const workspaceFolder = vscode.workspace.getWorkspaceFolder(contextUri);
       if (!workspaceFolder) {
         return null;
       }
@@ -45,8 +49,9 @@ export class AdvancedPathResolutionStrategy implements IPathResolutionStrategy {
         ...path.slice(1).split("/")
       );
     } else {
-      // Relative path from the context file's directory
-      return vscode.Uri.joinPath(context, "..", ...path.split("/"));
+      // Relative path from the main story file (contextUri)
+      // Note: parentUri is available for future strategies but not used here
+      return vscode.Uri.joinPath(contextUri, "..", ...path.split("/"));
     }
   }
 }

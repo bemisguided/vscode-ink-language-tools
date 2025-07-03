@@ -55,7 +55,11 @@ export class IncludePreProcessor implements IPipelineProcessor {
     includePath: string,
     processTodo: vscode.Uri[]
   ): Promise<void> {
-    const resolvedUri = context.resolvePath(currentUri, includePath);
+    const resolvedUri = context.resolvePath(
+      context.uri,
+      includePath,
+      currentUri
+    );
     if (!resolvedUri) {
       // no-op, as we let the Ink compiler handle the missing file reporting
       return;

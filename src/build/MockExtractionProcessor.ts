@@ -49,7 +49,7 @@ export class MockExtractionProcessor implements IPipelineProcessor {
         new vscode.Position(line, startChar),
         new vscode.Position(line, endChar)
       );
-      const target = context.resolvePath(context.uri, path);
+      const target = context.resolvePath(context.uri, path, context.uri);
       if (target) {
         // TODO: Handle mock file processing
         // For now, just resolve the path using the strategy

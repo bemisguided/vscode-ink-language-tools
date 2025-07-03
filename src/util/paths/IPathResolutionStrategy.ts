@@ -29,10 +29,15 @@ import * as vscode from "vscode";
  */
 export interface IPathResolutionStrategy {
   /**
-   * Resolve a file path relative to a context URI.
-   * @param context The context URI (typically the current file).
+   * Resolve a file path using the provided context.
+   * @param contextUri The main story file URI (root of the compilation).
    * @param path The path to resolve.
+   * @param parentUri The current file URI (file containing the include statement). Optional, defaults to contextUri.
    * @returns The resolved URI, or null if the path cannot be resolved.
    */
-  resolvePath(context: vscode.Uri, path: string): vscode.Uri | null;
+  resolvePath(
+    contextUri: vscode.Uri,
+    path: string,
+    parentUri?: vscode.Uri
+  ): vscode.Uri | null;
 }

@@ -86,7 +86,7 @@ export class BuildEngine {
   ): IPathResolutionStrategy {
     const configService = VSCodeServiceLocator.getConfigurationService();
     const useAdvancedResolution = configService.get<boolean>(
-      "ink.compile.output.advancedIncludePathResolution",
+      "ink.compile.behaviour.advancedPathResolution",
       false,
       uri
     );

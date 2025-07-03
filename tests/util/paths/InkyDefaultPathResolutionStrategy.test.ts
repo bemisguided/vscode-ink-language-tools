@@ -36,10 +36,11 @@ describe("InkyDefaultPathResolutionStrategy", () => {
     it("resolves relative paths from the context file's directory", () => {
       // Setup
       const contextUri = mockVSCodeUri("/stories/main.ink");
+      const parentUri = mockVSCodeUri("/stories/parent.ink");
       const path = "chapter1.ink";
 
       // Execute
-      const result = strategy.resolvePath(contextUri, path);
+      const result = strategy.resolvePath(contextUri, path, parentUri);
 
       // Assert
       expect(result).toBeDefined();
@@ -49,10 +50,11 @@ describe("InkyDefaultPathResolutionStrategy", () => {
     it("resolves relative paths with subdirectories", () => {
       // Setup
       const contextUri = mockVSCodeUri("/stories/main.ink");
+      const parentUri = mockVSCodeUri("/stories/parent.ink");
       const path = "chapters/chapter1.ink";
 
       // Execute
-      const result = strategy.resolvePath(contextUri, path);
+      const result = strategy.resolvePath(contextUri, path, parentUri);
 
       // Assert
       expect(result).toBeDefined();
@@ -62,10 +64,11 @@ describe("InkyDefaultPathResolutionStrategy", () => {
     it("resolves relative paths with current directory prefix", () => {
       // Setup
       const contextUri = mockVSCodeUri("/stories/main.ink");
+      const parentUri = mockVSCodeUri("/stories/parent.ink");
       const path = "./chapter1.ink";
 
       // Execute
-      const result = strategy.resolvePath(contextUri, path);
+      const result = strategy.resolvePath(contextUri, path, parentUri);
 
       // Assert
       expect(result).toBeDefined();
@@ -75,10 +78,11 @@ describe("InkyDefaultPathResolutionStrategy", () => {
     it("resolves relative paths with parent directory prefix", () => {
       // Setup
       const contextUri = mockVSCodeUri("/stories/chapters/chapter1.ink");
+      const parentUri = mockVSCodeUri("/stories/chapters/parent.ink");
       const path = "../common/shared.ink";
 
       // Execute
-      const result = strategy.resolvePath(contextUri, path);
+      const result = strategy.resolvePath(contextUri, path, parentUri);
 
       // Assert
       expect(result).toBeDefined();
@@ -88,10 +92,11 @@ describe("InkyDefaultPathResolutionStrategy", () => {
     it("resolves multiple parent directory traversals", () => {
       // Setup
       const contextUri = mockVSCodeUri("/stories/chapters/sub/deep.ink");
+      const parentUri = mockVSCodeUri("/stories/chapters/sub/parent.ink");
       const path = "../../common/shared.ink";
 
       // Execute
-      const result = strategy.resolvePath(contextUri, path);
+      const result = strategy.resolvePath(contextUri, path, parentUri);
 
       // Assert
       expect(result).toBeDefined();
@@ -101,10 +106,11 @@ describe("InkyDefaultPathResolutionStrategy", () => {
     it("resolves complex relative paths", () => {
       // Setup
       const contextUri = mockVSCodeUri("/stories/main.ink");
+      const parentUri = mockVSCodeUri("/stories/parent.ink");
       const path = "chapters/../common/shared.ink";
 
       // Execute
-      const result = strategy.resolvePath(contextUri, path);
+      const result = strategy.resolvePath(contextUri, path, parentUri);
 
       // Assert
       expect(result).toBeDefined();
@@ -114,10 +120,11 @@ describe("InkyDefaultPathResolutionStrategy", () => {
     it("rejects absolute paths starting with forward slash", () => {
       // Setup
       const contextUri = mockVSCodeUri("/stories/main.ink");
+      const parentUri = mockVSCodeUri("/stories/parent.ink");
       const path = "/absolute/path.ink";
 
       // Execute
-      const result = strategy.resolvePath(contextUri, path);
+      const result = strategy.resolvePath(contextUri, path, parentUri);
 
       // Assert
       expect(result).toBeNull();
@@ -126,10 +133,11 @@ describe("InkyDefaultPathResolutionStrategy", () => {
     it("rejects absolute paths starting with forward slash from root", () => {
       // Setup
       const contextUri = mockVSCodeUri("/main.ink");
+      const parentUri = mockVSCodeUri("/parent.ink");
       const path = "/included.ink";
 
       // Execute
-      const result = strategy.resolvePath(contextUri, path);
+      const result = strategy.resolvePath(contextUri, path, parentUri);
 
       // Assert
       expect(result).toBeNull();
@@ -138,10 +146,11 @@ describe("InkyDefaultPathResolutionStrategy", () => {
     it("handles empty path strings", () => {
       // Setup
       const contextUri = mockVSCodeUri("/stories/main.ink");
+      const parentUri = mockVSCodeUri("/stories/parent.ink");
       const path = "";
 
       // Execute
-      const result = strategy.resolvePath(contextUri, path);
+      const result = strategy.resolvePath(contextUri, path, parentUri);
 
       // Assert
       expect(result).toBeDefined();
@@ -151,10 +160,11 @@ describe("InkyDefaultPathResolutionStrategy", () => {
     it("handles paths with file extensions", () => {
       // Setup
       const contextUri = mockVSCodeUri("/stories/main.ink");
+      const parentUri = mockVSCodeUri("/stories/parent.ink");
       const path = "data.json";
 
       // Execute
-      const result = strategy.resolvePath(contextUri, path);
+      const result = strategy.resolvePath(contextUri, path, parentUri);
 
       // Assert
       expect(result).toBeDefined();
@@ -164,10 +174,11 @@ describe("InkyDefaultPathResolutionStrategy", () => {
     it("handles paths without file extensions", () => {
       // Setup
       const contextUri = mockVSCodeUri("/stories/main.ink");
+      const parentUri = mockVSCodeUri("/stories/parent.ink");
       const path = "chapter1";
 
       // Execute
-      const result = strategy.resolvePath(contextUri, path);
+      const result = strategy.resolvePath(contextUri, path, parentUri);
 
       // Assert
       expect(result).toBeDefined();
@@ -177,10 +188,11 @@ describe("InkyDefaultPathResolutionStrategy", () => {
     it("handles paths with special characters", () => {
       // Setup
       const contextUri = mockVSCodeUri("/stories/main.ink");
+      const parentUri = mockVSCodeUri("/stories/parent.ink");
       const path = "special-file_name.ink";
 
       // Execute
-      const result = strategy.resolvePath(contextUri, path);
+      const result = strategy.resolvePath(contextUri, path, parentUri);
 
       // Assert
       expect(result).toBeDefined();
@@ -192,10 +204,13 @@ describe("InkyDefaultPathResolutionStrategy", () => {
       const contextUri = mockVSCodeUri(
         "/project/stories/chapters/act1/scene1.ink"
       );
+      const parentUri = mockVSCodeUri(
+        "/project/stories/chapters/act1/parent.ink"
+      );
       const path = "scene2.ink";
 
       // Execute
-      const result = strategy.resolvePath(contextUri, path);
+      const result = strategy.resolvePath(contextUri, path, parentUri);
 
       // Assert
       expect(result).toBeDefined();
@@ -205,14 +220,68 @@ describe("InkyDefaultPathResolutionStrategy", () => {
     it("handles root-level context paths", () => {
       // Setup
       const contextUri = mockVSCodeUri("/main.ink");
+      const parentUri = mockVSCodeUri("/parent.ink");
       const path = "chapter1.ink";
 
       // Execute
-      const result = strategy.resolvePath(contextUri, path);
+      const result = strategy.resolvePath(contextUri, path, parentUri);
 
       // Assert
       expect(result).toBeDefined();
       expect(result!.fsPath).toBe("/chapter1.ink");
+    });
+
+    describe("fallback behavior", () => {
+      it("uses contextUri when parentUri is not provided", () => {
+        // Setup
+        const contextUri = mockVSCodeUri("/stories/main.ink");
+        const path = "chapter1.ink";
+
+        // Execute
+        const result = strategy.resolvePath(contextUri, path);
+
+        // Assert
+        expect(result).toBeDefined();
+        expect(result!.fsPath).toBe("/stories/chapter1.ink");
+      });
+
+      it("uses contextUri when parentUri is undefined", () => {
+        // Setup
+        const contextUri = mockVSCodeUri("/stories/main.ink");
+        const path = "chapter1.ink";
+
+        // Execute
+        const result = strategy.resolvePath(contextUri, path, undefined);
+
+        // Assert
+        expect(result).toBeDefined();
+        expect(result!.fsPath).toBe("/stories/chapter1.ink");
+      });
+
+      it("rejects absolute paths when parentUri is not provided", () => {
+        // Setup
+        const contextUri = mockVSCodeUri("/stories/main.ink");
+        const path = "/absolute.ink";
+
+        // Execute
+        const result = strategy.resolvePath(contextUri, path);
+
+        // Assert
+        expect(result).toBeNull();
+      });
+
+      it("handles complex paths when parentUri is not provided", () => {
+        // Setup
+        const contextUri = mockVSCodeUri("/stories/chapters/main.ink");
+        const path = "../common/shared.ink";
+
+        // Execute
+        const result = strategy.resolvePath(contextUri, path);
+
+        // Assert
+        expect(result).toBeDefined();
+        expect(result!.fsPath).toBe("/stories/common/shared.ink");
+      });
     });
   });
 });

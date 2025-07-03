@@ -51,7 +51,13 @@ You can also manually trigger a compilation for the currently active Ink story f
 
 The extension provides the following settings to control the real-time compilation behavior:
 
-*   **Debounce Wait**: The "Ink > Compile > Behavior: Debounce Wait" (`ink.compile.behavior.debounceWait`, default: `0`) setting controls the debounce wait time in milliseconds after an Ink Story is changed before triggering compilation.
+*   **Debounce Wait**: The "Ink > Compile > Behavior: Debounce Wait" (`ink.compile.behaviour.debounceWait`, default: `0`) setting controls the debounce wait time in milliseconds after an Ink Story is changed before triggering compilation.
+
+*   **Advanced Path Resolution**: The "Ink > Compile > Behavior: Advanced Path Resolution" (`ink.compile.behaviour.advancedPathResolution`, default: `false`) setting controls how file paths in `INCLUDE` statements are resolved during compilation.
+
+    **Default Behavior** (when disabled): All includes are resolved as relative paths of the main Ink Story file which is the default behavior of [Inky](https://github.com/inkle/inky).
+    
+    **Advanced Behavior** (when enabled): Supports both relative paths and workspace root paths. Paths starting with `/` are resolved relative to the workspace root, while all other paths are resolved relative to the main Ink Story file.
 
 #### Error Reporting
 

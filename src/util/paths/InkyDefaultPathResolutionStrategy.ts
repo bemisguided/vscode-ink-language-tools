@@ -35,13 +35,18 @@ export class InkyDefaultPathResolutionStrategy
   /**
    * @inheritdoc
    */
-  public resolvePath(context: vscode.Uri, path: string): vscode.Uri | null {
+  public resolvePath(
+    contextUri: vscode.Uri,
+    path: string,
+    parentUri?: vscode.Uri
+  ): vscode.Uri | null {
     // Reject absolute paths - not supported in standard Ink
     if (path.startsWith("/")) {
       return null;
     }
 
-    // Resolve relative paths from the context file's directory
-    return vscode.Uri.joinPath(context, "..", ...path.split("/"));
+    // Always resolve relative to main story file (Inky behavior)
+    // Note: parentUri is available for future strategies but not used here
+    return vscode.Uri.joinPath(contextUri, "..", ...path.split("/"));
   }
 }
