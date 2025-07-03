@@ -28,7 +28,6 @@ import { MockVSCodeConfigurationService } from "../__mocks__/MockVSCodeConfigura
 import { MockVSCodeDocumentService } from "../__mocks__/MockVSCodeDocumentService";
 import { PipelineContext } from "../../src/build/PipelineContext";
 import { Story } from "inkjs";
-import { IVSCodeDiagnosticsService } from "../../src/services/VSCodeDiagnosticsService";
 import { glob } from "../../src/util/glob";
 import { mockVSCodeUri } from "../__mocks__/mockVSCodeUri";
 

@@ -25,6 +25,8 @@
 import * as vscode from "vscode";
 import { Story } from "inkjs/engine/Story";
 import { IBuildDiagnostic } from "./IBuildDiagnostic";
+import { IPathResolutionStrategy } from "../util/paths/IPathResolutionStrategy";
+import { InkyDefaultPathResolutionStrategy } from "../util/paths/InkyDefaultPathResolutionStrategy";
 
 /**
  * Context for a pipeline processor.
@@ -36,6 +38,8 @@ export class PipelineContext {
   private readonly diagnostics = new Array<IBuildDiagnostic>();
 
   private readonly resolvedDependencies = new Map<vscode.Uri, vscode.Uri[]>();
+
+  private readonly pathResolutionStrategy: IPathResolutionStrategy;
 
   // Public Properties ===============================================================================================
 
@@ -57,9 +61,15 @@ export class PipelineContext {
 
   // Constructor ======================================================================================================
 
-  constructor(uri: vscode.Uri, document: vscode.TextDocument) {
+  constructor(
+    uri: vscode.Uri,
+    document: vscode.TextDocument,
+    pathResolutionStrategy?: IPathResolutionStrategy
+  ) {
     this.uri = uri;
     this.document = document;
+    this.pathResolutionStrategy =
+      pathResolutionStrategy ?? new InkyDefaultPathResolutionStrategy();
   }
 
   // Public Methods ===================================================================================================
@@ -185,7 +195,7 @@ export class PipelineContext {
     uri: vscode.Uri,
     range: vscode.Range,
     message: string,
-    severity: vscode.DiagnosticSeverity,
+    severity: vscode.DiagnosticSeverity
   ) {
     const d: IBuildDiagnostic = {
       uri,
@@ -194,5 +204,15 @@ export class PipelineContext {
       severity,
     };
     this.diagnostics.push(d);
+  }
+
+  /**
+   * Resolve a path using the configured path resolution strategy.
+   * @param contextUri The context URI (typically the file containing the path).
+   * @param path The path to resolve.
+   * @returns The resolved URI, or null if the path cannot be resolved.
+   */
+  public resolvePath(contextUri: vscode.Uri, path: string): vscode.Uri | null {
+    return this.pathResolutionStrategy.resolvePath(contextUri, path);
   }
 }

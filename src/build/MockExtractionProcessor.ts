@@ -32,6 +32,8 @@ const MOCK_REGEX = /^\s*\/\/\s*MOCKS?\s+(.+\.js)$/gm;
  * Pipeline processor for extracting mock files from an Ink story.
  */
 export class MockExtractionProcessor implements IPipelineProcessor {
+  // Private Methods ===================================================================================================
+
   // Public Methods ===================================================================================================
 
   async run(context: PipelineContext): Promise<void> {
@@ -47,7 +49,11 @@ export class MockExtractionProcessor implements IPipelineProcessor {
         new vscode.Position(line, startChar),
         new vscode.Position(line, endChar)
       );
-      const target = vscode.Uri.joinPath(context.uri, "..", path);
+      const target = context.resolvePath(context.uri, path);
+      if (target) {
+        // TODO: Handle mock file processing
+        // For now, just resolve the path using the strategy
+      }
     }
   }
 }

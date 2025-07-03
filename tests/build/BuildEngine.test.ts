@@ -131,7 +131,7 @@ describe("BuildEngine", () => {
       let includedUri: vscode.Uri;
 
       beforeEach(() => {
-        docService.mockTextDocument(uri, "INCLUDE /included.ink");
+        docService.mockTextDocument(uri, "INCLUDE included.ink");
         includedUri = mockVSCodeUri("/included.ink");
         docService.mockTextDocument(includedUri, "Hello, world!");
       });

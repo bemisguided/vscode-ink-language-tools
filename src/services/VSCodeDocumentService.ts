@@ -35,23 +35,11 @@ export interface IVSCodeDocumentService {
   dispose(): void;
 
   /**
-   * Check if a document exists at the resolved path.
-   * @param baseUri The base URI.
-   * @param path The path to check.
-   * @returns True if the document exists, false otherwise.
-   */
-  exists(baseUri: vscode.Uri, path: string): Promise<boolean>;
-
-  /**
    * Get the TextDocument at the resolved URI.
-   * @param baseUri The base URI.
-   * @param path The path to the document.
+   * @param uri The URI of the document.
    * @returns The TextDocument.
    */
-  getTextDocument(
-    baseUri: vscode.Uri,
-    path?: string
-  ): Promise<vscode.TextDocument>;
+  getTextDocument(uri: vscode.Uri): Promise<vscode.TextDocument>;
 
   /**
    * Get the workspace folder for a URI.
@@ -72,25 +60,6 @@ export interface IVSCodeDocumentService {
     outputDirectory: string,
     newExtension: string
   ): vscode.Uri | undefined;
-
-  /**
-   * Resolve a URI based on a base URI and a path.
-   * @param baseUri The base URI.
-   * @param path The path to resolve.
-   * @returns The resolved URI.
-   */
-  resolvePath(baseUri: vscode.Uri, path: string): vscode.Uri | null;
-
-  /**
-   * Attempt to get the TextDocument at the resolved URI.
-   * @param baseUri The base URI.
-   * @param path The path to the document.
-   * @returns The TextDocument, or undefined if the file does not exist or can't be opened.
-   */
-  tryGetTextDocument(
-    baseUri: vscode.Uri,
-    path?: string
-  ): Promise<vscode.TextDocument | undefined>;
 
   /**
    * Write a text file to the workspace.
@@ -121,32 +90,8 @@ export class VSCodeDocumentServiceImpl implements IVSCodeDocumentService {
   /**
    * @inheritdoc
    */
-  public async exists(baseUri: vscode.Uri, path: string): Promise<boolean> {
-    const resolvedUri = this.resolvePath(baseUri, path);
-    if (!resolvedUri) {
-      return false;
-    }
-
-    try {
-      await this.stat(resolvedUri);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * @inheritdoc
-   */
-  public async getTextDocument(
-    baseUri: vscode.Uri,
-    path?: string
-  ): Promise<vscode.TextDocument> {
-    const doc = await this.tryGetTextDocument(baseUri, path);
-    if (!doc) {
-      throw new Error(`Failed to open document at "${baseUri.toString()}`);
-    }
-    return doc;
+  public async getTextDocument(uri: vscode.Uri): Promise<vscode.TextDocument> {
+    return await this.openTextDocument(uri);
   }
 
   /**
@@ -181,48 +126,6 @@ export class VSCodeDocumentServiceImpl implements IVSCodeDocumentService {
       `${inputFileName}.${newExtension}`
     );
     return vscode.Uri.file(outputFilePath);
-  }
-
-  /**
-   * @inheritdoc
-   */
-  public resolvePath(baseUri: vscode.Uri, path: string): vscode.Uri | null {
-    if (path.startsWith("/")) {
-      const workspaceFolder = this.getWorkspaceFolder(baseUri);
-      if (!workspaceFolder) {
-        return null;
-      }
-      return vscode.Uri.joinPath(
-        workspaceFolder.uri,
-        ...path.slice(1).split("/")
-      );
-    } else {
-      return vscode.Uri.joinPath(baseUri, "..", ...path.split("/"));
-    }
-  }
-
-  /**
-   * @inheritdoc
-   */
-  public async tryGetTextDocument(
-    baseUri: vscode.Uri,
-    path?: string
-  ): Promise<vscode.TextDocument | undefined> {
-    let resolvedUri: vscode.Uri;
-    if (!path) {
-      resolvedUri = baseUri;
-    } else {
-      const maybeUri = this.resolvePath(baseUri, path);
-      if (!maybeUri) {
-        return undefined;
-      }
-      resolvedUri = maybeUri;
-    }
-    try {
-      return await this.openTextDocument(resolvedUri);
-    } catch {
-      return undefined;
-    }
   }
 
   /**

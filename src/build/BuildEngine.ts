@@ -26,7 +26,6 @@ import * as vscode from "vscode";
 import { IPipelineProcessor } from "./IPipelineProcessor";
 import { BuildResults } from "./BuildResults";
 import { IBuildResult } from "./IBuildResult";
-import { IBuildDiagnostic } from "./IBuildDiagnostic";
 import { PipelineContext } from "./PipelineContext";
 import { DependencyManager } from "../model/DependencyManager";
 import { OutlinePreProcessor } from "./OutlinePreProcessor";
@@ -34,6 +33,9 @@ import { IncludePreProcessor } from "./IncludePreProcessor";
 import { CompilationProcessor } from "./CompilationProcessor";
 import { VSCodeServiceLocator } from "../services/VSCodeServiceLocator";
 import { JsonOutputPostProcessor } from "./JsonOutputPostProcessor";
+import { IPathResolutionStrategy } from "../util/paths/IPathResolutionStrategy";
+import { InkyDefaultPathResolutionStrategy } from "../util/paths/InkyDefaultPathResolutionStrategy";
+import { AdvancedPathResolutionStrategy } from "../util/paths/AdvancedPathResolutionStrategy";
 
 /**
  * The build engine for the Ink language.
@@ -73,6 +75,26 @@ export class BuildEngine {
   }
 
   // Private Methods ==================================================================================================
+
+  /**
+   * Create the appropriate path resolution strategy based on configuration.
+   * @param uri The URI to get configuration for.
+   * @returns The path resolution strategy to use.
+   */
+  private createPathResolutionStrategy(
+    uri: vscode.Uri
+  ): IPathResolutionStrategy {
+    const configService = VSCodeServiceLocator.getConfigurationService();
+    const useAdvancedResolution = configService.get<boolean>(
+      "ink.compile.output.advancedIncludePathResolution",
+      false,
+      uri
+    );
+
+    return useAdvancedResolution
+      ? new AdvancedPathResolutionStrategy()
+      : new InkyDefaultPathResolutionStrategy();
+  }
 
   /**
    * Flush the diagnostics to the diagnostics service.
@@ -123,7 +145,8 @@ export class BuildEngine {
       depManager.createNode(uri, doc.version);
 
       // Execute the pipeline
-      const context = new PipelineContext(uri, doc);
+      const pathStrategy = this.createPathResolutionStrategy(uri);
+      const context = new PipelineContext(uri, doc, pathStrategy);
       for (const proc of this.processors) {
         await proc.run(context);
       }

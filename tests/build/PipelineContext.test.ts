@@ -26,6 +26,7 @@ import * as vscode from "vscode";
 import { PipelineContext } from "../../src/build/PipelineContext";
 import { mockVSCodeDocument } from "../__mocks__/mockVSCodeDocument";
 import { mockVSCodeUri } from "../__mocks__/mockVSCodeUri";
+import { AdvancedPathResolutionStrategy } from "../../src/util/paths/AdvancedPathResolutionStrategy";
 
 describe("PipelineContext", () => {
   let context: PipelineContext;
@@ -302,6 +303,207 @@ describe("PipelineContext", () => {
       expect(diagnostic.range).toBe(range);
       expect(diagnostic.message).toBe(message);
       expect(diagnostic.severity).toBe(severity);
+    });
+  });
+
+  describe("resolvePath()", () => {
+    describe("when the InkyDefaultPathResolutionStrategy is used", () => {
+      it("should resolve relative paths", () => {
+        // Setup
+        const contextUri = mockVSCodeUri("/context.ink");
+        const path = "relative.ink";
+
+        // Execute
+        const result = context.resolvePath(contextUri, path);
+
+        // Assert
+        expect(result).not.toBeNull();
+        expect(result?.toString()).toBe(
+          mockVSCodeUri("/relative.ink").toString()
+        );
+      });
+
+      it("should resolve relative paths with subdirectories", () => {
+        // Setup
+        const contextUri = mockVSCodeUri("/subdir/context.ink");
+        const path = "relative.ink";
+
+        // Execute
+        const result = context.resolvePath(contextUri, path);
+
+        // Assert
+        expect(result).not.toBeNull();
+        expect(result?.toString()).toBe(
+          mockVSCodeUri("/subdir/relative.ink").toString()
+        );
+      });
+
+      it("should resolve relative paths with parent directory traversal", () => {
+        // Setup
+        const contextUri = mockVSCodeUri("/subdir/context.ink");
+        const path = "../parent.ink";
+
+        // Execute
+        const result = context.resolvePath(contextUri, path);
+
+        // Assert
+        expect(result).not.toBeNull();
+        expect(result?.toString()).toBe(
+          mockVSCodeUri("/parent.ink").toString()
+        );
+      });
+
+      it("should reject absolute paths starting with forward slash", () => {
+        // Setup
+        const contextUri = mockVSCodeUri("/context.ink");
+        const path = "/absolute.ink";
+
+        // Execute
+        const result = context.resolvePath(contextUri, path);
+
+        // Assert
+        expect(result).toBeNull();
+      });
+
+      it("should return directory for empty paths", () => {
+        // Setup
+        const contextUri = mockVSCodeUri("/subdir/context.ink");
+        const path = "";
+
+        // Execute
+        const result = context.resolvePath(contextUri, path);
+
+        // Assert
+        expect(result).not.toBeNull();
+        expect(result?.fsPath).toBe("/subdir");
+      });
+    });
+
+    describe("when the AdvancedPathResolutionStrategy is used", () => {
+      let advancedContext: PipelineContext;
+      let originalGetWorkspaceFolder: typeof vscode.workspace.getWorkspaceFolder;
+
+      beforeEach(() => {
+        // Mock workspace.getWorkspaceFolder for AdvancedPathResolutionStrategy
+        originalGetWorkspaceFolder = vscode.workspace.getWorkspaceFolder;
+        (vscode.workspace as any).getWorkspaceFolder = jest
+          .fn()
+          .mockReturnValue({
+            uri: mockVSCodeUri("/workspace"),
+            name: "test-workspace",
+            index: 0,
+          });
+
+        const uri = mockVSCodeUri("/test.ink");
+        const document = mockVSCodeDocument(uri, "Test content");
+        const strategy = new AdvancedPathResolutionStrategy();
+        advancedContext = new PipelineContext(uri, document, strategy);
+      });
+
+      afterEach(() => {
+        // Restore original function
+        (vscode.workspace as any).getWorkspaceFolder =
+          originalGetWorkspaceFolder;
+      });
+
+      it("should resolve relative paths", () => {
+        // Setup
+        const contextUri = mockVSCodeUri("/context.ink");
+        const path = "relative.ink";
+
+        // Execute
+        const result = advancedContext.resolvePath(contextUri, path);
+
+        // Assert
+        expect(result).not.toBeNull();
+        expect(result?.toString()).toBe(
+          mockVSCodeUri("/relative.ink").toString()
+        );
+      });
+
+      it("should resolve relative paths with subdirectories", () => {
+        // Setup
+        const contextUri = mockVSCodeUri("/subdir/context.ink");
+        const path = "relative.ink";
+
+        // Execute
+        const result = advancedContext.resolvePath(contextUri, path);
+
+        // Assert
+        expect(result).not.toBeNull();
+        expect(result?.toString()).toBe(
+          mockVSCodeUri("/subdir/relative.ink").toString()
+        );
+      });
+
+      it("should resolve relative paths with parent directory traversal", () => {
+        // Setup
+        const contextUri = mockVSCodeUri("/subdir/context.ink");
+        const path = "../parent.ink";
+
+        // Execute
+        const result = advancedContext.resolvePath(contextUri, path);
+
+        // Assert
+        expect(result).not.toBeNull();
+        expect(result?.toString()).toBe(
+          mockVSCodeUri("/parent.ink").toString()
+        );
+      });
+
+      it("should resolve absolute paths from workspace root", () => {
+        // Setup
+        const contextUri = mockVSCodeUri("/workspace/context.ink");
+        const path = "/absolute.ink";
+
+        // Execute
+        const result = advancedContext.resolvePath(contextUri, path);
+
+        // Assert
+        expect(result).not.toBeNull();
+        expect(result?.fsPath).toBe("/workspace/absolute.ink");
+      });
+
+      it("should resolve absolute paths with multiple segments", () => {
+        // Setup
+        const contextUri = mockVSCodeUri("/workspace/context.ink");
+        const path = "/subdir/absolute.ink";
+
+        // Execute
+        const result = advancedContext.resolvePath(contextUri, path);
+
+        // Assert
+        expect(result).not.toBeNull();
+        expect(result?.fsPath).toBe("/workspace/subdir/absolute.ink");
+      });
+
+      it("should resolve absolute paths regardless of context location", () => {
+        // Setup
+        const contextUri = mockVSCodeUri(
+          "/workspace/deeply/nested/context.ink"
+        );
+        const path = "/absolute.ink";
+
+        // Execute
+        const result = advancedContext.resolvePath(contextUri, path);
+
+        // Assert
+        expect(result).not.toBeNull();
+        expect(result?.fsPath).toBe("/workspace/absolute.ink");
+      });
+
+      it("should return directory for empty paths", () => {
+        // Setup
+        const contextUri = mockVSCodeUri("/workspace/subdir/context.ink");
+        const path = "";
+
+        // Execute
+        const result = advancedContext.resolvePath(contextUri, path);
+
+        // Assert
+        expect(result).not.toBeNull();
+        expect(result?.fsPath).toBe("/workspace/subdir");
+      });
     });
   });
 });
