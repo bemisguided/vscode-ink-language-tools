@@ -401,7 +401,9 @@ describe("PipelineContext", () => {
 
         const uri = mockVSCodeUri("/test.ink");
         const document = mockVSCodeDocument(uri, "Test content");
-        const strategy = new AdvancedPathResolutionStrategy();
+        const strategy = new AdvancedPathResolutionStrategy(
+          mockVSCodeUri("/workspace")
+        );
         advancedContext = new PipelineContext(uri, document, strategy);
       });
 
@@ -565,7 +567,9 @@ describe("PipelineContext", () => {
 
       const uri = mockVSCodeUri("/test.ink");
       const document = mockVSCodeDocument(uri, "Test content");
-      const strategy = new AdvancedPathResolutionStrategy();
+      const strategy = new AdvancedPathResolutionStrategy(
+        mockVSCodeUri("/workspace")
+      );
       advancedContext = new PipelineContext(uri, document, strategy);
 
       const contextUri = mockVSCodeUri("/workspace/context.ink");

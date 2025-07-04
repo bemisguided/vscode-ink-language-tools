@@ -30,6 +30,18 @@ import { IPathResolutionStrategy } from "./IPathResolutionStrategy";
  * This extends standard Ink behavior with VSCode-specific features.
  */
 export class AdvancedPathResolutionStrategy implements IPathResolutionStrategy {
+  // Private Properties ===============================================================================================
+
+  private readonly sourceRootUri: vscode.Uri;
+
+  // Constructor ======================================================================================================
+
+  constructor(sourceRootUri: vscode.Uri) {
+    this.sourceRootUri = sourceRootUri;
+  }
+
+  // Public Methods ===================================================================================================
+
   /**
    * @inheritdoc
    */
@@ -39,19 +51,14 @@ export class AdvancedPathResolutionStrategy implements IPathResolutionStrategy {
     parentUri?: vscode.Uri
   ): vscode.Uri | null {
     if (path.startsWith("/")) {
-      // Absolute path relative to workspace root
-      const workspaceFolder = vscode.workspace.getWorkspaceFolder(contextUri);
-      if (!workspaceFolder) {
-        return null;
-      }
+      // Absolute path relative to source root
       return vscode.Uri.joinPath(
-        workspaceFolder.uri,
+        this.sourceRootUri,
         ...path.slice(1).split("/")
       );
-    } else {
-      // Relative path from the main story file (contextUri)
-      // Note: parentUri is available for future strategies but not used here
-      return vscode.Uri.joinPath(contextUri, "..", ...path.split("/"));
     }
+    // Relative path from the main story file (contextUri)
+    // Note: parentUri is available for future strategies but not used here
+    return vscode.Uri.joinPath(contextUri, "..", ...path.split("/"));
   }
 }

@@ -52,7 +52,7 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(diagnosticsService);
 
   // Setup Document Service
-  const documentService = new VSCodeDocumentServiceImpl();
+  const documentService = new VSCodeDocumentServiceImpl(configurationService);
   context.subscriptions.push(documentService);
 
   // Setup Service Locator

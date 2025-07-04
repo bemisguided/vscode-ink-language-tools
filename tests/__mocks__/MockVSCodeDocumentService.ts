@@ -26,12 +26,20 @@ import * as vscode from "vscode";
 import { mockVSCodeDocument } from "./mockVSCodeDocument";
 import { VSCodeDocumentServiceImpl } from "../../src/services/VSCodeDocumentService";
 import { mockVSCodeUri } from "./mockVSCodeUri";
+import { IVSCodeConfigurationService } from "../../src/services/VSCodeConfigurationService";
+import { MockVSCodeConfigurationService } from "./MockVSCodeConfigurationService";
 
 export class MockVSCodeDocumentService extends VSCodeDocumentServiceImpl {
   // Private Properties ===============================================================================================
 
   private docs = new Map<string, vscode.TextDocument>();
   public writtenFiles = new Map<string, string>();
+
+  // Constructor ======================================================================================================
+
+  constructor(configService?: IVSCodeConfigurationService) {
+    super(configService ?? new MockVSCodeConfigurationService());
+  }
 
   // Private Methods ===================================================================================================
 
@@ -79,16 +87,16 @@ export class MockVSCodeDocumentService extends VSCodeDocumentServiceImpl {
   /**
    * @inheritdoc
    */
-  protected override async createDirectory(uri: vscode.Uri): Promise<void> {
+  protected override async doCreateDirectory(uri: vscode.Uri): Promise<void> {
     // No-op for mock
   }
 
   /**
    * @inheritdoc
    */
-  protected override getWorkspaceFolderOf(
+  protected override doGetWorkspaceFolder(
     uri: vscode.Uri
-  ): vscode.WorkspaceFolder | undefined {
+  ): vscode.WorkspaceFolder {
     return {
       uri: mockVSCodeUri("/"),
       name: "mock-workspace",
@@ -99,7 +107,7 @@ export class MockVSCodeDocumentService extends VSCodeDocumentServiceImpl {
   /**
    * @inheritdoc
    */
-  protected override async openTextDocument(
+  protected override async doOpenTextDocument(
     uri: vscode.Uri
   ): Promise<vscode.TextDocument> {
     const key = this.getKey(uri);
@@ -113,7 +121,9 @@ export class MockVSCodeDocumentService extends VSCodeDocumentServiceImpl {
   /**
    * @inheritdoc
    */
-  protected override async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
+  protected override async doFileStatus(
+    uri: vscode.Uri
+  ): Promise<vscode.FileStat> {
     const key = this.getKey(uri);
     if (this.docs.has(key)) {
       return {
@@ -129,7 +139,7 @@ export class MockVSCodeDocumentService extends VSCodeDocumentServiceImpl {
   /**
    * @inheritdoc
    */
-  protected override async writeFile(
+  protected override async doWriteTextFile(
     uri: vscode.Uri,
     content: Buffer
   ): Promise<void> {

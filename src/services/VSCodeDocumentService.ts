@@ -24,6 +24,8 @@
 
 import * as vscode from "vscode";
 import * as path from "path";
+import { IVSCodeConfigurationService } from "./VSCodeConfigurationService";
+import { VSCodeServiceLocator } from "./VSCodeServiceLocator";
 
 /**
  * Facade service to access VSCode Document API.
@@ -49,17 +51,19 @@ export interface IVSCodeDocumentService {
   getWorkspaceFolder(uri: vscode.Uri): vscode.WorkspaceFolder | undefined;
 
   /**
-   * Resolve an output URI based on an input file, output directory, and new extension.
-   * @param inputFile The input file URI.
-   * @param outputDirectory The output directory.
-   * @param newExtension The new extension for the output file.
-   * @returns The resolved output URI, or undefined if the input file is not in a workspace.
+   * Resolve the source root URI for a context file.
+   * @param contextUri The context file URI (main story file).
+   * @returns The resolved source root URI.
    */
-  resolveOutputUri(
-    inputFile: vscode.Uri,
-    outputDirectory: string,
-    newExtension: string
-  ): vscode.Uri | undefined;
+  resolveSourceRootUri(contextUri: vscode.Uri): vscode.Uri;
+
+  /**
+   * Resolve an output file URI based on an input file and new extension.
+   * @param inputFile The input file URI.
+   * @param newExtension The new extension for the output file.
+   * @returns The resolved output file URI.
+   */
+  resolveOutputFileUri(inputFile: vscode.Uri, newExtension: string): vscode.Uri;
 
   /**
    * Write a text file to the workspace.
@@ -78,6 +82,16 @@ export interface IVSCodeDocumentService {
  * Implementation of the VSCodeDocumentService.
  */
 export class VSCodeDocumentServiceImpl implements IVSCodeDocumentService {
+  // Private Properties ===============================================================================================
+
+  private readonly configService: IVSCodeConfigurationService;
+
+  // Constructor ======================================================================================================
+
+  constructor(configService: IVSCodeConfigurationService) {
+    this.configService = configService;
+  }
+
   // Public Methods ===================================================================================================
 
   /**
@@ -91,31 +105,66 @@ export class VSCodeDocumentServiceImpl implements IVSCodeDocumentService {
    * @inheritdoc
    */
   public async getTextDocument(uri: vscode.Uri): Promise<vscode.TextDocument> {
-    return await this.openTextDocument(uri);
+    return await this.doOpenTextDocument(uri);
   }
 
   /**
    * @inheritdoc
    */
-  public getWorkspaceFolder(
-    uri: vscode.Uri
-  ): vscode.WorkspaceFolder | undefined {
-    return this.getWorkspaceFolderOf(uri);
+  public getWorkspaceFolder(uri: vscode.Uri): vscode.WorkspaceFolder {
+    return this.doGetWorkspaceFolder(uri);
   }
 
   /**
    * @inheritdoc
    */
-  public resolveOutputUri(
-    inputFile: vscode.Uri,
-    outputDirectory: string,
-    newExtension: string
-  ): vscode.Uri | undefined {
-    const workspaceFolder = this.getWorkspaceFolder(inputFile);
-    if (!workspaceFolder) {
-      return undefined;
+  public resolveSourceRootUri(contextUri: vscode.Uri): vscode.Uri {
+    const sourceRoot = this.configService.get<string>(
+      "ink.compile.behaviour.sourceRoot",
+      "",
+      contextUri
+    );
+
+    const workspaceFolder = this.getWorkspaceFolder(contextUri);
+
+    // If sourceRoot is empty, return workspace root
+    if (!sourceRoot || sourceRoot.trim() === "") {
+      return workspaceFolder.uri;
     }
 
+    // Validate sourceRoot path
+    if (sourceRoot.startsWith("/") || sourceRoot.includes("..")) {
+      console.warn(
+        `[VSCodeDocumentService] Invalid sourceRoot path: ${sourceRoot}. Must be relative and not escape workspace.`
+      );
+      return workspaceFolder.uri;
+    }
+
+    // Resolve sourceRoot relative to workspace root
+    const sourceRootUri = vscode.Uri.joinPath(
+      workspaceFolder.uri,
+      ...sourceRoot.split("/")
+    );
+
+    // Note: We don't validate if the directory exists here as it might be created later
+    // The caller should handle non-existent directories as needed
+    return sourceRootUri;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public resolveOutputFileUri(
+    inputFile: vscode.Uri,
+    newExtension: string
+  ): vscode.Uri {
+    const outputDirectory = this.configService.get<string>(
+      "ink.compile.output.directory",
+      "out",
+      inputFile
+    );
+
+    const workspaceFolder = this.getWorkspaceFolder(inputFile);
     const outputDir = path.join(workspaceFolder.uri.fsPath, outputDirectory);
     const inputFileName = path.basename(
       inputFile.fsPath,
@@ -137,9 +186,9 @@ export class VSCodeDocumentServiceImpl implements IVSCodeDocumentService {
     createDirectory = false
   ): Promise<void> {
     if (createDirectory) {
-      await this.createDirectory(vscode.Uri.file(path.dirname(uri.fsPath)));
+      await this.doCreateDirectory(vscode.Uri.file(path.dirname(uri.fsPath)));
     }
-    await this.writeFile(uri, Buffer.from(content, "utf8"));
+    await this.doWriteTextFile(uri, Buffer.from(content, "utf8"));
   }
 
   // Protected Methods ==============================================================================================
@@ -148,19 +197,20 @@ export class VSCodeDocumentServiceImpl implements IVSCodeDocumentService {
    * Create a directory.
    * @param uri The URI of the directory to create.
    */
-  protected async createDirectory(uri: vscode.Uri): Promise<void> {
+  protected async doCreateDirectory(uri: vscode.Uri): Promise<void> {
     await vscode.workspace.fs.createDirectory(uri);
   }
 
   /**
    * Get the workspace folder for a URI.
    * @param uri The URI.
-   * @returns The workspace folder, or undefined if the URI is not in a workspace.
+   * @returns The workspace folder, or the first workspace folder if the URI is not in a workspace.
    */
-  protected getWorkspaceFolderOf(
-    uri: vscode.Uri
-  ): vscode.WorkspaceFolder | undefined {
-    return vscode.workspace.getWorkspaceFolder(uri);
+  protected doGetWorkspaceFolder(uri: vscode.Uri): vscode.WorkspaceFolder {
+    return (
+      vscode.workspace.getWorkspaceFolder(uri) ||
+      vscode.workspace.workspaceFolders![0]
+    );
   }
 
   /**
@@ -168,7 +218,7 @@ export class VSCodeDocumentServiceImpl implements IVSCodeDocumentService {
    * @param uri The URI of the document to open.
    * @returns The opened text document.
    */
-  protected async openTextDocument(
+  protected async doOpenTextDocument(
     uri: vscode.Uri
   ): Promise<vscode.TextDocument> {
     return await vscode.workspace.openTextDocument(uri);
@@ -179,7 +229,7 @@ export class VSCodeDocumentServiceImpl implements IVSCodeDocumentService {
    * @param uri The URI of the file to stat.
    * @returns The file stat.
    */
-  protected async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
+  protected async doFileStatus(uri: vscode.Uri): Promise<vscode.FileStat> {
     return await vscode.workspace.fs.stat(uri);
   }
 
@@ -188,7 +238,10 @@ export class VSCodeDocumentServiceImpl implements IVSCodeDocumentService {
    * @param uri The URI of the file to write.
    * @param content The content to write.
    */
-  protected async writeFile(uri: vscode.Uri, content: Buffer): Promise<void> {
+  protected async doWriteTextFile(
+    uri: vscode.Uri,
+    content: Buffer
+  ): Promise<void> {
     await vscode.workspace.fs.writeFile(uri, content);
   }
 }

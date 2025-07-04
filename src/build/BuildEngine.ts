@@ -91,9 +91,13 @@ export class BuildEngine {
       uri
     );
 
-    return useAdvancedResolution
-      ? new AdvancedPathResolutionStrategy()
-      : new InkyDefaultPathResolutionStrategy();
+    if (useAdvancedResolution) {
+      const docService = VSCodeServiceLocator.getDocumentService();
+      const sourceRootUri = docService.resolveSourceRootUri(uri);
+      return new AdvancedPathResolutionStrategy(sourceRootUri);
+    }
+
+    return new InkyDefaultPathResolutionStrategy();
   }
 
   /**

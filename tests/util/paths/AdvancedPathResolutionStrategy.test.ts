@@ -28,31 +28,21 @@ import { mockVSCodeUri } from "../../__mocks__/mockVSCodeUri";
 
 describe("AdvancedPathResolutionStrategy", () => {
   let strategy: AdvancedPathResolutionStrategy;
-  let originalGetWorkspaceFolder: typeof vscode.workspace.getWorkspaceFolder;
+  let mockWorkspaceUri: vscode.Uri;
+  let contextUri: vscode.Uri;
+  let parentUri: vscode.Uri;
 
   beforeEach(() => {
-    strategy = new AdvancedPathResolutionStrategy();
-
-    // Mock workspace.getWorkspaceFolder
-    originalGetWorkspaceFolder = vscode.workspace.getWorkspaceFolder;
-    (vscode.workspace as any).getWorkspaceFolder = jest.fn().mockReturnValue({
-      uri: mockVSCodeUri("/workspace"),
-      name: "test-workspace",
-      index: 0,
-    });
-  });
-
-  afterEach(() => {
-    // Restore original function
-    (vscode.workspace as any).getWorkspaceFolder = originalGetWorkspaceFolder;
+    mockWorkspaceUri = mockVSCodeUri("/workspace");
+    strategy = new AdvancedPathResolutionStrategy(mockWorkspaceUri);
+    contextUri = mockVSCodeUri("/workspace/stories/main.ink");
+    parentUri = mockVSCodeUri("/workspace/stories/parent.ink");
   });
 
   describe("resolvePath()", () => {
     describe("relative paths", () => {
       it("resolves relative paths from the context file's directory", () => {
         // Setup
-        const contextUri = mockVSCodeUri("/workspace/stories/main.ink");
-        const parentUri = mockVSCodeUri("/workspace/stories/parent.ink");
         const path = "chapter1.ink";
 
         // Execute
@@ -65,8 +55,6 @@ describe("AdvancedPathResolutionStrategy", () => {
 
       it("resolves relative paths with subdirectories", () => {
         // Setup
-        const contextUri = mockVSCodeUri("/workspace/stories/main.ink");
-        const parentUri = mockVSCodeUri("/workspace/stories/parent.ink");
         const path = "chapters/chapter1.ink";
 
         // Execute
@@ -79,8 +67,6 @@ describe("AdvancedPathResolutionStrategy", () => {
 
       it("resolves relative paths with current directory prefix", () => {
         // Setup
-        const contextUri = mockVSCodeUri("/workspace/stories/main.ink");
-        const parentUri = mockVSCodeUri("/workspace/stories/parent.ink");
         const path = "./chapter1.ink";
 
         // Execute
@@ -93,16 +79,20 @@ describe("AdvancedPathResolutionStrategy", () => {
 
       it("resolves relative paths with parent directory prefix", () => {
         // Setup
-        const contextUri = mockVSCodeUri(
+        const nestedContextUri = mockVSCodeUri(
           "/workspace/stories/chapters/chapter1.ink"
         );
-        const parentUri = mockVSCodeUri(
+        const nestedParentUri = mockVSCodeUri(
           "/workspace/stories/chapters/parent.ink"
         );
         const path = "../common/shared.ink";
 
         // Execute
-        const result = strategy.resolvePath(contextUri, path, parentUri);
+        const result = strategy.resolvePath(
+          nestedContextUri,
+          path,
+          nestedParentUri
+        );
 
         // Assert
         expect(result).toBeDefined();
@@ -111,16 +101,20 @@ describe("AdvancedPathResolutionStrategy", () => {
 
       it("resolves multiple parent directory traversals", () => {
         // Setup
-        const contextUri = mockVSCodeUri(
+        const deepContextUri = mockVSCodeUri(
           "/workspace/stories/chapters/sub/deep.ink"
         );
-        const parentUri = mockVSCodeUri(
+        const deepParentUri = mockVSCodeUri(
           "/workspace/stories/chapters/sub/parent.ink"
         );
         const path = "../../common/shared.ink";
 
         // Execute
-        const result = strategy.resolvePath(contextUri, path, parentUri);
+        const result = strategy.resolvePath(
+          deepContextUri,
+          path,
+          deepParentUri
+        );
 
         // Assert
         expect(result).toBeDefined();
@@ -131,8 +125,6 @@ describe("AdvancedPathResolutionStrategy", () => {
     describe("absolute paths", () => {
       it("resolves absolute paths from workspace root", () => {
         // Setup
-        const contextUri = mockVSCodeUri("/workspace/stories/main.ink");
-        const parentUri = mockVSCodeUri("/workspace/stories/parent.ink");
         const path = "/shared/common.ink";
 
         // Execute
@@ -145,8 +137,6 @@ describe("AdvancedPathResolutionStrategy", () => {
 
       it("resolves absolute paths with multiple segments", () => {
         // Setup
-        const contextUri = mockVSCodeUri("/workspace/stories/main.ink");
-        const parentUri = mockVSCodeUri("/workspace/stories/parent.ink");
         const path = "/assets/data/config.json";
 
         // Execute
@@ -159,12 +149,16 @@ describe("AdvancedPathResolutionStrategy", () => {
 
       it("resolves absolute paths from root-level file", () => {
         // Setup
-        const contextUri = mockVSCodeUri("/workspace/main.ink");
-        const parentUri = mockVSCodeUri("/workspace/parent.ink");
+        const rootContextUri = mockVSCodeUri("/workspace/main.ink");
+        const rootParentUri = mockVSCodeUri("/workspace/parent.ink");
         const path = "/chapters/chapter1.ink";
 
         // Execute
-        const result = strategy.resolvePath(contextUri, path, parentUri);
+        const result = strategy.resolvePath(
+          rootContextUri,
+          path,
+          rootParentUri
+        );
 
         // Assert
         expect(result).toBeDefined();
@@ -173,16 +167,20 @@ describe("AdvancedPathResolutionStrategy", () => {
 
       it("resolves absolute paths from deeply nested context", () => {
         // Setup
-        const contextUri = mockVSCodeUri(
+        const deepContextUri = mockVSCodeUri(
           "/workspace/stories/chapters/act1/scene1.ink"
         );
-        const parentUri = mockVSCodeUri(
+        const deepParentUri = mockVSCodeUri(
           "/workspace/stories/chapters/act1/parent.ink"
         );
         const path = "/shared/common.ink";
 
         // Execute
-        const result = strategy.resolvePath(contextUri, path, parentUri);
+        const result = strategy.resolvePath(
+          deepContextUri,
+          path,
+          deepParentUri
+        );
 
         // Assert
         expect(result).toBeDefined();
@@ -191,8 +189,6 @@ describe("AdvancedPathResolutionStrategy", () => {
 
       it("handles root absolute path", () => {
         // Setup
-        const contextUri = mockVSCodeUri("/workspace/stories/main.ink");
-        const parentUri = mockVSCodeUri("/workspace/stories/parent.ink");
         const path = "/";
 
         // Execute
@@ -202,29 +198,11 @@ describe("AdvancedPathResolutionStrategy", () => {
         expect(result).toBeDefined();
         expect(result!.fsPath).toBe("/workspace");
       });
-
-      it("returns null when workspace folder is not available", () => {
-        // Setup
-        (vscode.workspace as any).getWorkspaceFolder = jest
-          .fn()
-          .mockReturnValue(undefined);
-        const contextUri = mockVSCodeUri("/stories/main.ink");
-        const parentUri = mockVSCodeUri("/stories/parent.ink");
-        const path = "/shared/common.ink";
-
-        // Execute
-        const result = strategy.resolvePath(contextUri, path, parentUri);
-
-        // Assert
-        expect(result).toBeNull();
-      });
     });
 
     describe("edge cases", () => {
       it("handles empty path strings", () => {
         // Setup
-        const contextUri = mockVSCodeUri("/workspace/stories/main.ink");
-        const parentUri = mockVSCodeUri("/workspace/stories/parent.ink");
         const path = "";
 
         // Execute
@@ -237,8 +215,6 @@ describe("AdvancedPathResolutionStrategy", () => {
 
       it("handles paths with file extensions", () => {
         // Setup
-        const contextUri = mockVSCodeUri("/workspace/stories/main.ink");
-        const parentUri = mockVSCodeUri("/workspace/stories/parent.ink");
         const path = "data.json";
 
         // Execute
@@ -251,8 +227,6 @@ describe("AdvancedPathResolutionStrategy", () => {
 
       it("handles paths without file extensions", () => {
         // Setup
-        const contextUri = mockVSCodeUri("/workspace/stories/main.ink");
-        const parentUri = mockVSCodeUri("/workspace/stories/parent.ink");
         const path = "chapter1";
 
         // Execute
@@ -265,8 +239,6 @@ describe("AdvancedPathResolutionStrategy", () => {
 
       it("handles paths with special characters", () => {
         // Setup
-        const contextUri = mockVSCodeUri("/workspace/stories/main.ink");
-        const parentUri = mockVSCodeUri("/workspace/stories/parent.ink");
         const path = "special-file_name.ink";
 
         // Execute
@@ -279,29 +251,23 @@ describe("AdvancedPathResolutionStrategy", () => {
 
       it("handles absolute paths with special characters", () => {
         // Setup
-        const contextUri = mockVSCodeUri("/workspace/stories/main.ink");
-        const parentUri = mockVSCodeUri("/workspace/stories/parent.ink");
-        const path = "/special-folder_name/file.ink";
+        const path = "/data/special-file_name.json";
 
         // Execute
         const result = strategy.resolvePath(contextUri, path, parentUri);
 
         // Assert
         expect(result).toBeDefined();
-        expect(result!.fsPath).toBe("/workspace/special-folder_name/file.ink");
+        expect(result!.fsPath).toBe("/workspace/data/special-file_name.json");
       });
     });
 
     describe("workspace scenarios", () => {
       it("works with different workspace folder structures", () => {
         // Setup
-        (vscode.workspace as any).getWorkspaceFolder = jest
-          .fn()
-          .mockReturnValue({
-            uri: mockVSCodeUri("/different/workspace/root"),
-            name: "different-workspace",
-            index: 0,
-          });
+        const differentWorkspaceStrategy = new AdvancedPathResolutionStrategy(
+          mockVSCodeUri("/different/workspace/root")
+        );
         const contextUri = mockVSCodeUri(
           "/different/workspace/root/stories/main.ink"
         );
@@ -311,7 +277,11 @@ describe("AdvancedPathResolutionStrategy", () => {
         const path = "/assets/images/icon.png";
 
         // Execute
-        const result = strategy.resolvePath(contextUri, path, parentUri);
+        const result = differentWorkspaceStrategy.resolvePath(
+          contextUri,
+          path,
+          parentUri
+        );
 
         // Assert
         expect(result).toBeDefined();
@@ -322,13 +292,9 @@ describe("AdvancedPathResolutionStrategy", () => {
 
       it("handles workspace folder with complex paths", () => {
         // Setup
-        (vscode.workspace as any).getWorkspaceFolder = jest
-          .fn()
-          .mockReturnValue({
-            uri: mockVSCodeUri("/Users/developer/Projects/My Story Project"),
-            name: "My Story Project",
-            index: 0,
-          });
+        const complexWorkspaceStrategy = new AdvancedPathResolutionStrategy(
+          mockVSCodeUri("/Users/developer/Projects/My Story Project")
+        );
         const contextUri = mockVSCodeUri(
           "/Users/developer/Projects/My Story Project/src/main.ink"
         );
@@ -338,7 +304,11 @@ describe("AdvancedPathResolutionStrategy", () => {
         const path = "/resources/data.json";
 
         // Execute
-        const result = strategy.resolvePath(contextUri, path, parentUri);
+        const result = complexWorkspaceStrategy.resolvePath(
+          contextUri,
+          path,
+          parentUri
+        );
 
         // Assert
         expect(result).toBeDefined();
@@ -351,7 +321,6 @@ describe("AdvancedPathResolutionStrategy", () => {
     describe("fallback behavior", () => {
       it("uses contextUri when parentUri is not provided for relative paths", () => {
         // Setup
-        const contextUri = mockVSCodeUri("/workspace/stories/main.ink");
         const path = "chapter1.ink";
 
         // Execute
@@ -364,7 +333,6 @@ describe("AdvancedPathResolutionStrategy", () => {
 
       it("uses contextUri when parentUri is undefined for relative paths", () => {
         // Setup
-        const contextUri = mockVSCodeUri("/workspace/stories/main.ink");
         const path = "chapter1.ink";
 
         // Execute
@@ -377,7 +345,6 @@ describe("AdvancedPathResolutionStrategy", () => {
 
       it("handles absolute paths when parentUri is not provided", () => {
         // Setup
-        const contextUri = mockVSCodeUri("/workspace/stories/main.ink");
         const path = "/shared/common.ink";
 
         // Execute
@@ -402,20 +369,57 @@ describe("AdvancedPathResolutionStrategy", () => {
         expect(result).toBeDefined();
         expect(result!.fsPath).toBe("/workspace/stories/common/shared.ink");
       });
+    });
 
-      it("returns null when workspace folder is not available and parentUri is not provided", () => {
+    describe("sourceRoot configuration", () => {
+      it("resolves absolute paths relative to custom source root", () => {
         // Setup
-        (vscode.workspace as any).getWorkspaceFolder = jest
-          .fn()
-          .mockReturnValue(undefined);
-        const contextUri = mockVSCodeUri("/stories/main.ink");
+        const sourceRootStrategy = new AdvancedPathResolutionStrategy(
+          mockVSCodeUri("/workspace/src")
+        );
+        const contextUri = mockVSCodeUri("/workspace/src/stories/main.ink");
         const path = "/shared/common.ink";
 
         // Execute
-        const result = strategy.resolvePath(contextUri, path);
+        const result = sourceRootStrategy.resolvePath(contextUri, path);
 
         // Assert
-        expect(result).toBeNull();
+        expect(result).toBeDefined();
+        expect(result!.fsPath).toBe("/workspace/src/shared/common.ink");
+      });
+
+      it("resolves absolute paths relative to deeply nested source root", () => {
+        // Setup
+        const sourceRootStrategy = new AdvancedPathResolutionStrategy(
+          mockVSCodeUri("/workspace/assets/stories")
+        );
+        const contextUri = mockVSCodeUri("/workspace/assets/stories/main.ink");
+        const path = "/shared/common.ink";
+
+        // Execute
+        const result = sourceRootStrategy.resolvePath(contextUri, path);
+
+        // Assert
+        expect(result).toBeDefined();
+        expect(result!.fsPath).toBe(
+          "/workspace/assets/stories/shared/common.ink"
+        );
+      });
+
+      it("still resolves relative paths from context directory with custom source root", () => {
+        // Setup
+        const sourceRootStrategy = new AdvancedPathResolutionStrategy(
+          mockVSCodeUri("/workspace/src")
+        );
+        const contextUri = mockVSCodeUri("/workspace/src/stories/main.ink");
+        const path = "chapter1.ink";
+
+        // Execute
+        const result = sourceRootStrategy.resolvePath(contextUri, path);
+
+        // Assert
+        expect(result).toBeDefined();
+        expect(result!.fsPath).toBe("/workspace/src/stories/chapter1.ink");
       });
     });
   });

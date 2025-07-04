@@ -78,17 +78,7 @@ export class JsonOutputPostProcessor implements IPipelineProcessor {
   }
 
   private getOutputJsonUri(context: PipelineContext): vscode.Uri | undefined {
-    const outputDirSetting = this.configService.get<string>(
-      "ink.compile.output.directory",
-      "out",
-      context.uri
-    );
-
-    return this.documentService.resolveOutputUri(
-      context.uri,
-      outputDirSetting,
-      "json"
-    );
+    return this.documentService.resolveOutputFileUri(context.uri, "json");
   }
 
   private reportError(context: PipelineContext, message: string): void {

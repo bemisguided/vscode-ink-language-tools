@@ -32,6 +32,8 @@ import { IPathResolutionStrategy } from "./IPathResolutionStrategy";
 export class InkyDefaultPathResolutionStrategy
   implements IPathResolutionStrategy
 {
+  // Public Methods ===================================================================================================
+
   /**
    * @inheritdoc
    */

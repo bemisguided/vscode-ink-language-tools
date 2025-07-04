@@ -229,4 +229,76 @@ describe("BuildEngine", () => {
       expect(diagnosticsService.mockDiagnosticsForUri(rootUri)).toHaveLength(0);
     });
   });
+
+  describe("sourceRoot configuration", () => {
+    let uri: vscode.Uri;
+
+    beforeEach(() => {
+      uri = mockVSCodeUri("/workspace/src/story.ink");
+      docService.mockTextDocument(uri, "Hello, world!");
+      // Enable advanced path resolution for all tests in this section
+      configService.mockSettings[
+        "ink.compile.behaviour.advancedPathResolution"
+      ] = true;
+    });
+
+    it("uses default workspace root when sourceRoot is not configured", async () => {
+      // Setup
+      configService.mockSettings["ink.compile.behaviour.sourceRoot"] = "";
+
+      // Execute
+      const result = await engine.compileStory(uri);
+
+      // Assert
+      expect(result.success).toBe(true);
+      // Note: Detailed path resolution testing is covered in unit tests
+    });
+
+    it("uses custom sourceRoot when configured", async () => {
+      // Setup
+      configService.mockSettings["ink.compile.behaviour.sourceRoot"] = "src";
+
+      // Execute
+      const result = await engine.compileStory(uri);
+
+      // Assert
+      expect(result.success).toBe(true);
+      // Note: Detailed path resolution testing is covered in unit tests
+    });
+
+    it("handles invalid sourceRoot gracefully", async () => {
+      // Setup
+      configService.mockSettings["ink.compile.behaviour.sourceRoot"] =
+        "../invalid";
+
+      // Mock resolveSourceRoot to return undefined for invalid paths
+      const originalResolveSourceRoot = docService.resolveSourceRootUri;
+      docService.resolveSourceRootUri = jest.fn().mockReturnValue(undefined);
+
+      // Execute
+      const result = await engine.compileStory(uri);
+
+      // Assert
+      expect(result.success).toBe(true);
+      expect(docService.resolveSourceRootUri).toHaveBeenCalledWith(uri);
+
+      // Restore
+      docService.resolveSourceRootUri = originalResolveSourceRoot;
+    });
+
+    it("does not use sourceRoot when advanced path resolution is disabled", async () => {
+      // Setup
+      configService.mockSettings[
+        "ink.compile.behaviour.advancedPathResolution"
+      ] = false;
+      configService.mockSettings["ink.compile.behaviour.sourceRoot"] = "src";
+
+      // Execute
+      const result = await engine.compileStory(uri);
+
+      // Assert
+      expect(result.success).toBe(true);
+      // Note: When advanced path resolution is disabled, InkyDefaultPathResolutionStrategy is used
+    });
+  });
 });

@@ -50,19 +50,22 @@ describe("JsonOutputPostProcessor", () => {
   let documentService: MockVSCodeDocumentService;
   let processor: JsonOutputPostProcessor;
   let context: PipelineContext;
+  let storyContent: string;
   const inkFile = mockVSCodeUri("/test.ink");
 
   beforeEach(() => {
     configService = new MockVSCodeConfigurationService();
-    documentService = new MockVSCodeDocumentService();
+    documentService = new MockVSCodeDocumentService(configService);
     processor = new JsonOutputPostProcessor(configService, documentService);
     context = new PipelineContext(inkFile, {} as vscode.TextDocument);
+    storyContent = "story content";
     mockGlob(false);
   });
 
   it("should not run if story is not compiled", async () => {
     // Execute
     await processor.run(context);
+
     // Assert
     expect(documentService.writtenFiles.size).toBe(0);
   });
@@ -71,9 +74,11 @@ describe("JsonOutputPostProcessor", () => {
     // Setup
     configService.mockSettings["ink.compile.output.enableEmitStoryJSON"] =
       false;
-    context.story = mockStory("story content");
+    context.story = mockStory(storyContent);
+
     // Execute
     await processor.run(context);
+
     // Assert
     expect(documentService.writtenFiles.size).toBe(0);
   });
@@ -84,7 +89,7 @@ describe("JsonOutputPostProcessor", () => {
     configService.mockSettings["ink.compile.output.enableEmitStoryJSON"] = true;
     configService.mockSettings["ink.compile.output.ignoreInkIncludes"] =
       "**/test.ink";
-    context.story = mockStory("story content");
+    context.story = mockStory(storyContent);
 
     // Execute
     await processor.run(context);
@@ -93,44 +98,40 @@ describe("JsonOutputPostProcessor", () => {
     expect(documentService.writtenFiles.size).toBe(0);
   });
 
-  it("should write json file to default output directory", async () => {
-    // Setup
-    configService.mockSettings["ink.compile.output.enableEmitStoryJSON"] = true;
-    const storyContent = "story content";
-    context.story = mockStory(storyContent);
+  describe("when emission is enabled", () => {
+    beforeEach(() => {
+      configService.mockSettings["ink.compile.output.enableEmitStoryJSON"] =
+        true;
+      context.story = mockStory(storyContent);
+    });
 
-    // Execute
-    await processor.run(context);
+    it("should write json file to default output directory", async () => {
+      // Execute
+      await processor.run(context);
 
-    // Assert
-    expect(documentService.writtenFiles.size).toBe(1);
-    const outputUri = documentService.resolveOutputUri(inkFile, "out", "json");
-    expect(outputUri!.toString()).toBe(
-      mockVSCodeUri("/out/test.json").toString()
-    );
-    expect(documentService.mockGetWrittenFile(outputUri!)).toBe(storyContent);
-  });
+      // Assert
+      expect(documentService.writtenFiles.size).toBe(1);
+      const outputUri = documentService.resolveOutputFileUri(inkFile, "json");
+      expect(outputUri!.toString()).toBe(
+        mockVSCodeUri("/out/test.json").toString()
+      );
+      expect(documentService.mockGetWrittenFile(outputUri!)).toBe(storyContent);
+    });
 
-  it("should write json file to configured output directory", async () => {
-    // Setup
-    configService.mockSettings["ink.compile.output.enableEmitStoryJSON"] = true;
-    configService.mockSettings["ink.compile.output.directory"] = "custom_out";
-    const storyContent = "story content";
-    context.story = mockStory(storyContent);
+    it("should write json file to configured output directory", async () => {
+      // Setup
+      configService.mockSettings["ink.compile.output.directory"] = "custom_out";
 
-    // Execute
-    await processor.run(context);
+      // Execute
+      await processor.run(context);
 
-    // Assert
-    expect(documentService.writtenFiles.size).toBe(1);
-    const outputUri = documentService.resolveOutputUri(
-      inkFile,
-      "custom_out",
-      "json"
-    );
-    expect(outputUri!.toString()).toBe(
-      mockVSCodeUri("/custom_out/test.json").toString()
-    );
-    expect(documentService.mockGetWrittenFile(outputUri!)).toBe(storyContent);
+      // Assert
+      expect(documentService.writtenFiles.size).toBe(1);
+      const outputUri = documentService.resolveOutputFileUri(inkFile, "json");
+      expect(outputUri!.toString()).toBe(
+        mockVSCodeUri("/custom_out/test.json").toString()
+      );
+      expect(documentService.mockGetWrittenFile(outputUri!)).toBe(storyContent);
+    });
   });
 });

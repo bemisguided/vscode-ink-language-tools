@@ -57,7 +57,9 @@ The extension provides the following settings to control the real-time compilati
 
     **Default Behavior** (when disabled): All includes are resolved as relative paths of the main Ink Story file which is the default behavior of [Inky](https://github.com/inkle/inky).
     
-    **Advanced Behavior** (when enabled): Supports both relative paths and workspace root paths. Paths starting with `/` are resolved relative to the workspace root, while all other paths are resolved relative to the main Ink Story file.
+    **Advanced Behavior** (when enabled): Supports both relative paths and workspace root paths. Paths starting with `/` are resolved relative to the source root, while all other paths are resolved relative to the main Ink Story file.
+
+*   **Source Root**: The "Ink > Compile > Behavior: Source Root" (`ink.compile.behaviour.sourceRoot`, default: `""`) setting specifies the root directory for resolving absolute include paths. The path is relative to the workspace root. Leave empty to use the workspace root itself. This setting is only applicable when  "Ink > Compile > Behavior: Advanced Path Resolution" (`ink.compile.behaviour.advancedPathResolution`, default: `false`) is enabled.
 
 #### Error Reporting
 
