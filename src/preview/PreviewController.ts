@@ -57,6 +57,10 @@ export class PreviewController {
    */
   public async preview(document: vscode.TextDocument): Promise<void> {
     this.document = document;
+
+    // Update the preview panel title with the current document name
+    this.view.setTitle(document.uri.fsPath);
+
     if (this.isInitialized) {
       await this.startStory();
       return;

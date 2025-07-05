@@ -26,7 +26,7 @@ import * as vscode from "vscode";
 import path from "path";
 import { StoryUpdate } from "./types";
 import { inboundMessages, outboundMessages, Message } from "./PreviewMessages";
-import { ExtensionUtils } from "../services/ExtensionUtils";
+import { VSCodeServiceLocator } from "../services/VSCodeServiceLocator";
 
 export class PreviewView {
   // Private Properties ===============================================================================================
@@ -54,7 +54,7 @@ export class PreviewView {
    * @param fileName - The full path of the current file
    */
   public setTitle(fileName: string): void {
-    this.webviewPanel.title = `Ink Preview - ${path.basename(fileName)}`;
+    this.webviewPanel.title = `${path.basename(fileName)} (Preview)`;
   }
 
   /**
@@ -167,11 +167,12 @@ export class PreviewView {
   }
 
   private getWebviewContent(): string {
-    const cssUrl = ExtensionUtils.getWebviewMediaURL(
+    const extensionService = VSCodeServiceLocator.getExtensionService();
+    const cssUrl = extensionService.getWebviewMediaUri(
       this.webviewPanel.webview,
       "preview.css"
     );
-    const jsUrl = ExtensionUtils.getWebviewMediaURL(
+    const jsUrl = extensionService.getWebviewMediaUri(
       this.webviewPanel.webview,
       "preview.js"
     );

@@ -12,6 +12,10 @@ import {
   VSCodeDocumentServiceImpl,
 } from "./VSCodeDocumentService";
 import {
+  IVSCodeExtensionService,
+  VSCodeExtensionServiceImpl,
+} from "./VSCodeExtensionService";
+import {
   IVSCodeFileContextService,
   VSCodeFileContextServiceImpl,
 } from "./VSCodeFileContextService";
@@ -30,6 +34,8 @@ export class VSCodeServiceLocator {
   private static diagnosticsService: IVSCodeDiagnosticsService;
 
   private static documentService: IVSCodeDocumentService;
+
+  private static extensionService: IVSCodeExtensionService;
 
   private static fileContextService: IVSCodeFileContextService;
 
@@ -70,6 +76,16 @@ export class VSCodeServiceLocator {
   }
 
   /**
+   * Get the extension service implementation.
+   */
+  public static getExtensionService(): IVSCodeExtensionService {
+    if (!this.extensionService) {
+      this.extensionService = new VSCodeExtensionServiceImpl();
+    }
+    return this.extensionService;
+  }
+
+  /**
    * Get the file context service.
    * @returns The file context service.
    */
@@ -106,6 +122,13 @@ export class VSCodeServiceLocator {
    */
   public static setDocumentService(service: IVSCodeDocumentService): void {
     this.documentService = service;
+  }
+
+  /**
+   * Set the extension service implementation.
+   */
+  public static setExtensionService(service: IVSCodeExtensionService): void {
+    this.extensionService = service;
   }
 
   /**

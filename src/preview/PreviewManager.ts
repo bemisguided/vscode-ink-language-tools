@@ -25,7 +25,7 @@
 import * as vscode from "vscode";
 import { PreviewController } from "./PreviewController";
 import { PreviewView } from "./PreviewView";
-import { ExtensionUtils } from "../services/ExtensionUtils";
+import { VSCodeServiceLocator } from "../services/VSCodeServiceLocator";
 
 export class PreviewManager {
   // Private Static Properties ========================================================================================
@@ -72,9 +72,14 @@ export class PreviewManager {
         enableScripts: true,
         retainContextWhenHidden: true,
         enableFindWidget: true,
-        localResourceRoots: ExtensionUtils.getWebviewLocalResourceRoots(),
+        localResourceRoots:
+          VSCodeServiceLocator.getExtensionService().getWebviewLocalResourceRoots(),
       }
     );
+
+    // Set the icon for the webview panel
+    this.webviewPanel.iconPath =
+      VSCodeServiceLocator.getExtensionService().getIconUri("ink.png");
 
     const view = new PreviewView(this.webviewPanel);
     this.controller = new PreviewController(view);
