@@ -92,7 +92,6 @@ export class PreviewController {
     // Handle webview ready
     this.view.onReady(() => {
       console.debug("[PreviewController] 📖 Webview ready");
-      this.startStory();
       if (this.viewReadyDeferred) {
         this.viewReadyDeferred.resolve();
         this.viewReadyDeferred = null;
@@ -107,6 +106,11 @@ export class PreviewController {
     // Handle restart request
     this.view.onRestart(() => {
       this.startStory();
+    });
+
+    // Handle focus editor request
+    this.view.onFocusEditor(() => {
+      vscode.commands.executeCommand("workbench.action.focusActiveEditorGroup");
     });
   }
 

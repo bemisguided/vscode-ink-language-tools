@@ -26,8 +26,6 @@ import * as vscode from "vscode";
 import { PreviewController } from "./PreviewController";
 import { PreviewView } from "./PreviewView";
 import { ExtensionUtils } from "../services/ExtensionUtils";
-import { VSCodeServiceLocator } from "../services/VSCodeServiceLocator";
-import { BuildEngine } from "../build/BuildEngine";
 
 export class PreviewManager {
   // Private Static Properties ========================================================================================
@@ -78,8 +76,6 @@ export class PreviewManager {
       }
     );
 
-    this.webviewPanel.webview.html = this.getWebviewContent();
-
     const view = new PreviewView(this.webviewPanel);
     this.controller = new PreviewController(view);
 
@@ -116,36 +112,5 @@ export class PreviewManager {
     console.log("[InkPreviewPanel] Disposing");
     this.webviewPanel.dispose();
     PreviewManager.instance = undefined;
-  }
-
-  private getWebviewContent(): string {
-    const cssUrl = ExtensionUtils.getWebviewMediaURL(
-      this.webviewPanel.webview,
-      "preview.css"
-    );
-    const jsUrl = ExtensionUtils.getWebviewMediaURL(
-      this.webviewPanel.webview,
-      "preview.js"
-    );
-    return `<!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Ink Story Preview</title>
-        <link rel="stylesheet" href="${cssUrl}">
-      </head>
-      <body>
-        <div id="toolbar-container">
-          <button id="button-restart">Restart</button>
-        </div>
-        <div id="story-container">
-          <div id="story-content"></div>
-          <div id="choices-container"></div>
-          <div id="error-container" class="hidden"></div>
-        </div>
-        <script src="${jsUrl}"></script>
-      </body>
-      </html>`;
   }
 }

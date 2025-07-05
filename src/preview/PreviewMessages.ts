@@ -61,6 +61,9 @@ export const inboundMessages = {
 
   /** Sent for debug logging */
   log: "log",
+
+  /** Sent to focus the editor */
+  focusEditor: "focusEditor",
 } as const;
 
 /**
@@ -88,6 +91,7 @@ export interface InboundMessagePayloads {
   [inboundMessages.selectChoice]: { choiceIndex: number };
   [inboundMessages.restartStory]: void;
   [inboundMessages.log]: { message: string };
+  [inboundMessages.focusEditor]: void;
 }
 
 /**
