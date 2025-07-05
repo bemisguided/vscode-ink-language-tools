@@ -26,6 +26,11 @@ import * as vscode from "vscode";
 import { PreviewController } from "./PreviewController";
 import { PreviewView } from "./PreviewView";
 import { ExtensionUtils } from "../services/ExtensionUtils";
+<<<<<<< HEAD
+=======
+import { VSCodeServiceLocator } from "../services/VSCodeServiceLocator";
+import { BuildEngine } from "../build/BuildEngine";
+>>>>>>> 97b6035 (chore: refactor, clean-up, fix poc preview functionality)
 
 export class PreviewManager {
   // Private Static Properties ========================================================================================
@@ -34,9 +39,15 @@ export class PreviewManager {
 
   // Private Properties ===============================================================================================
 
+<<<<<<< HEAD
   private webviewPanel: vscode.WebviewPanel | undefined;
 
   private controller: PreviewController | undefined;
+=======
+  private readonly webviewPanel: vscode.WebviewPanel;
+
+  private readonly controller: PreviewController;
+>>>>>>> 97b6035 (chore: refactor, clean-up, fix poc preview functionality)
 
   private uri: vscode.Uri | undefined;
 
@@ -45,14 +56,31 @@ export class PreviewManager {
   // Public Static Methods ============================================================================================
 
   public static getInstance(): PreviewManager {
+<<<<<<< HEAD
     if (!PreviewManager.instance) {
       PreviewManager.instance = new PreviewManager();
     }
+=======
+    const column = vscode.window.activeTextEditor
+      ? vscode.ViewColumn.Beside
+      : undefined;
+
+    // If we already have a panel, show it
+    if (PreviewManager.instance) {
+      PreviewManager.instance.webviewPanel.reveal(column);
+      return PreviewManager.instance;
+    }
+
+    // Otherwise, create a new panel
+    console.log("[InkPreviewPanel] Creating new instance");
+    PreviewManager.instance = new PreviewManager();
+>>>>>>> 97b6035 (chore: refactor, clean-up, fix poc preview functionality)
     return PreviewManager.instance;
   }
 
   // Constructor ======================================================================================================
 
+<<<<<<< HEAD
   private constructor() {}
 
   // Private Methods ==================================================================================================
@@ -76,6 +104,9 @@ export class PreviewManager {
       return;
     }
 
+=======
+  private constructor() {
+>>>>>>> 97b6035 (chore: refactor, clean-up, fix poc preview functionality)
     this.webviewPanel = vscode.window.createWebviewPanel(
       "inkPreview",
       "Ink Preview",
@@ -88,6 +119,11 @@ export class PreviewManager {
       }
     );
 
+<<<<<<< HEAD
+=======
+    this.webviewPanel.webview.html = this.getWebviewContent();
+
+>>>>>>> 97b6035 (chore: refactor, clean-up, fix poc preview functionality)
     const view = new PreviewView(this.webviewPanel);
     this.controller = new PreviewController(view);
 
@@ -98,6 +134,7 @@ export class PreviewManager {
 
   public async preview(document: vscode.TextDocument) {
     console.log(
+<<<<<<< HEAD
       "[PreviewManager] Previewing document",
       document.uri.fsPath,
       this.version
@@ -108,11 +145,27 @@ export class PreviewManager {
     if (hasDocument && !hasDocumentChanged) {
       console.log(
         "[PreviewManager] Document is the same as the current document"
+=======
+      "[InkPreviewPanel] Previewing document",
+      document.uri.fsPath,
+      this.uri?.fsPath,
+      this.version,
+      document.version
+    );
+    if (
+      this.uri &&
+      this.uri === document.uri &&
+      this.version === document.version
+    ) {
+      console.log(
+        "[InkPreviewPanel] Document is the same as the current document"
+>>>>>>> 97b6035 (chore: refactor, clean-up, fix poc preview functionality)
       );
       return;
     }
     this.uri = document.uri;
     this.version = document.version;
+<<<<<<< HEAD
     console.log("[PreviewManager] Previewing controller");
     await this.ensureController().preview(document);
   }
@@ -125,5 +178,46 @@ export class PreviewManager {
   public dispose(): void {
     console.log("[PreviewManager] Disposing");
     this.webviewPanel?.dispose();
+=======
+    console.log("[InkPreviewPanel] Previewing controller");
+    await this.controller.preview(document);
+  }
+
+  public dispose(): void {
+    console.log("[InkPreviewPanel] Disposing");
+    this.webviewPanel.dispose();
+    PreviewManager.instance = undefined;
+  }
+
+  private getWebviewContent(): string {
+    const cssUrl = ExtensionUtils.getWebviewMediaURL(
+      this.webviewPanel.webview,
+      "preview.css"
+    );
+    const jsUrl = ExtensionUtils.getWebviewMediaURL(
+      this.webviewPanel.webview,
+      "preview.js"
+    );
+    return `<!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Ink Story Preview</title>
+        <link rel="stylesheet" href="${cssUrl}">
+      </head>
+      <body>
+        <div id="toolbar-container">
+          <button id="button-restart">Restart</button>
+        </div>
+        <div id="story-container">
+          <div id="story-content"></div>
+          <div id="choices-container"></div>
+          <div id="error-container" class="hidden"></div>
+        </div>
+        <script src="${jsUrl}"></script>
+      </body>
+      </html>`;
+>>>>>>> 97b6035 (chore: refactor, clean-up, fix poc preview functionality)
   }
 }

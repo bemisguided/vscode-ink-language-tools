@@ -26,7 +26,10 @@ import * as vscode from "vscode";
 import path from "path";
 import { StoryUpdate } from "./types";
 import { inboundMessages, outboundMessages, Message } from "./PreviewMessages";
+<<<<<<< HEAD
 import { ExtensionUtils } from "../services/ExtensionUtils";
+=======
+>>>>>>> 97b6035 (chore: refactor, clean-up, fix poc preview functionality)
 
 export class PreviewView {
   // Private Properties ===============================================================================================

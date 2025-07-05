@@ -69,7 +69,10 @@ export class PreviewCommand implements IExtensionPlugin {
         await document.save();
 
         // Preview the story
+<<<<<<< HEAD
         this.previewManager.reveal();
+=======
+>>>>>>> 97b6035 (chore: refactor, clean-up, fix poc preview functionality)
         await this.previewManager.preview(document);
       }
     );

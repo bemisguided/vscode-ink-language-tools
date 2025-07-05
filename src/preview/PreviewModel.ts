@@ -31,11 +31,15 @@ import {
   TextStoryEvent,
   FunctionStoryEvent,
 } from "./types";
+<<<<<<< HEAD
 <<<<<<< HEAD:src/preview/PreviewModel.ts
 import { ISuccessfulBuildResult } from "../build/IBuildResult";
 =======
 import { ISuccessfulBuildResult } from "../../build/IBuildResult";
 >>>>>>> 55d1221 (feat: initial renablement of preview poc code):src/panels/preview/StoryModel.ts
+=======
+import { ISuccessfulBuildResult } from "../build/IBuildResult";
+>>>>>>> 97b6035 (chore: refactor, clean-up, fix poc preview functionality)
 
 /**
  * Manages the story state and progression.
