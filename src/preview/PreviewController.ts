@@ -26,17 +26,8 @@ import * as vscode from "vscode";
 import { PreviewModel } from "./PreviewModel";
 import { PreviewView } from "./PreviewView";
 import { StoryUpdate } from "./types";
-<<<<<<< HEAD
-<<<<<<< HEAD:src/preview/PreviewController.ts
 import { BuildEngine } from "../build/BuildEngine";
 import { Deferred } from "../util/deferred";
-=======
-import { BuildEngine } from "../../build/BuildEngine";
->>>>>>> 55d1221 (feat: initial renablement of preview poc code):src/panels/preview/StoryController.ts
-=======
-import { BuildEngine } from "../build/BuildEngine";
-import { Deferred } from "../util/deferred";
->>>>>>> 97b6035 (chore: refactor, clean-up, fix poc preview functionality)
 
 /**
  * Coordinates between the PreviewModel and PreviewView, managing the story lifecycle
@@ -132,18 +123,8 @@ export class PreviewController {
       return;
     }
     // Start the story, with continue story
-<<<<<<< HEAD
-<<<<<<< HEAD:src/preview/PreviewController.ts
     console.debug("[PreviewController] 📖 Starting story");
     this.model = new PreviewModel(compiledStory);
-=======
-    console.debug("[StoryController] 📖 Starting story");
-    this.model = new StoryModel(compiledStory);
->>>>>>> 55d1221 (feat: initial renablement of preview poc code):src/panels/preview/StoryController.ts
-=======
-    console.debug("[PreviewController] 📖 Starting story");
-    this.model = new PreviewModel(compiledStory);
->>>>>>> 97b6035 (chore: refactor, clean-up, fix poc preview functionality)
     this.model.reset();
     this.view.startStory();
     const update = this.model.continueStory() || {
