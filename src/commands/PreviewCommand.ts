@@ -25,6 +25,11 @@
 import * as vscode from "vscode";
 import { IExtensionPlugin } from "../IExtensionPlugin";
 import { PreviewManager } from "../preview/PreviewManager";
+import { VSCodeServiceLocator } from "../services/VSCodeServiceLocator";
+import {
+  IVSCodeFileContextService,
+  FileType,
+} from "../services/VSCodeFileContextService";
 
 /**
  * Implements the VSCode Command for previewing an Ink story.
@@ -33,11 +38,13 @@ export class PreviewCommand implements IExtensionPlugin {
   // Private Properties ===============================================================================================
 
   private previewManager: PreviewManager;
+  private readonly fileContextService: IVSCodeFileContextService;
 
   // Constructors =====================================================================================================
 
   constructor() {
     this.previewManager = PreviewManager.getInstance();
+    this.fileContextService = VSCodeServiceLocator.getFileContextService();
   }
 
   // Public Methods ===================================================================================================
@@ -48,28 +55,49 @@ export class PreviewCommand implements IExtensionPlugin {
   activate(context: vscode.ExtensionContext): void {
     const previewCommand = vscode.commands.registerCommand(
       "ink.previewStory",
-      async () => {
-        // Ensure there is an active document
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-          vscode.window.showErrorMessage("No active document.");
-          return;
-        }
-
-        // Ensure the active document is an Ink story
-        const document = editor.document;
-        if (document.languageId !== "ink") {
-          vscode.window.showErrorMessage(
-            "Active document is not an Ink story."
+      async (uri?: vscode.Uri, uris?: vscode.Uri[]) => {
+        try {
+          const result = await this.fileContextService.resolveSingleFile(
+            FileType.ink,
+            uri,
+            uris
           );
-          return;
+
+          // Handle no selection
+          if (!result.hasSelection) {
+            vscode.window.showErrorMessage(result.errorMessage!);
+            return;
+          }
+
+          // Handle no valid file found
+          if (!result.validFile) {
+            vscode.window.showErrorMessage(result.errorMessage!);
+            return;
+          }
+
+          // Show warning if multiple files were selected
+          if (result.warningMessage) {
+            vscode.window.showWarningMessage(result.warningMessage);
+          }
+
+          // Auto-save the file if it's dirty
+          const openDoc = vscode.workspace.textDocuments.find(
+            (doc) => doc.uri.toString() === result.validFile!.toString()
+          );
+          if (openDoc && openDoc.isDirty) {
+            await openDoc.save();
+          }
+
+          // Preview the story
+          const document =
+            openDoc ||
+            (await vscode.workspace.openTextDocument(result.validFile));
+          await this.previewManager.preview(document);
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error occurred";
+          vscode.window.showErrorMessage(`Preview failed: ${errorMessage}`);
         }
-
-        // Save the document
-        await document.save();
-
-        // Preview the story
-        await this.previewManager.preview(document);
       }
     );
     context.subscriptions.push(previewCommand);

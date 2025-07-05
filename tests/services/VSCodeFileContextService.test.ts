@@ -235,6 +235,106 @@ describe("VSCodeFileContextService", () => {
     });
   });
 
+  describe("resolveSingleFile", () => {
+    it("should return error when no files are found", async () => {
+      const result = await service.resolveSingleFile(FileType.ink);
+      expect(result).toEqual({
+        hasSelection: false,
+        errorMessage: "No active document or selected file.",
+      });
+    });
+
+    it("should resolve single valid Ink file", async () => {
+      const result = await service.resolveSingleFile(FileType.ink, mockInkUri);
+      expect(result).toEqual({
+        validFile: mockInkUri,
+        hasSelection: true,
+      });
+    });
+
+    it("should resolve single valid JavaScript file", async () => {
+      const result = await service.resolveSingleFile(
+        FileType.javaScript,
+        mockJsUri
+      );
+      expect(result).toEqual({
+        validFile: mockJsUri,
+        hasSelection: true,
+      });
+    });
+
+    it("should return error for single invalid file", async () => {
+      const result = await service.resolveSingleFile(FileType.ink, mockTxtUri);
+      expect(result.validFile).toBeUndefined();
+      expect(result.hasSelection).toBe(true);
+      expect(result.errorMessage).toBe(
+        "Selected file is not an Ink story: readme.txt"
+      );
+    });
+
+    it("should return first valid file from multiple valid files with warning", async () => {
+      const secondInkUri = vscode.Uri.file("/test/path/story2.ink");
+      const result = await service.resolveSingleFile(FileType.ink, undefined, [
+        mockInkUri,
+        secondInkUri,
+      ]);
+      expect(result.validFile).toBe(mockInkUri);
+      expect(result.hasSelection).toBe(true);
+      expect(result.warningMessage).toBe(
+        "2 Ink storys selected. Using first: story.ink"
+      );
+    });
+
+    it("should return first valid file from mixed files with warning", async () => {
+      const result = await service.resolveSingleFile(FileType.ink, undefined, [
+        mockTxtUri,
+        mockInkUri,
+        mockJsUri,
+      ]);
+      expect(result.validFile).toBe(mockInkUri);
+      expect(result.hasSelection).toBe(true);
+      expect(result.warningMessage).toBe(
+        "2 selected files are not Ink storys: readme.txt, script.js. Using first valid Ink story: story.ink"
+      );
+    });
+
+    it("should return error for multiple invalid files", async () => {
+      const result = await service.resolveSingleFile(FileType.ink, undefined, [
+        mockTxtUri,
+        mockJsUri,
+      ]);
+      expect(result.validFile).toBeUndefined();
+      expect(result.hasSelection).toBe(true);
+      expect(result.errorMessage).toBe(
+        "2 selected files are not Ink storys: readme.txt, script.js"
+      );
+    });
+
+    it("should use active editor when no parameters provided", async () => {
+      const mockEditor = {
+        document: {
+          uri: mockInkUri,
+        },
+      } as vscode.TextEditor;
+
+      Object.defineProperty(vscode.window, "activeTextEditor", {
+        get: () => mockEditor,
+        configurable: true,
+      });
+
+      const result = await service.resolveSingleFile(FileType.ink);
+      expect(result.validFile).toBe(mockInkUri);
+      expect(result.hasSelection).toBe(true);
+    });
+
+    it("should throw error for unsupported file type", async () => {
+      const unsupportedType = "unsupported" as FileType;
+      await expect(
+        service.resolveSingleFile(unsupportedType, mockUri)
+      ).rejects.toThrow("Unsupported file type: unsupported");
+    });
+  });
+
   describe("formatResolutionMessages", () => {
     describe("Ink files", () => {
       it("should format error message for no selection", () => {

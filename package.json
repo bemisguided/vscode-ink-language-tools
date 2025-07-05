@@ -77,11 +77,21 @@
           "command": "ink.compileFile",
           "when": "resourceExtname == .ink",
           "group": "navigation"
+        },
+        {
+          "command": "ink.previewStory",
+          "when": "resourceExtname == .ink",
+          "group": "navigation"
         }
       ],
       "editor/title": [
         {
           "command": "ink.compileFile",
+          "when": "resourceExtname == .ink",
+          "group": "navigation"
+        },
+        {
+          "command": "ink.previewStory",
           "when": "resourceExtname == .ink",
           "group": "navigation"
         }
@@ -91,11 +101,21 @@
           "command": "ink.compileFile",
           "when": "resourceExtname == .ink",
           "group": "1_modification"
+        },
+        {
+          "command": "ink.previewStory",
+          "when": "resourceExtname == .ink",
+          "group": "1_modification"
         }
       ],
       "editor/context": [
         {
           "command": "ink.compileFile",
+          "when": "editorLangId == ink",
+          "group": "navigation"
+        },
+        {
+          "command": "ink.previewStory",
           "when": "editorLangId == ink",
           "group": "navigation"
         }
