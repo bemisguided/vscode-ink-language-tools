@@ -67,6 +67,36 @@
         "title": "Ink: Compile File"
       }
     ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "ink.compileFile",
+          "when": "resourceExtname == .ink",
+          "group": "navigation"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "ink.compileFile",
+          "when": "resourceExtname == .ink",
+          "group": "navigation"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "ink.compileFile",
+          "when": "resourceExtname == .ink",
+          "group": "1_modification"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "ink.compileFile",
+          "when": "editorLangId == ink",
+          "group": "navigation"
+        }
+      ]
+    },
     "keybindings": [
       {
         "command": "ink.compileFile",

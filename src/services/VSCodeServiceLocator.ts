@@ -1,6 +1,20 @@
-import { IVSCodeConfigurationService } from "./VSCodeConfigurationService";
-import { IVSCodeDiagnosticsService } from "./VSCodeDiagnosticsService";
-import { IVSCodeDocumentService } from "./VSCodeDocumentService";
+import * as vscode from "vscode";
+import {
+  IVSCodeConfigurationService,
+  VSCodeConfigurationServiceImpl,
+} from "./VSCodeConfigurationService";
+import {
+  IVSCodeDiagnosticsService,
+  VSCodeDiagnosticsServiceImpl,
+} from "./VSCodeDiagnosticsService";
+import {
+  IVSCodeDocumentService,
+  VSCodeDocumentServiceImpl,
+} from "./VSCodeDocumentService";
+import {
+  IVSCodeFileContextService,
+  VSCodeFileContextServiceImpl,
+} from "./VSCodeFileContextService";
 
 /**
  * Centralized service locator for VSCode service facades.
@@ -13,6 +27,8 @@ export class VSCodeServiceLocator {
 
   private static documentService: IVSCodeDocumentService;
 
+  private static fileContextService: IVSCodeFileContextService;
+
   // Public Methods ===================================================================================================
 
   /**
@@ -20,7 +36,7 @@ export class VSCodeServiceLocator {
    */
   public static getConfigurationService(): IVSCodeConfigurationService {
     if (!this.configurationService) {
-      throw new Error("VSCodeConfigurationService service not registered");
+      this.configurationService = new VSCodeConfigurationServiceImpl();
     }
     return this.configurationService;
   }
@@ -30,7 +46,8 @@ export class VSCodeServiceLocator {
    */
   public static getDiagnosticsService(): IVSCodeDiagnosticsService {
     if (!this.diagnosticsService) {
-      throw new Error("VSCodeDiagnosticsService service not registered");
+      const collection = vscode.languages.createDiagnosticCollection("ink");
+      this.diagnosticsService = new VSCodeDiagnosticsServiceImpl(collection);
     }
     return this.diagnosticsService;
   }
@@ -40,9 +57,21 @@ export class VSCodeServiceLocator {
    */
   public static getDocumentService(): IVSCodeDocumentService {
     if (!this.documentService) {
-      throw new Error("VSCodeDocumentService service not registered");
+      const configService = this.getConfigurationService();
+      this.documentService = new VSCodeDocumentServiceImpl(configService);
     }
     return this.documentService;
+  }
+
+  /**
+   * Get the file context service.
+   * @returns The file context service.
+   */
+  public static getFileContextService(): IVSCodeFileContextService {
+    if (!this.fileContextService) {
+      this.fileContextService = new VSCodeFileContextServiceImpl();
+    }
+    return this.fileContextService;
   }
 
   /**
@@ -68,5 +97,15 @@ export class VSCodeServiceLocator {
     service: IVSCodeDiagnosticsService
   ): void {
     this.diagnosticsService = service;
+  }
+
+  /**
+   * Set the file context service (for testing).
+   * @param service The file context service.
+   */
+  public static setFileContextService(
+    service: IVSCodeFileContextService
+  ): void {
+    this.fileContextService = service;
   }
 }
