@@ -15,6 +15,10 @@ import {
   IVSCodeFileContextService,
   VSCodeFileContextServiceImpl,
 } from "./VSCodeFileContextService";
+import {
+  IWorkspaceNavigationService,
+  VSCodeWorkspaceNavigationServiceImpl,
+} from "./VSCodeWorkspaceNavigationService";
 
 /**
  * Centralized service locator for VSCode service facades.
@@ -28,6 +32,8 @@ export class VSCodeServiceLocator {
   private static documentService: IVSCodeDocumentService;
 
   private static fileContextService: IVSCodeFileContextService;
+
+  private static workspaceNavigationService: IWorkspaceNavigationService;
 
   // Public Methods ===================================================================================================
 
@@ -75,6 +81,18 @@ export class VSCodeServiceLocator {
   }
 
   /**
+   * Get the workspace navigation service.
+   * @returns The workspace navigation service.
+   */
+  public static getWorkspaceNavigationService(): IWorkspaceNavigationService {
+    if (!this.workspaceNavigationService) {
+      this.workspaceNavigationService =
+        new VSCodeWorkspaceNavigationServiceImpl();
+    }
+    return this.workspaceNavigationService;
+  }
+
+  /**
    * Set the configuration service implementation.
    */
   public static setConfigurationService(
@@ -107,5 +125,15 @@ export class VSCodeServiceLocator {
     service: IVSCodeFileContextService
   ): void {
     this.fileContextService = service;
+  }
+
+  /**
+   * Set the workspace navigation service (for testing).
+   * @param service The workspace navigation service.
+   */
+  public static setWorkspaceNavigationService(
+    service: IWorkspaceNavigationService
+  ): void {
+    this.workspaceNavigationService = service;
   }
 }

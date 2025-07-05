@@ -117,14 +117,6 @@ export class PreviewView {
   }
 
   /**
-   * Registers a callback for when the player requests to focus the editor.
-   * @param callback - Function to call when editor focus is requested
-   */
-  public onFocusEditor(callback: () => void): void {
-    this.registerMessageHandler(inboundMessages.focusEditor, callback);
-  }
-
-  /**
    * Disposes of all resources used by the view.
    * This should be called when the view is no longer needed.
    */

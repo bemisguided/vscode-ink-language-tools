@@ -28,6 +28,7 @@ import { PreviewView } from "./PreviewView";
 import { StoryUpdate } from "./types";
 import { BuildEngine } from "../build/BuildEngine";
 import { Deferred } from "../util/deferred";
+import { VSCodeServiceLocator } from "../services/VSCodeServiceLocator";
 
 /**
  * Coordinates between the PreviewModel and PreviewView, managing the story lifecycle
@@ -106,11 +107,6 @@ export class PreviewController {
     // Handle restart request
     this.view.onRestart(() => {
       this.startStory();
-    });
-
-    // Handle focus editor request
-    this.view.onFocusEditor(() => {
-      vscode.commands.executeCommand("workbench.action.focusActiveEditorGroup");
     });
   }
 

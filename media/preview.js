@@ -47,9 +47,6 @@ const outboundMessages = {
 
   /** Sent for debug logging */
   log: "log",
-
-  /** Sent to focus the editor */
-  focusEditor: "focusEditor",
 };
 
 /**
@@ -294,11 +291,6 @@ const storyView = {
         ) {
           storyController.actionSelectChoice(choiceIndex);
         }
-      }
-
-      // Focus editor: Escape
-      if (e.key === "Escape") {
-        storyController.actionFocusEditor();
       }
     };
 
@@ -666,14 +658,6 @@ const storyController = {
   actionRestartStory() {
     logLocal("Action: Requesting story restart");
     messageHandler.postMessage(outboundMessages.restartStory, {});
-  },
-
-  /**
-   * Handles the player's request to focus the editor.
-   */
-  actionFocusEditor() {
-    logLocal("Action: Focusing editor");
-    messageHandler.postMessage(outboundMessages.focusEditor, {});
   },
 
   /**

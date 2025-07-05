@@ -37,13 +37,11 @@ import {
 export class PreviewCommand implements IExtensionPlugin {
   // Private Properties ===============================================================================================
 
-  private previewManager: PreviewManager;
   private readonly fileContextService: IVSCodeFileContextService;
 
   // Constructors =====================================================================================================
 
   constructor() {
-    this.previewManager = PreviewManager.getInstance();
     this.fileContextService = VSCodeServiceLocator.getFileContextService();
   }
 
@@ -92,7 +90,7 @@ export class PreviewCommand implements IExtensionPlugin {
           const document =
             openDoc ||
             (await vscode.workspace.openTextDocument(result.validFile));
-          await this.previewManager.preview(document);
+          await PreviewManager.getInstance().preview(document);
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : "Unknown error occurred";

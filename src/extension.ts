@@ -32,6 +32,7 @@ import { VSCodeServiceLocator } from "./services/VSCodeServiceLocator";
 import { VSCodeDiagnosticsServiceImpl } from "./services/VSCodeDiagnosticsService";
 import { VSCodeDocumentServiceImpl } from "./services/VSCodeDocumentService";
 import { VSCodeConfigurationServiceImpl } from "./services/VSCodeConfigurationService";
+import { VSCodeWorkspaceNavigationServiceImpl } from "./services/VSCodeWorkspaceNavigationService";
 
 let systems: IExtensionPlugin[] = [];
 
@@ -55,10 +56,17 @@ export function activate(context: vscode.ExtensionContext): void {
   const documentService = new VSCodeDocumentServiceImpl(configurationService);
   context.subscriptions.push(documentService);
 
+  // Setup Workspace Navigation Service
+  const workspaceNavigationService = new VSCodeWorkspaceNavigationServiceImpl();
+  context.subscriptions.push(workspaceNavigationService);
+
   // Setup Service Locator
   VSCodeServiceLocator.setConfigurationService(configurationService);
   VSCodeServiceLocator.setDiagnosticsService(diagnosticsService);
   VSCodeServiceLocator.setDocumentService(documentService);
+  VSCodeServiceLocator.setWorkspaceNavigationService(
+    workspaceNavigationService
+  );
 
   // Setup Systems
   systems.push(new OutlineSystem());
