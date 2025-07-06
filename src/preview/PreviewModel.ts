@@ -265,16 +265,52 @@ export class PreviewModel {
    * Handles errors by extracting the message and calling the error callback.
    * @param error - The error that occurred
    * @param fallbackMessage - Message to use if error message cannot be extracted
-   * @param severity - The severity level of the error
+   * @param severity - The severity level of the error (can be overridden by parsing)
    */
   private handleError(
     error: unknown,
     fallbackMessage: string = "Unknown error occurred",
     severity: "error" | "warning" | "info" = "error"
   ): void {
-    const errorMessage =
-      error instanceof Error ? error.message : fallbackMessage;
-    this.errorCallback?.(errorMessage, severity);
+    const rawMessage = error instanceof Error ? error.message : fallbackMessage;
+    const { message, severity: parsedSeverity } =
+      this.parseErrorMessage(rawMessage);
+    this.errorCallback?.(message, parsedSeverity || severity);
+  }
+
+  /**
+   * Parses an error message to extract severity and clean message.
+   * @param rawMessage - The raw error message
+   * @returns Object with parsed message and severity
+   */
+  private parseErrorMessage(rawMessage: string): {
+    message: string;
+    severity: "error" | "warning" | "info" | null;
+  } {
+    // Default values
+    let message = rawMessage;
+    let severity: "error" | "warning" | "info" | null = null;
+
+    // Extract severity from common prefixes
+    if (rawMessage.startsWith("RUNTIME ERROR:")) {
+      severity = "error";
+    } else if (rawMessage.startsWith("RUNTIME WARNING:")) {
+      severity = "warning";
+    } else if (rawMessage.startsWith("Error:")) {
+      severity = "error";
+    } else if (rawMessage.startsWith("Warning:")) {
+      severity = "warning";
+    }
+
+    // Find the first colon and extract message after it
+    const firstColonIndex = rawMessage.indexOf(":");
+
+    // If we have at least 1 colon, extract message after the first one
+    if (firstColonIndex !== -1) {
+      message = rawMessage.substring(firstColonIndex + 1).trim();
+    }
+
+    return { message, severity };
   }
 
   private ensureStoryIsLoaded(): void {

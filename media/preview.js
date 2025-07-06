@@ -220,8 +220,13 @@ const storyView = {
     restartButton: null,
     debugContainer: null,
     // Error elements
-    errorButton: null,
-    errorCount: null,
+    errorIndicators: null,
+    errorButtonError: null,
+    errorButtonWarning: null,
+    errorButtonInfo: null,
+    errorCountError: null,
+    errorCountWarning: null,
+    errorCountInfo: null,
     errorModal: null,
     errorList: null,
     closeErrorModal: null,
@@ -262,8 +267,21 @@ const storyView = {
     this.elements.debugContainer = document.getElementById("debug-container");
 
     // Initialize error elements
-    this.elements.errorButton = document.getElementById("button-errors");
-    this.elements.errorCount = document.getElementById("error-count");
+    this.elements.errorIndicators = document.getElementById("error-indicators");
+    this.elements.errorButtonError = document.getElementById(
+      "button-errors-error"
+    );
+    this.elements.errorButtonWarning = document.getElementById(
+      "button-errors-warning"
+    );
+    this.elements.errorButtonInfo =
+      document.getElementById("button-errors-info");
+    this.elements.errorCountError =
+      document.getElementById("error-count-error");
+    this.elements.errorCountWarning = document.getElementById(
+      "error-count-warning"
+    );
+    this.elements.errorCountInfo = document.getElementById("error-count-info");
     this.elements.errorModal = document.getElementById("error-modal");
     this.elements.errorList = document.getElementById("error-list");
     this.elements.closeErrorModal =
@@ -326,8 +344,16 @@ const storyView = {
    * Sets up error-related event handlers.
    */
   setupErrorHandlers() {
-    // Show modal when error button is clicked
-    this.elements.errorButton.addEventListener("click", () => {
+    // Show modal when any error indicator is clicked
+    this.elements.errorButtonError.addEventListener("click", () => {
+      this.showErrorModal();
+    });
+
+    this.elements.errorButtonWarning.addEventListener("click", () => {
+      this.showErrorModal();
+    });
+
+    this.elements.errorButtonInfo.addEventListener("click", () => {
       this.showErrorModal();
     });
 
@@ -500,9 +526,13 @@ const storyView = {
     }
 
     choices.forEach((choice, index) => {
-      const choiceButton = createElement("button", "story-choice fade-in", {
-        dataChoiceNumber: (index + 1).toString(),
-      });
+      const choiceButton = createElement(
+        "button",
+        "btn btn-list story-choice fade-in",
+        {
+          dataChoiceNumber: (index + 1).toString(),
+        }
+      );
 
       // Create choice content container
       const choiceContent = createElement("div", "choice-content");
@@ -612,35 +642,76 @@ const storyView = {
   },
 
   /**
-   * Updates the error button visibility and count.
+   * Gets the count of errors by severity.
+   * @returns {Object} Object with error counts by severity
    */
-  updateErrorButton() {
-    const errorCount = this.errors.length;
+  getErrorCountsBySeverity() {
+    const counts = {
+      error: 0,
+      warning: 0,
+      info: 0,
+    };
 
-    if (errorCount > 0) {
-      this.elements.errorButton.style.display = "flex";
-      this.elements.errorCount.textContent = errorCount.toString();
+    this.errors.forEach((error) => {
+      counts[error.severity]++;
+    });
 
-      // Update button styling based on highest severity
-      const highestSeverity = this.getHighestSeverity();
-      this.elements.errorButton.className = `error-button error-button-${highestSeverity}`;
-    } else {
-      this.elements.errorButton.style.display = "none";
-    }
+    return counts;
   },
 
   /**
-   * Gets the highest severity level from current errors.
-   * @returns {string} The highest severity level
+   * Updates the error indicators visibility and counts.
    */
-  getHighestSeverity() {
-    if (this.errors.some((e) => e.severity === "error")) {
-      return "error";
+  updateErrorButton() {
+    const counts = this.getErrorCountsBySeverity();
+
+    // Update error indicator
+    if (counts.error > 0) {
+      this.elements.errorButtonError.style.display = "flex";
+      this.elements.errorCountError.textContent = counts.error.toString();
+    } else {
+      this.elements.errorButtonError.style.display = "none";
     }
-    if (this.errors.some((e) => e.severity === "warning")) {
-      return "warning";
+
+    // Update warning indicator
+    if (counts.warning > 0) {
+      this.elements.errorButtonWarning.style.display = "flex";
+      this.elements.errorCountWarning.textContent = counts.warning.toString();
+    } else {
+      this.elements.errorButtonWarning.style.display = "none";
     }
-    return "info";
+
+    // Update info indicator
+    if (counts.info > 0) {
+      this.elements.errorButtonInfo.style.display = "flex";
+      this.elements.errorCountInfo.textContent = counts.info.toString();
+    } else {
+      this.elements.errorButtonInfo.style.display = "none";
+    }
+
+    // Update tooltip text for visible indicators
+    this.updateErrorTooltips(counts);
+  },
+
+  /**
+   * Updates the tooltip text for error indicators.
+   * @param {Object} counts - Object with error counts by severity
+   */
+  updateErrorTooltips(counts) {
+    const tooltipText = "Show issues";
+
+    // Set the same tooltip for all visible error indicators
+    if (counts.error > 0) {
+      this.elements.errorButtonError.title = tooltipText;
+    }
+
+    if (counts.warning > 0) {
+      this.elements.errorButtonWarning.title = tooltipText;
+    }
+
+    if (counts.info > 0) {
+      this.elements.errorButtonInfo.title = tooltipText;
+    }
   },
 
   /**
@@ -680,7 +751,11 @@ const storyView = {
       );
 
       const errorIcon = createElement("div", "error-icon");
-      errorIcon.textContent = this.getErrorIcon(error.severity);
+      const iconSpan = createElement(
+        "span",
+        `error-indicator-icon ${this.getErrorIconClass(error.severity)}`
+      );
+      errorIcon.appendChild(iconSpan);
 
       const errorContent = createElement("div", "error-content");
 
@@ -701,20 +776,20 @@ const storyView = {
   },
 
   /**
-   * Gets the appropriate icon for an error severity.
+   * Gets the appropriate icon CSS class for an error severity.
    * @param {string} severity - The error severity
-   * @returns {string} The icon emoji
+   * @returns {string} The CSS class for the icon
    */
-  getErrorIcon(severity) {
+  getErrorIconClass(severity) {
     switch (severity) {
       case "error":
-        return "❌";
+        return "error-icon-error";
       case "warning":
-        return "⚠️";
+        return "error-icon-warning";
       case "info":
-        return "ℹ️";
+        return "error-icon-info";
       default:
-        return "⚠️";
+        return "error-icon-warning";
     }
   },
 
@@ -817,6 +892,10 @@ const storyController = {
    */
   actionRestartStory() {
     logLocal("Action: Requesting story restart");
+    // Clear errors immediately when restart is requested
+    storyView.errors = [];
+    storyView.updateErrorButton();
+    storyView.hideErrorModal();
     messageHandler.postMessage(outboundMessages.restartStory, {});
   },
 

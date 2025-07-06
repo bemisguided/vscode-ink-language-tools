@@ -129,7 +129,8 @@
       },
       {
         "command": "ink.previewStory",
-        "key": "ctrl+shift+p",
+        "key": "ctrl+r",
+        "mac": "cmd+r",
         "when": "editorLangId == ink && editorTextFocus"
       }
     ],

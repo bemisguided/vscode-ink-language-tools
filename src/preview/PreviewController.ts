@@ -123,7 +123,10 @@ export class PreviewController {
     const engine = BuildEngine.getInstance();
     const compiledStory = await engine.compileStory(document.uri);
     if (!compiledStory.success) {
-      this.view.showError("Compilation failed", "error");
+      this.view.showError(
+        "Story had errors and could not be compiled. Review the Problem Panel for more information.",
+        "error"
+      );
       return;
     }
     // Start the story, with continue story
