@@ -217,14 +217,23 @@ const storyView = {
   elements: {
     storyContent: null,
     choicesContainer: null,
-    errorContainer: null,
     restartButton: null,
     debugContainer: null,
+    // Error elements
+    errorButton: null,
+    errorCount: null,
+    errorModal: null,
+    errorList: null,
+    closeErrorModal: null,
   },
 
   // State ==========================================================================================================
   currentGroup: null,
   history: [],
+
+  // Error State ====================================================================================================
+  errors: [],
+  isErrorModalVisible: false,
 
   // Event Handlers =================================================================================================
   keyboardHandler: null,
@@ -238,6 +247,8 @@ const storyView = {
     this.initializeElements();
     this.reset();
     this.setupEventListeners();
+    // Ensure modal is hidden on initialization
+    this.hideErrorModal();
   },
 
   /**
@@ -248,8 +259,15 @@ const storyView = {
     this.elements.storyContent = document.getElementById("story-content");
     this.elements.choicesContainer =
       document.getElementById("choices-container");
-    this.elements.errorContainer = document.getElementById("error-container");
     this.elements.debugContainer = document.getElementById("debug-container");
+
+    // Initialize error elements
+    this.elements.errorButton = document.getElementById("button-errors");
+    this.elements.errorCount = document.getElementById("error-count");
+    this.elements.errorModal = document.getElementById("error-modal");
+    this.elements.errorList = document.getElementById("error-list");
+    this.elements.closeErrorModal =
+      document.getElementById("close-error-modal");
   },
 
   /**
@@ -258,6 +276,7 @@ const storyView = {
   setupEventListeners() {
     this.setupRestartButton();
     this.setupKeyboardShortcuts();
+    this.setupErrorHandlers();
   },
 
   /**
@@ -280,6 +299,12 @@ const storyView = {
         storyController.actionRestartStory();
       }
 
+      // Close error modal with Escape
+      if (e.key === "Escape" && this.isErrorModalVisible) {
+        e.preventDefault();
+        this.hideErrorModal();
+      }
+
       // Select choice: Number keys 1-9
       if (e.key >= "1" && e.key <= "9") {
         const choiceIndex = parseInt(e.key) - 1;
@@ -298,6 +323,33 @@ const storyView = {
   },
 
   /**
+   * Sets up error-related event handlers.
+   */
+  setupErrorHandlers() {
+    // Show modal when error button is clicked
+    this.elements.errorButton.addEventListener("click", () => {
+      this.showErrorModal();
+    });
+
+    // Close modal when close button is clicked
+    this.elements.closeErrorModal.addEventListener("click", () => {
+      this.hideErrorModal();
+    });
+
+    // Close modal when clicking on overlay
+    const overlay = this.elements.errorModal.querySelector(
+      ".error-modal-overlay"
+    );
+    if (overlay) {
+      overlay.addEventListener("click", () => {
+        this.hideErrorModal();
+      });
+    } else {
+      logLocal("[preview.js] ⚠️ Error modal overlay not found");
+    }
+  },
+
+  /**
    * Resets the story view to its initial state.
    */
   reset() {
@@ -305,10 +357,14 @@ const storyView = {
     this.currentGroup = null;
     this.history = [];
 
+    // Clear errors
+    this.errors = [];
+    this.updateErrorButton();
+    this.hideErrorModal();
+
     // Reset UI
     this.elements.storyContent.innerHTML = "";
     this.elements.choicesContainer.innerHTML = "";
-    this.hideError();
   },
 
   /**
@@ -333,7 +389,6 @@ const storyView = {
    * @param {Object} group - The story group to render
    */
   renderStoryGroup(group) {
-    this.hideError();
     this.markCurrentContentAsHistorical();
 
     // Only create a group container if there are events
@@ -538,24 +593,129 @@ const storyView = {
     setTimeout(attemptScroll, 300);
   },
 
+  // Error Management Methods ==========================================================================================
+
   /**
-   * Renders an error message in the error container.
-   * @param {string} error - The error message to display
+   * Adds an error to the error collection and updates the UI.
+   * @param {string} message - The error message
+   * @param {string} severity - The error severity ('error', 'warning', 'info')
    */
-  renderError(error) {
-    this.elements.errorContainer.innerHTML = `
-      <div class="error-message">⚠️ Error</div>
-      <div class="error-details">${this.escapeHtml(error)}</div>
-    `;
-    this.elements.errorContainer.classList.remove("hidden");
-    this.elements.errorContainer.scrollIntoView({ behavior: "smooth" });
+  addError(message, severity = "error") {
+    const error = {
+      message,
+      severity,
+      timestamp: Date.now(),
+    };
+    this.errors.push(error);
+    this.updateErrorButton();
+    logLocal(`[preview.js] 📝 Error added: ${severity} - ${message}`);
   },
 
   /**
-   * Hides the error container.
+   * Updates the error button visibility and count.
    */
-  hideError() {
-    this.elements.errorContainer.classList.add("hidden");
+  updateErrorButton() {
+    const errorCount = this.errors.length;
+
+    if (errorCount > 0) {
+      this.elements.errorButton.style.display = "flex";
+      this.elements.errorCount.textContent = errorCount.toString();
+
+      // Update button styling based on highest severity
+      const highestSeverity = this.getHighestSeverity();
+      this.elements.errorButton.className = `error-button error-button-${highestSeverity}`;
+    } else {
+      this.elements.errorButton.style.display = "none";
+    }
+  },
+
+  /**
+   * Gets the highest severity level from current errors.
+   * @returns {string} The highest severity level
+   */
+  getHighestSeverity() {
+    if (this.errors.some((e) => e.severity === "error")) {
+      return "error";
+    }
+    if (this.errors.some((e) => e.severity === "warning")) {
+      return "warning";
+    }
+    return "info";
+  },
+
+  /**
+   * Shows the error modal with the list of errors.
+   */
+  showErrorModal() {
+    logLocal("[preview.js] 🔍 Showing error modal");
+    this.renderErrorList();
+    this.elements.errorModal.classList.remove("hidden");
+    this.isErrorModalVisible = true;
+  },
+
+  /**
+   * Hides the error modal.
+   */
+  hideErrorModal() {
+    logLocal("[preview.js] 🔍 Hiding error modal");
+    this.elements.errorModal.classList.add("hidden");
+    this.isErrorModalVisible = false;
+  },
+
+  /**
+   * Renders the error list in the modal.
+   */
+  renderErrorList() {
+    this.elements.errorList.innerHTML = "";
+
+    if (this.errors.length === 0) {
+      this.elements.errorList.innerHTML = "<p>No errors to display.</p>";
+      return;
+    }
+
+    this.errors.forEach((error) => {
+      const errorItem = createElement(
+        "div",
+        `error-item error-item-${error.severity}`
+      );
+
+      const errorIcon = createElement("div", "error-icon");
+      errorIcon.textContent = this.getErrorIcon(error.severity);
+
+      const errorContent = createElement("div", "error-content");
+
+      const errorMessage = createElement("div", "error-message");
+      errorMessage.textContent = error.message;
+
+      const errorMeta = createElement("div", "error-meta");
+      errorMeta.textContent = error.severity.toUpperCase();
+
+      errorContent.appendChild(errorMessage);
+      errorContent.appendChild(errorMeta);
+
+      errorItem.appendChild(errorIcon);
+      errorItem.appendChild(errorContent);
+
+      this.elements.errorList.appendChild(errorItem);
+    });
+  },
+
+  /**
+   * Gets the appropriate icon for an error severity.
+   * @param {string} severity - The error severity
+   * @returns {string} The icon emoji
+   */
+  getErrorIcon(severity) {
+    switch (severity) {
+      case "error":
+        return "❌";
+      case "warning":
+        return "⚠️";
+      case "info":
+        return "ℹ️";
+      default:
+        return "⚠️";
+    }
   },
 
   /**
@@ -688,11 +848,11 @@ const storyController = {
 
   /**
    * Handles an error message from the extension.
-   * @param {string} error - The error message to display
+   * @param {Object} payload - The error payload containing message and severity
    */
-  handleShowError(error) {
-    logLocal("Message: Showing error");
-    storyView.renderError(error);
+  handleShowError(payload) {
+    logLocal("Message: Showing error", payload);
+    storyView.addError(payload.message, payload.severity);
   },
 
   /**

@@ -123,12 +123,20 @@ export class PreviewController {
     const engine = BuildEngine.getInstance();
     const compiledStory = await engine.compileStory(document.uri);
     if (!compiledStory.success) {
-      this.view.showError("Compilation failed");
+      this.view.showError("Compilation failed", "error");
       return;
     }
     // Start the story, with continue story
     console.debug("[PreviewController] 📖 Starting story");
     this.model = new PreviewModel(compiledStory);
+
+    // Register error callback to propagate errors to the view
+    this.model.onError(
+      (message: string, severity: "error" | "warning" | "info") => {
+        this.view.showError(message, severity);
+      }
+    );
+
     this.model.reset();
     this.view.startStory();
     const update = this.model.continueStory() || {
@@ -149,12 +157,6 @@ export class PreviewController {
 
     // Select the choice
     const update = model.selectChoice(index);
-
-    // Handle if there was an error
-    if (model.getCurrentError()) {
-      this.view.showError(model.getCurrentError());
-      return;
-    }
 
     // Update the view
     this.updateView(update);
@@ -181,7 +183,8 @@ export class PreviewController {
    */
   private handleError(error: unknown): void {
     this.view.showError(
-      error instanceof Error ? error.message : "An unknown error occurred"
+      error instanceof Error ? error.message : "An unknown error occurred",
+      "error"
     );
   }
 }

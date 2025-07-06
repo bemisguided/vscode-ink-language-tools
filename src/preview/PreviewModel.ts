@@ -33,6 +33,11 @@ import {
 } from "./types";
 import { ISuccessfulBuildResult } from "../build/IBuildResult";
 
+export type ErrorCallback = (
+  message: string,
+  severity: "error" | "warning" | "info"
+) => void;
+
 /**
  * Manages the story state and progression.
  * Handles story continuation, choice selection, and function calls.
@@ -40,8 +45,8 @@ import { ISuccessfulBuildResult } from "../build/IBuildResult";
 export class PreviewModel {
   // Private Properties ===============================================================================================
 
-  private currentError: any | null = null;
   private currentFunctionCalls: FunctionCall[] = [];
+  private errorCallback?: ErrorCallback;
   private story: Story;
 
   // Constructor ======================================================================================================
@@ -49,18 +54,19 @@ export class PreviewModel {
   constructor(compiledStory: ISuccessfulBuildResult) {
     this.story = compiledStory.story;
     this.story.onError = (error) => {
-      this.currentError = error;
+      // Propagate error immediately to controller via callback
+      this.errorCallback?.(error.toString(), "error");
     };
   }
 
   // Public Methods ===================================================================================================
 
   /**
-   * Gets the current error.
-   * @returns The current error
+   * Registers a callback for when an error occurs during story execution.
+   * @param callback - Function to call when an error occurs
    */
-  public getCurrentError(): any | null {
-    return this.currentError;
+  public onError(callback: ErrorCallback): void {
+    this.errorCallback = callback;
   }
 
   /**
@@ -70,7 +76,6 @@ export class PreviewModel {
    */
   public continueStory(): StoryUpdate {
     this.ensureStoryIsLoaded();
-    this.currentError = null;
 
     // Guard against continuing a finished story
     if (this.isEnded()) {
@@ -86,18 +91,9 @@ export class PreviewModel {
 
     // Continue until we hit a choice point or the end
     while (this.story.canContinue) {
-      const lineText = this.story.Continue();
-      if (lineText) {
-        const lineTags = this.story.currentTags || [];
-        allTags = allTags.concat(lineTags);
-
-        // Add text event
-        const textEvent: TextStoryEvent = {
-          type: "text",
-          text: lineText,
-          tags: lineTags,
-        };
-        events.push(textEvent);
+      // If safeContinue() returns false, either an error occurred or no text was produced - stop execution
+      if (!this.doContinue(events, allTags)) {
+        break;
       }
     }
 
@@ -147,7 +143,20 @@ export class PreviewModel {
   public selectChoice(index: number): StoryUpdate {
     this.ensureStoryIsLoaded();
 
-    this.story.ChooseChoiceIndex(index);
+    try {
+      this.story.ChooseChoiceIndex(index);
+    } catch (error) {
+      // Handle synchronous errors during choice selection
+      this.handleError(error, "Error selecting choice");
+
+      // Return safe default state
+      return {
+        choices: [],
+        hasEnded: true,
+        events: [],
+      };
+    }
+
     return this.continueStory();
   }
 
@@ -166,7 +175,14 @@ export class PreviewModel {
    */
   public reset(): void {
     this.ensureStoryIsLoaded();
-    this.story.ResetState();
+
+    try {
+      this.story.ResetState();
+    } catch (error) {
+      // Handle synchronous errors during story reset
+      this.handleError(error, "Error resetting story state");
+    }
+
     this.currentFunctionCalls = [];
   }
 
@@ -203,6 +219,62 @@ export class PreviewModel {
         false
       );
     });
+  }
+
+  /**
+   * Continues the story execution with error handling.
+   * Handles the complete continue block including text extraction, tag processing, event creation, and accumulation.
+   * @param events - Array to add the text event to
+   * @param allTags - Array to accumulate tags to
+   * @returns true if continue was successful and should continue, false if should stop (error or no text)
+   */
+  private doContinue(events: StoryEvent[], allTags: string[]): boolean {
+    try {
+      const lineText = this.story.Continue();
+
+      // If no text was produced, return false to stop (normal case, not an error)
+      if (!lineText) {
+        return false;
+      }
+
+      // Get current tags after the continue call
+      const lineTags = this.story.currentTags || [];
+
+      // Create the text event
+      const textEvent: TextStoryEvent = {
+        type: "text",
+        text: lineText,
+        tags: lineTags,
+      };
+
+      // Add the event to the events array
+      events.push(textEvent);
+
+      // Track all tags for potential future use
+      allTags.push(...lineTags);
+
+      return true; // Continue processing
+    } catch (error) {
+      // Handle synchronous errors (validation, missing external functions, etc.)
+      this.handleError(error, "Unknown story execution error");
+      return false; // Stop processing due to error
+    }
+  }
+
+  /**
+   * Handles errors by extracting the message and calling the error callback.
+   * @param error - The error that occurred
+   * @param fallbackMessage - Message to use if error message cannot be extracted
+   * @param severity - The severity level of the error
+   */
+  private handleError(
+    error: unknown,
+    fallbackMessage: string = "Unknown error occurred",
+    severity: "error" | "warning" | "info" = "error"
+  ): void {
+    const errorMessage =
+      error instanceof Error ? error.message : fallbackMessage;
+    this.errorCallback?.(errorMessage, severity);
   }
 
   private ensureStoryIsLoaded(): void {

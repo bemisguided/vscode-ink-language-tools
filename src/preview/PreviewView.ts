@@ -84,10 +84,11 @@ export class PreviewView {
 
   /**
    * Displays an error message in the webview.
-   * @param error - The error message to display
+   * @param message - The error message to display
+   * @param severity - The severity level of the error
    */
-  public showError(error: string): void {
-    this.postMessage(outboundMessages.showError, error);
+  public showError(message: string, severity: 'error' | 'warning' | 'info' = 'error'): void {
+    this.postMessage(outboundMessages.showError, { message, severity });
   }
 
   /**
@@ -187,11 +188,26 @@ export class PreviewView {
       <body>
         <div id="toolbar-container">
           <button id="button-restart">Restart</button>
+          <button id="button-errors" class="error-button" style="display: none;">
+            <span class="error-icon">⚠️</span>
+            <span id="error-count" class="error-count">0</span>
+          </button>
         </div>
         <div id="story-container">
           <div id="story-content"></div>
           <div id="choices-container"></div>
-          <div id="error-container" class="hidden"></div>
+          <div id="error-modal" class="error-modal hidden">
+            <div class="error-modal-overlay"></div>
+            <div class="error-modal-content">
+              <div class="error-modal-header">
+                <h3>Preview Errors</h3>
+                <button id="close-error-modal" class="close-button">×</button>
+              </div>
+              <div id="error-list" class="error-list">
+                <!-- Errors populated dynamically -->
+              </div>
+            </div>
+          </div>
         </div>
         <script src="${jsUrl}"></script>
       </body>
