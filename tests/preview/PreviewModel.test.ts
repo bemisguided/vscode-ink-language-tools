@@ -23,37 +23,10 @@
  */
 
 import { PreviewModel } from "../../src/preview/PreviewModel";
-import { Story } from "inkjs/engine/Story";
-import { ISuccessfulBuildResult } from "../../src/build/IBuildResult";
-
-// Create a minimal valid story JSON for inkjs
-const minimalStoryJson = JSON.stringify({
-  inkVersion: 21,
-  root: [
-    ["^Hello world", "\n", ["done", { "#f": 5, "#n": "g-0" }], null],
-    "done",
-    { "#f": 1 },
-  ],
-  listDefs: {},
-});
-
-// Mock build result for testing
-const mockBuildResult: ISuccessfulBuildResult = {
-  success: true,
-  story: new Story(minimalStoryJson),
-  diagnostics: [],
-  uri: {
-    fsPath: "/mock/path/test.ink",
-    scheme: "file",
-    authority: "",
-    path: "/mock/path/test.ink",
-    query: "",
-    fragment: "",
-    with: jest.fn(),
-    toJSON: jest.fn(),
-    toString: jest.fn().mockReturnValue("/mock/path/test.ink"),
-  } as any,
-};
+import {
+  mockBuildResult,
+  createMockSuccessfulBuildResult,
+} from "../__mocks__/mockBuildResult";
 
 describe("PreviewModel", () => {
   let model: PreviewModel;
@@ -63,6 +36,49 @@ describe("PreviewModel", () => {
     model = new PreviewModel(mockBuildResult);
     errorCallback = jest.fn();
     model.onError(errorCallback);
+  });
+
+  describe("Story Execution", () => {
+    test("should continue story successfully", () => {
+      const update = model.continueStory();
+
+      expect(update).toBeDefined();
+      expect(update.events).toBeDefined();
+      expect(update.choices).toBeDefined();
+      expect(update.hasEnded).toBeDefined();
+    });
+
+    test("should handle story choices", () => {
+      const initialUpdate = model.continueStory();
+
+      if (initialUpdate.choices.length > 0) {
+        const choiceUpdate = model.selectChoice(0);
+        expect(choiceUpdate).toBeDefined();
+        expect(choiceUpdate.events).toBeDefined();
+      }
+    });
+
+    test("should reset story state", () => {
+      // Continue story first
+      model.continueStory();
+
+      // Reset
+      model.reset();
+
+      // Should be able to continue again
+      const update = model.continueStory();
+      expect(update).toBeDefined();
+    });
+
+    test("should detect story end", () => {
+      const model = new PreviewModel(
+        createMockSuccessfulBuildResult("/test/simple.ink", true)
+      );
+      model.onError(errorCallback);
+
+      const update = model.continueStory();
+      expect(update.hasEnded).toBe(true);
+    });
   });
 
   describe("Error Message Parsing", () => {

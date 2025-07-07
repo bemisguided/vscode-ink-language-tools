@@ -195,25 +195,159 @@ describe("MockVSCodeExtensionService", () => {
     mockService.dispose();
   });
 
-  describe("Call Logging", () => {
-    it("should track method calls with parameters", () => {
+  describe("Construction and Configuration", () => {
+    test("should create with default configuration", () => {
+      // Execute
+      const service = new MockVSCodeExtensionService();
+
+      // Assert
+      expect(service.getExtensionPath()).toBe("/mock/extension/path");
+    });
+
+    test("should create with custom configuration", () => {
+      // Setup
+      const config = {
+        extensionPath: "/custom/path",
+        mediaDirectory: "assets",
+        iconsDirectory: "images",
+        webviewUriScheme: "custom-scheme",
+      };
+
+      // Execute
+      const service = new MockVSCodeExtensionService(config);
+
+      // Assert
+      expect(service.getExtensionPath()).toBe("/custom/path");
+    });
+
+    test("should update configuration after creation", () => {
+      // Setup
+      const service = new MockVSCodeExtensionService();
+
+      // Execute
+      service.updateConfig({ extensionPath: "/updated/path" });
+
+      // Assert
+      expect(service.getExtensionPath()).toBe("/updated/path");
+    });
+  });
+
+  describe("Enhanced Call Logging", () => {
+    test("should track method calls with timestamps and results", () => {
       // Setup
       const fileName = "test.png";
 
       // Execute
       mockService.getExtensionUri();
-      mockService.getExtensionPath();
       mockService.getIconUri(fileName);
 
       // Assert
       const callLog = mockService.getCallLog();
-      expect(callLog).toHaveLength(3);
-      expect(callLog[0]).toEqual({ method: "getExtensionUri", args: [] });
-      expect(callLog[1]).toEqual({ method: "getExtensionPath", args: [] });
-      expect(callLog[2]).toEqual({ method: "getIconUri", args: [fileName] });
+      expect(callLog).toHaveLength(2);
+
+      expect(callLog[0]).toMatchObject({
+        method: "getExtensionUri",
+        args: [],
+      });
+      expect(callLog[0].timestamp).toBeGreaterThan(0);
+      expect(callLog[0].result).toBeDefined();
+
+      expect(callLog[1]).toMatchObject({
+        method: "getIconUri",
+        args: [fileName],
+      });
     });
 
-    it("should clear call log when requested", () => {
+    test("should get calls for specific method", () => {
+      // Setup
+      mockService.getExtensionUri();
+      mockService.getIconUri("icon1.png");
+      mockService.getIconUri("icon2.png");
+
+      // Execute
+      const iconCalls = mockService.getCallsForMethod("getIconUri");
+
+      // Assert
+      expect(iconCalls).toHaveLength(2);
+      expect(iconCalls[0].args).toEqual(["icon1.png"]);
+      expect(iconCalls[1].args).toEqual(["icon2.png"]);
+    });
+
+    test("should get last call made", () => {
+      // Setup
+      mockService.getExtensionUri();
+      mockService.getIconUri("test.png");
+
+      // Execute
+      const lastCall = mockService.getLastCall();
+
+      // Assert
+      expect(lastCall).toMatchObject({
+        method: "getIconUri",
+        args: ["test.png"],
+      });
+    });
+
+    test("should get last call for specific method", () => {
+      // Setup
+      mockService.getExtensionUri();
+      mockService.getIconUri("icon1.png");
+      mockService.getExtensionPath();
+      mockService.getIconUri("icon2.png");
+
+      // Execute
+      const lastIconCall = mockService.getLastCallForMethod("getIconUri");
+
+      // Assert
+      expect(lastIconCall).toMatchObject({
+        method: "getIconUri",
+        args: ["icon2.png"],
+      });
+    });
+
+    test("should check if method was called", () => {
+      // Setup
+      mockService.getExtensionUri();
+
+      // Execute & Assert
+      expect(mockService.wasMethodCalled("getExtensionUri")).toBe(true);
+      expect(mockService.wasMethodCalled("getIconUri")).toBe(false);
+    });
+
+    test("should check if method was called with specific arguments", () => {
+      // Setup
+      mockService.getIconUri("test.png");
+      mockService.getWebviewMediaUri(mockWebview, "style.css");
+
+      // Execute & Assert
+      expect(mockService.wasMethodCalledWith("getIconUri", "test.png")).toBe(
+        true
+      );
+      expect(mockService.wasMethodCalledWith("getIconUri", "other.png")).toBe(
+        false
+      );
+      expect(
+        mockService.wasMethodCalledWith(
+          "getWebviewMediaUri",
+          mockWebview,
+          "style.css"
+        )
+      ).toBe(true);
+    });
+
+    test("should count method calls", () => {
+      // Setup
+      mockService.getExtensionUri();
+      mockService.getIconUri("icon1.png");
+      mockService.getIconUri("icon2.png");
+
+      // Execute & Assert
+      expect(mockService.getMethodCallCount("getExtensionUri")).toBe(1);
+      expect(mockService.getMethodCallCount("getIconUri")).toBe(2);
+      expect(mockService.getMethodCallCount("getExtensionPath")).toBe(0);
+    });
+
+    test("should clear call log", () => {
       // Setup
       mockService.getExtensionUri();
       expect(mockService.getCallLog()).toHaveLength(1);
@@ -224,70 +358,217 @@ describe("MockVSCodeExtensionService", () => {
       // Assert
       expect(mockService.getCallLog()).toHaveLength(0);
     });
+
+    test("should reset mock state", () => {
+      // Setup
+      mockService.getExtensionUri();
+      mockService.updateConfig({ extensionPath: "/new/path" });
+
+      // Execute
+      mockService.reset();
+
+      // Assert
+      expect(mockService.getCallLog()).toHaveLength(0);
+    });
   });
 
-  describe("Method Behavior", () => {
-    it("should return mock extension URI", () => {
-      // Execute
-      const result = mockService.getExtensionUri();
-
-      // Assert
-      expect(result.fsPath).toBe("/mock/extension/path");
-    });
-
-    it("should return mock extension path", () => {
-      // Execute
-      const result = mockService.getExtensionPath();
-
-      // Assert
-      expect(result).toBe("/mock/extension/path");
-    });
-
-    it("should return mock webview URI", () => {
+  describe("Enhanced Method Behavior", () => {
+    test("should return realistic webview URIs", () => {
       // Setup
-      const resourcePath = "test/resource.js";
+      const service = new MockVSCodeExtensionService({
+        webviewUriScheme: "vscode-webview",
+      });
+      const resourcePath = "styles/main.css";
+
+      // Execute
+      const result = service.getWebviewUri(mockWebview, resourcePath);
+
+      // Assert
+      expect(result.toString()).toContain("vscode-webview");
+      expect(result.toString()).toContain("extension-id");
+      expect(result.toString()).toContain("styles/main.css");
+    });
+
+    test("should handle resource paths with leading slashes", () => {
+      // Setup
+      const resourcePath = "/scripts/app.js";
 
       // Execute
       const result = mockService.getWebviewUri(mockWebview, resourcePath);
 
       // Assert
-      expect(result.fsPath).toBe(`/mock/webview/uri/${resourcePath}`);
+      expect(result.toString()).toContain("vscode-webview");
+      expect(result.toString()).toContain("extension-id");
+      expect(result.toString()).toContain("scripts/app.js");
     });
 
-    it("should return mock webview media URI", () => {
+    test("should return configured media URIs", () => {
       // Setup
-      const fileName = "test.css";
+      const service = new MockVSCodeExtensionService({
+        mediaDirectory: "assets",
+        webviewUriScheme: "custom-scheme",
+      });
+      const fileName = "image.png";
 
       // Execute
-      const result = mockService.getWebviewMediaUri(mockWebview, fileName);
+      const result = service.getWebviewMediaUri(mockWebview, fileName);
 
       // Assert
-      expect(result.fsPath).toBe(`/mock/webview/media/${fileName}`);
+      expect(result.toString()).toContain("custom-scheme");
+      expect(result.toString()).toContain("extension-id");
+      expect(result.toString()).toContain("assets");
+      expect(result.toString()).toContain("image.png");
     });
 
-    it("should return mock local resource roots", () => {
+    test("should return multiple local resource roots", () => {
+      // Setup
+      const service = new MockVSCodeExtensionService({
+        extensionPath: "/test/extension",
+        mediaDirectory: "media",
+        iconsDirectory: "icons",
+      });
+
       // Execute
-      const result = mockService.getWebviewLocalResourceRoots();
+      const result = service.getWebviewLocalResourceRoots();
 
       // Assert
-      expect(result).toHaveLength(1);
-      expect(result[0].fsPath).toBe("/mock/extension/path/media");
+      expect(result).toHaveLength(2);
+      expect(result[0].fsPath).toBe("/test/extension/media");
+      expect(result[1].fsPath).toBe("/test/extension/icons");
     });
 
-    it("should return mock icon URI", () => {
+    test("should return configured icon URIs", () => {
+      // Setup
+      const service = new MockVSCodeExtensionService({
+        extensionPath: "/custom/extension",
+        iconsDirectory: "images",
+      });
+      const fileName = "app.ico";
+
+      // Execute
+      const result = service.getIconUri(fileName);
+
+      // Assert
+      expect(result.fsPath).toBe("/custom/extension/images/app.ico");
+    });
+  });
+
+  describe("Static Factory Methods", () => {
+    test("should create default mock", () => {
+      // Execute
+      const service = MockVSCodeExtensionService.createDefault();
+
+      // Assert
+      expect(service.getExtensionPath()).toBe("/mock/extension/path");
+    });
+
+    test("should create webview testing mock", () => {
+      // Execute
+      const service = MockVSCodeExtensionService.createForWebviewTesting();
+      const result = service.getWebviewMediaUri(mockWebview, "test.css");
+
+      // Assert
+      expect(result.toString()).toContain("vscode-webview");
+      expect(result.toString()).toContain("extension-id");
+      expect(result.toString()).toContain("media");
+      expect(result.toString()).toContain("test.css");
+    });
+
+    test("should create error testing mock", () => {
+      // Execute
+      const service = MockVSCodeExtensionService.createForErrorTesting();
+
+      // Assert
+      expect(() => service.getExtensionUri()).toThrow(
+        "Mock error in getExtensionUri"
+      );
+    });
+
+    test("should create error testing mock with custom messages", () => {
+      // Setup
+      const errorMessages = {
+        getExtensionUri: "Custom extension error",
+        getIconUri: "Custom icon error",
+      };
+
+      // Execute
+      const service =
+        MockVSCodeExtensionService.createForErrorTesting(errorMessages);
+
+      // Assert
+      expect(() => service.getExtensionUri()).toThrow("Custom extension error");
+      expect(() => service.getIconUri("test.png")).toThrow("Custom icon error");
+    });
+
+    test("should create mock with custom extension path", () => {
+      // Execute
+      const service =
+        MockVSCodeExtensionService.createWithExtensionPath("/special/path");
+
+      // Assert
+      expect(service.getExtensionPath()).toBe("/special/path");
+    });
+  });
+
+  describe("Error Simulation", () => {
+    test("should throw configured errors", () => {
+      // Setup
+      const service = new MockVSCodeExtensionService({
+        shouldThrowErrors: true,
+        errorMessages: {
+          getExtensionPath: "Simulated path error",
+        },
+      });
+
+      // Execute & Assert
+      expect(() => service.getExtensionPath()).toThrow("Simulated path error");
+      expect(() => service.getExtensionUri()).toThrow(
+        "Mock error in getExtensionUri"
+      );
+    });
+
+    test("should log errors in call history", () => {
+      // Setup
+      const service = MockVSCodeExtensionService.createForErrorTesting({
+        getIconUri: "Icon error",
+      });
+
+      // Execute
+      try {
+        service.getIconUri("test.png");
+      } catch (error) {
+        // Expected error
+      }
+
+      // Assert
+      const calls = service.getCallsForMethod("getIconUri");
+      expect(calls).toHaveLength(1);
+      expect(calls[0].result).toBeInstanceOf(Error);
+    });
+  });
+
+  describe("Backwards Compatibility", () => {
+    test("should maintain basic call logging functionality", () => {
       // Setup
       const fileName = "test.png";
 
       // Execute
-      const result = mockService.getIconUri(fileName);
+      mockService.getExtensionUri();
+      mockService.getExtensionPath();
+      mockService.getIconUri(fileName);
 
-      // Assert
-      expect(result.fsPath).toBe(`/mock/extension/path/icons/${fileName}`);
+      // Assert - this mirrors the old test format
+      const callLog = mockService.getCallLog();
+      expect(callLog).toHaveLength(3);
+      expect(callLog[0].method).toBe("getExtensionUri");
+      expect(callLog[0].args).toEqual([]);
+      expect(callLog[1].method).toBe("getExtensionPath");
+      expect(callLog[1].args).toEqual([]);
+      expect(callLog[2].method).toBe("getIconUri");
+      expect(callLog[2].args).toEqual([fileName]);
     });
-  });
 
-  describe("Error Handling", () => {
-    it("should handle disposal gracefully", () => {
+    test("should handle disposal gracefully", () => {
       // Execute & Assert - should not throw
       expect(() => mockService.dispose()).not.toThrow();
     });
