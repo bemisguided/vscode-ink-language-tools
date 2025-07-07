@@ -23,7 +23,7 @@
  */
 
 import { Story } from "inkjs/engine/Story";
-import { BindableFunction, CompiledStory } from "../../types";
+import { BindableFunction } from "../types";
 import {
   StoryUpdate,
   FunctionCall,
@@ -31,46 +31,42 @@ import {
   TextStoryEvent,
   FunctionStoryEvent,
 } from "./types";
+import { ISuccessfulBuildResult } from "../build/IBuildResult";
+
+export type ErrorCallback = (
+  message: string,
+  severity: "error" | "warning" | "info"
+) => void;
 
 /**
  * Manages the story state and progression.
  * Handles story continuation, choice selection, and function calls.
  */
-export class StoryModel {
+export class PreviewModel {
   // Private Properties ===============================================================================================
 
-  private currentError: any | null = null;
   private currentFunctionCalls: FunctionCall[] = [];
+  private errorCallback?: ErrorCallback;
   private story: Story;
-  private readonly timestamp: number;
 
   // Constructor ======================================================================================================
 
-  constructor(compiledStory: CompiledStory) {
+  constructor(compiledStory: ISuccessfulBuildResult) {
     this.story = compiledStory.story;
-    this.timestamp = compiledStory.timestamp;
-    this.bindExternalFunctions(compiledStory.bindableFunctions);
     this.story.onError = (error) => {
-      this.currentError = error;
+      // Propagate error immediately to controller via callback
+      this.errorCallback?.(error.toString(), "error");
     };
   }
 
   // Public Methods ===================================================================================================
 
   /**
-   * Gets the current error.
-   * @returns The current error
+   * Registers a callback for when an error occurs during story execution.
+   * @param callback - Function to call when an error occurs
    */
-  public getCurrentError(): any | null {
-    return this.currentError;
-  }
-
-  /**
-   * Gets the timestamp of the compiled story.
-   * @returns The timestamp of the compiled story
-   */
-  public getTimestamp(): number {
-    return this.timestamp;
+  public onError(callback: ErrorCallback): void {
+    this.errorCallback = callback;
   }
 
   /**
@@ -80,7 +76,6 @@ export class StoryModel {
    */
   public continueStory(): StoryUpdate {
     this.ensureStoryIsLoaded();
-    this.currentError = null;
 
     // Guard against continuing a finished story
     if (this.isEnded()) {
@@ -96,18 +91,9 @@ export class StoryModel {
 
     // Continue until we hit a choice point or the end
     while (this.story.canContinue) {
-      const lineText = this.story.Continue();
-      if (lineText) {
-        const lineTags = this.story.currentTags || [];
-        allTags = allTags.concat(lineTags);
-
-        // Add text event
-        const textEvent: TextStoryEvent = {
-          type: "text",
-          text: lineText,
-          tags: lineTags,
-        };
-        events.push(textEvent);
+      // If safeContinue() returns false, either an error occurred or no text was produced - stop execution
+      if (!this.doContinue(events, allTags)) {
+        break;
       }
     }
 
@@ -157,7 +143,20 @@ export class StoryModel {
   public selectChoice(index: number): StoryUpdate {
     this.ensureStoryIsLoaded();
 
-    this.story.ChooseChoiceIndex(index);
+    try {
+      this.story.ChooseChoiceIndex(index);
+    } catch (error) {
+      // Handle synchronous errors during choice selection
+      this.handleError(error, "Error selecting choice");
+
+      // Return safe default state
+      return {
+        choices: [],
+        hasEnded: true,
+        events: [],
+      };
+    }
+
     return this.continueStory();
   }
 
@@ -176,7 +175,14 @@ export class StoryModel {
    */
   public reset(): void {
     this.ensureStoryIsLoaded();
-    this.story.ResetState();
+
+    try {
+      this.story.ResetState();
+    } catch (error) {
+      // Handle synchronous errors during story reset
+      this.handleError(error, "Error resetting story state");
+    }
+
     this.currentFunctionCalls = [];
   }
 
@@ -213,6 +219,98 @@ export class StoryModel {
         false
       );
     });
+  }
+
+  /**
+   * Continues the story execution with error handling.
+   * Handles the complete continue block including text extraction, tag processing, event creation, and accumulation.
+   * @param events - Array to add the text event to
+   * @param allTags - Array to accumulate tags to
+   * @returns true if continue was successful and should continue, false if should stop (error or no text)
+   */
+  private doContinue(events: StoryEvent[], allTags: string[]): boolean {
+    try {
+      const lineText = this.story.Continue();
+
+      // If no text was produced, return false to stop (normal case, not an error)
+      if (!lineText) {
+        return false;
+      }
+
+      // Get current tags after the continue call
+      const lineTags = this.story.currentTags || [];
+
+      // Create the text event
+      const textEvent: TextStoryEvent = {
+        type: "text",
+        text: lineText,
+        tags: lineTags,
+      };
+
+      // Add the event to the events array
+      events.push(textEvent);
+
+      // Track all tags for potential future use
+      allTags.push(...lineTags);
+
+      return true; // Continue processing
+    } catch (error) {
+      // Handle synchronous errors (validation, missing external functions, etc.)
+      this.handleError(error, "Unknown story execution error");
+      return false; // Stop processing due to error
+    }
+  }
+
+  /**
+   * Handles errors by extracting the message and calling the error callback.
+   * @param error - The error that occurred
+   * @param fallbackMessage - Message to use if error message cannot be extracted
+   * @param severity - The severity level of the error (can be overridden by parsing)
+   */
+  private handleError(
+    error: unknown,
+    fallbackMessage: string = "Unknown error occurred",
+    severity: "error" | "warning" | "info" = "error"
+  ): void {
+    const rawMessage = error instanceof Error ? error.message : fallbackMessage;
+    const { message, severity: parsedSeverity } =
+      this.parseErrorMessage(rawMessage);
+    this.errorCallback?.(message, parsedSeverity || severity);
+  }
+
+  /**
+   * Parses an error message to extract severity and clean message.
+   * @param rawMessage - The raw error message
+   * @returns Object with parsed message and severity
+   */
+  private parseErrorMessage(rawMessage: string): {
+    message: string;
+    severity: "error" | "warning" | "info" | null;
+  } {
+    // Default values
+    let message = rawMessage;
+    let severity: "error" | "warning" | "info" | null = null;
+
+    // Extract severity from common prefixes
+    if (rawMessage.startsWith("RUNTIME ERROR:")) {
+      severity = "error";
+    } else if (rawMessage.startsWith("RUNTIME WARNING:")) {
+      severity = "warning";
+    } else if (rawMessage.startsWith("Error:")) {
+      severity = "error";
+    } else if (rawMessage.startsWith("Warning:")) {
+      severity = "warning";
+    }
+
+    // Find the first colon and extract message after it
+    const firstColonIndex = rawMessage.indexOf(":");
+
+    // If we have at least 1 colon, extract message after the first one
+    if (firstColonIndex !== -1) {
+      message = rawMessage.substring(firstColonIndex + 1).trim();
+    }
+
+    return { message, severity };
   }
 
   private ensureStoryIsLoaded(): void {

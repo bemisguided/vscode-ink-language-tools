@@ -10,3 +10,13 @@ vscode.languages.createDiagnosticCollection = jest.fn().mockReturnValue({
   clear: jest.fn(),
   dispose: jest.fn(),
 });
+
+// Mock extensions API
+vscode.extensions = {
+  getExtension: jest.fn().mockReturnValue({
+    extensionUri: {
+      scheme: "file",
+      fsPath: "/mock/extension/path",
+    },
+  }),
+};

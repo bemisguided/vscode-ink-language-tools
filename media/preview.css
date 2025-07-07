@@ -39,27 +39,22 @@
   background-color: var(--vscode-editor-background);
   border-bottom: 1px solid var(--vscode-panel-border);
   display: flex;
-  gap: 0.5em;
+  justify-content: space-between;
+  align-items: center;
   z-index: 1000;
 }
 
 #button-restart {
-  background: none;
-  border: 1px solid var(--vscode-focusBorder);
-  color: var(--vscode-foreground);
   padding: 0.5em 1em;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9em;
-  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
 }
 
-#button-restart:hover {
-  background-color: var(--vscode-list-hoverBackground);
-}
-
-#button-restart:active {
-  background-color: var(--vscode-list-activeSelectionBackground);
+.restart-icon {
+  background-color: var(--vscode-foreground);
+  mask-image: url("./restart-icon.svg");
+  -webkit-mask-image: url("./restart-icon.svg");
 }
 
 /* Add padding to story content to account for fixed toolbar */
@@ -149,23 +144,11 @@
 
 /* Choice Button */
 .story-choice {
-  background: none;
-  border: none;
   padding: 0.75em 1em;
   text-align: left;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  border-radius: 4px;
   display: flex;
   gap: 0.75em;
-}
-
-.story-choice:hover {
-  background-color: var(--vscode-list-hoverBackground);
-}
-
-.story-choice:active {
-  background-color: var(--vscode-list-activeSelectionBackground);
+  font-size: 1em;
 }
 
 /* Choice Number */
@@ -196,36 +179,226 @@
   gap: 0.5em;
 }
 
-/* Error Container =================================================================================================== */
+/* Utility Classes ================================================================================================= */
 
-#error-container {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background-color: var(--vscode-editor-background);
-  border-top: 1px solid var(--vscode-panel-border);
-  padding: 1rem;
-  margin: 0;
-  z-index: 1000;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15);
-  transform: translateY(100%);
-  transition: transform 0.3s ease-in-out;
+.hidden {
+  display: none !important;
 }
 
-#error-container:not(.hidden) {
-  transform: translateY(0);
+/* Base Button Classes ============================================================================================= */
+
+.btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  color: var(--vscode-foreground);
+  font-size: 0.9em;
+}
+
+.btn-toolbar {
+  padding: 0.5em;
+}
+
+.btn-toolbar:hover,
+.btn-toolbar:focus {
+  background-color: var(--vscode-toolbar-hoverBackground);
+}
+
+.btn-toolbar:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.btn-toolbar:active {
+  background-color: var(--vscode-toolbar-activeBackground);
+}
+
+.btn-list:hover,
+.btn-list:focus {
+  background-color: var(--vscode-list-hoverBackground);
+}
+
+.btn-list:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.btn-list:active {
+  background-color: var(--vscode-list-activeSelectionBackground);
+}
+
+/* Base Icon Classes ============================================================================================== */
+
+.icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+}
+
+/* Error Indicators =============================================================================================== */
+
+.error-indicators {
+  display: flex;
+  gap: 0.25em;
+  align-items: center;
+}
+
+.error-indicator {
+  display: none; /* Hidden by default */
+  align-items: center;
+  gap: 0.25em;
+}
+
+/* Error Icons with Theme Colors */
+
+.error-indicator-icon {
+  flex-shrink: 0;
+}
+
+.error-icon-error {
+  background-color: var(--vscode-errorForeground);
+  mask-image: url("./error-icon.svg");
+  -webkit-mask-image: url("./error-icon.svg");
+}
+
+.error-icon-warning {
+  background-color: var(--vscode-warningForeground);
+  mask-image: url("./warning-icon.svg");
+  -webkit-mask-image: url("./warning-icon.svg");
+}
+
+.error-icon-info {
+  background-color: var(--vscode-infoForeground);
+  mask-image: url("./info-icon.svg");
+  -webkit-mask-image: url("./info-icon.svg");
+}
+
+.error-count {
+  color: var(--vscode-foreground);
+  font-size: 0.9em;
+  font-weight: normal;
+}
+
+/* Error Modal ===================================================================================================== */
+
+.error-modal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1001;
+}
+
+.error-modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.error-modal-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  max-width: 500px;
+  max-height: 400px;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.error-modal-header {
+  padding: 1em;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.error-modal-header h3 {
+  margin: 0;
+  color: var(--vscode-foreground);
+  font-size: 1.1em;
+}
+
+.close-button {
+  font-size: 1.5em;
+  padding: 0.25em;
+}
+
+.error-list {
+  padding: 1em;
+  overflow-y: auto;
+  flex: 1;
+  max-height: 300px;
+}
+
+.error-item {
+  display: flex;
+  gap: 0.75em;
+  padding: 0.75em;
+  margin-bottom: 0.5em;
+  border-radius: 4px;
+  border-left: 4px solid;
+}
+
+.error-item:last-child {
+  margin-bottom: 0;
+}
+
+.error-item-error {
+  background-color: var(--vscode-inputValidation-errorBackground);
+  border-left-color: var(--vscode-errorForeground);
+}
+
+.error-item-warning {
+  background-color: var(--vscode-inputValidation-warningBackground);
+  border-left-color: var(--vscode-warningForeground);
+}
+
+.error-item-info {
+  background-color: var(--vscode-inputValidation-infoBackground);
+  border-left-color: var(--vscode-infoForeground);
+}
+
+.error-icon {
+  font-size: 1.2em;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.error-content {
+  flex: 1;
+  min-width: 0;
 }
 
 .error-message {
-  color: var(--vscode-errorForeground);
-  font-weight: bold;
-  margin-bottom: 0.5rem;
+  color: var(--vscode-foreground);
+  margin-bottom: 0.25em;
+  word-wrap: break-word;
 }
 
-.error-details {
-  color: var(--vscode-editor-foreground);
-  font-family: var(--vscode-editor-font-family);
-  white-space: pre-wrap;
-  word-break: break-word;
+.error-meta {
+  font-size: 0.8em;
+  opacity: 0.8;
+  color: var(--vscode-foreground);
+  font-weight: bold;
 }

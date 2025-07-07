@@ -46,6 +46,20 @@ export interface FileResolutionResult {
 }
 
 /**
+ * Result of resolving a single file from various contexts.
+ */
+export interface SingleFileResolutionResult {
+  /** Successfully resolved file URI (first valid file found) */
+  validFile?: vscode.Uri;
+  /** Whether any files were found at all */
+  hasSelection: boolean;
+  /** Error message if no valid file was found */
+  errorMessage?: string;
+  /** Warning message if multiple files were selected but only first was used */
+  warningMessage?: string;
+}
+
+/**
  * Context information about how files were resolved.
  */
 export enum FileResolutionContext {
@@ -82,6 +96,20 @@ export interface IVSCodeFileContextService {
     uri?: vscode.Uri,
     uris?: vscode.Uri[]
   ): Promise<FileResolutionResult>;
+
+  /**
+   * Resolve a single file of a specific type from various VSCode contexts.
+   * Returns the first valid file found, with appropriate error/warning messages.
+   * @param fileType The type of file to resolve
+   * @param uri Single URI (from context menu or single selection)
+   * @param uris Multiple URIs (from multi-selection in explorer)
+   * @returns Single file resolution result with messages
+   */
+  resolveSingleFile(
+    fileType: FileType,
+    uri?: vscode.Uri,
+    uris?: vscode.Uri[]
+  ): Promise<SingleFileResolutionResult>;
 
   /**
    * Check if a URI represents a valid file of the specified type.
@@ -182,6 +210,93 @@ export class VSCodeFileContextServiceImpl implements IVSCodeFileContextService {
       invalidFiles,
       hasSelection: true,
     };
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public async resolveSingleFile(
+    fileType: FileType,
+    uri?: vscode.Uri,
+    uris?: vscode.Uri[]
+  ): Promise<SingleFileResolutionResult> {
+    const candidateUris = this.getCandidateUris(uri, uris);
+    const config = this.getFileTypeConfig(fileType);
+    const displayName = config.displayName;
+
+    if (candidateUris.length === 0) {
+      return {
+        hasSelection: false,
+        errorMessage: "No active document or selected file.",
+      };
+    }
+
+    // Find the first valid file
+    let firstValidFile: vscode.Uri | undefined;
+    const invalidFiles: { uri: vscode.Uri; reason: string }[] = [];
+
+    for (const candidateUri of candidateUris) {
+      if (await this.isValidFile(fileType, candidateUri)) {
+        if (!firstValidFile) {
+          firstValidFile = candidateUri;
+        }
+      } else {
+        invalidFiles.push({
+          uri: candidateUri,
+          reason: this.getInvalidFileReason(fileType, candidateUri),
+        });
+      }
+    }
+
+    const result: SingleFileResolutionResult = {
+      validFile: firstValidFile,
+      hasSelection: true,
+    };
+
+    // Handle error cases
+    if (!firstValidFile) {
+      if (invalidFiles.length === 1) {
+        result.errorMessage = `Selected file is not ${this.getArticle(
+          displayName
+        )} ${displayName}: ${path.basename(invalidFiles[0].uri.fsPath)}`;
+      } else {
+        const fileNames = invalidFiles
+          .map((f) => path.basename(f.uri.fsPath))
+          .join(", ");
+        result.errorMessage = `${invalidFiles.length} selected files are not ${displayName}s: ${fileNames}`;
+      }
+      return result;
+    }
+
+    // Handle warning cases (multiple files selected but only using first)
+    const totalCandidates = candidateUris.length;
+    const validFilesCount = totalCandidates - invalidFiles.length;
+
+    if (totalCandidates > 1) {
+      if (invalidFiles.length > 0) {
+        // Mixed valid and invalid files
+        const invalidFileNames = invalidFiles
+          .map((f) => path.basename(f.uri.fsPath))
+          .join(", ");
+        const invalidMessage =
+          invalidFiles.length === 1
+            ? `Selected file is not ${this.getArticle(
+                displayName
+              )} ${displayName}: ${invalidFileNames}`
+            : `${invalidFiles.length} selected files are not ${displayName}s: ${invalidFileNames}`;
+
+        result.warningMessage = `${invalidMessage}. Using first valid ${displayName}: ${path.basename(
+          firstValidFile.fsPath
+        )}`;
+      } else if (validFilesCount > 1) {
+        // Multiple valid files
+        result.warningMessage = `${validFilesCount} ${displayName}s selected. Using first: ${path.basename(
+          firstValidFile.fsPath
+        )}`;
+      }
+    }
+
+    return result;
   }
 
   /**

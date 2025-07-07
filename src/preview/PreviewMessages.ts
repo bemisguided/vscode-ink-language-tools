@@ -112,7 +112,10 @@ export interface OutboundMessagePayloads {
     hasEnded: boolean;
   };
   [outboundMessages.endStory]: void;
-  [outboundMessages.showError]: string;
+  [outboundMessages.showError]: {
+    message: string;
+    severity: 'error' | 'warning' | 'info';
+  };
 }
 
 /**

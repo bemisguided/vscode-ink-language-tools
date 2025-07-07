@@ -2,7 +2,8 @@
   "extends": "./src/tsconfig.json",
   "compilerOptions": {
     "noEmit": true,
-    "outDir": "./out-tests"
+    "outDir": "./out-tests",
+    "resolveJsonModule": true
   },
-  "include": ["src", "tests"]
+  "include": ["src", "tests", "tests/**/*.json"]
 }

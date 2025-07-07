@@ -23,25 +23,29 @@
  */
 
 import * as vscode from "vscode";
-import { StoryModel } from "./StoryModel";
-import { StoryView } from "./StoryView";
+import { PreviewModel } from "./PreviewModel";
+import { PreviewView } from "./PreviewView";
 import { StoryUpdate } from "./types";
+import { BuildEngine } from "../build/BuildEngine";
+import { Deferred } from "../util/deferred";
+import { VSCodeServiceLocator } from "../services/VSCodeServiceLocator";
 
 /**
- * Coordinates between the StoryModel and StoryView, managing the story lifecycle
+ * Coordinates between the PreviewModel and PreviewView, managing the story lifecycle
  * and handling user interactions.
  */
-export class StoryController {
+export class PreviewController {
   // Private Properties ===============================================================================================
 
   private document?: vscode.TextDocument;
-  private model?: StoryModel;
-  private view: StoryView;
+  private model?: PreviewModel;
+  private view: PreviewView;
   private isInitialized: boolean = false;
+  private viewReadyDeferred: Deferred<void> | null = null;
 
   // Constructor ======================================================================================================
 
-  constructor(view: StoryView) {
+  constructor(view: PreviewView) {
     this.view = view;
   }
 
@@ -51,14 +55,23 @@ export class StoryController {
    * Initializes the controller and sets up event handlers.
    * This should be called after construction.
    */
-  public initialize(document: vscode.TextDocument): void {
+  public async preview(document: vscode.TextDocument): Promise<void> {
     this.document = document;
+
+    // Update the preview panel title with the current document name
+    this.view.setTitle(document.uri.fsPath);
+
     if (this.isInitialized) {
+      await this.startStory();
       return;
     }
+
+    this.isInitialized = true;
+    this.viewReadyDeferred = new Deferred<void>();
     this.setupEventHandlers();
     this.view.initialize();
-    this.isInitialized = true;
+    await this.viewReadyDeferred.promise;
+    await this.startStory();
   }
 
   // Private Methods ==================================================================================================
@@ -70,9 +83,9 @@ export class StoryController {
     return this.document;
   }
 
-  private ensureModel(): StoryModel {
+  private ensureModel(): PreviewModel {
     if (!this.model) {
-      throw new Error("StoryModel not initialized");
+      throw new Error("PreviewModel not initialized");
     }
     return this.model;
   }
@@ -83,7 +96,11 @@ export class StoryController {
   private setupEventHandlers(): void {
     // Handle webview ready
     this.view.onReady(() => {
-      this.startStory();
+      console.debug("[PreviewController] 📖 Webview ready");
+      if (this.viewReadyDeferred) {
+        this.viewReadyDeferred.resolve();
+        this.viewReadyDeferred = null;
+      }
     });
 
     // Handle choice selection
@@ -102,19 +119,35 @@ export class StoryController {
    * This is called both on initial start and when the user requests a restart.
    */
   private async startStory(): Promise<void> {
-    // const document = this.ensureDocument();
-    // const storyManager = InkStoryManager.getInstance();
-    // const compiledStory = await storyManager.getCompiledStory(document);
-    // // Only rebuild model if timestamp is newer or model doesn't exist
-    // if (!this.model || compiledStory.timestamp > this.model.getTimestamp()) {
-    //   this.model = new StoryModel(compiledStory);
-    // }
-    // // Start the story, with continue story
-    // console.debug("[StoryController] 📖 Starting story");
-    // this.model.reset();
-    // this.view.startStory();
-    // const update = this.model.continueStory();
-    // this.updateView(update);
+    const document = this.ensureDocument();
+    const engine = BuildEngine.getInstance();
+    const compiledStory = await engine.compileStory(document.uri);
+    if (!compiledStory.success) {
+      this.view.showError(
+        "Story had errors and could not be compiled. Review the Problem Panel for more information.",
+        "error"
+      );
+      return;
+    }
+    // Start the story, with continue story
+    console.debug("[PreviewController] 📖 Starting story");
+    this.model = new PreviewModel(compiledStory);
+
+    // Register error callback to propagate errors to the view
+    this.model.onError(
+      (message: string, severity: "error" | "warning" | "info") => {
+        this.view.showError(message, severity);
+      }
+    );
+
+    this.model.reset();
+    this.view.startStory();
+    const update = this.model.continueStory() || {
+      hasEnded: false,
+      text: "",
+      choices: [],
+    };
+    this.updateView(update);
   }
 
   /**
@@ -122,17 +155,11 @@ export class StoryController {
    * @param index - The index of the selected choice
    */
   private handleChoice(index: number): void {
-    console.debug("[StoryController] 📖 Selecting choice", index);
+    console.debug("[PreviewController] 📖 Selecting choice", index);
     const model = this.ensureModel();
 
     // Select the choice
     const update = model.selectChoice(index);
-
-    // Handle if there was an error
-    if (model.getCurrentError()) {
-      this.view.showError(model.getCurrentError());
-      return;
-    }
 
     // Update the view
     this.updateView(update);
@@ -144,13 +171,13 @@ export class StoryController {
    * @param update - The story update to display
    */
   private updateView(update: StoryUpdate): void {
+    console.debug("[PreviewController] 📖 Updating story");
+    this.view.updateStory(update);
     if (update.hasEnded) {
-      console.debug("[StoryController] 📖 Story has ended");
+      console.debug("[PreviewController] 📖 Story has ended");
       this.view.endStory();
       return;
     }
-    console.debug("[StoryController] 📖 Updating story");
-    this.view.updateStory(update);
   }
 
   /**
@@ -159,7 +186,8 @@ export class StoryController {
    */
   private handleError(error: unknown): void {
     this.view.showError(
-      error instanceof Error ? error.message : "An unknown error occurred"
+      error instanceof Error ? error.message : "An unknown error occurred",
+      "error"
     );
   }
 }

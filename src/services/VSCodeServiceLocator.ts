@@ -12,9 +12,17 @@ import {
   VSCodeDocumentServiceImpl,
 } from "./VSCodeDocumentService";
 import {
+  IVSCodeExtensionService,
+  VSCodeExtensionServiceImpl,
+} from "./VSCodeExtensionService";
+import {
   IVSCodeFileContextService,
   VSCodeFileContextServiceImpl,
 } from "./VSCodeFileContextService";
+import {
+  IWorkspaceNavigationService,
+  VSCodeWorkspaceNavigationServiceImpl,
+} from "./VSCodeWorkspaceNavigationService";
 
 /**
  * Centralized service locator for VSCode service facades.
@@ -27,7 +35,11 @@ export class VSCodeServiceLocator {
 
   private static documentService: IVSCodeDocumentService;
 
+  private static extensionService: IVSCodeExtensionService;
+
   private static fileContextService: IVSCodeFileContextService;
+
+  private static workspaceNavigationService: IWorkspaceNavigationService;
 
   // Public Methods ===================================================================================================
 
@@ -64,6 +76,16 @@ export class VSCodeServiceLocator {
   }
 
   /**
+   * Get the extension service implementation.
+   */
+  public static getExtensionService(): IVSCodeExtensionService {
+    if (!this.extensionService) {
+      this.extensionService = new VSCodeExtensionServiceImpl();
+    }
+    return this.extensionService;
+  }
+
+  /**
    * Get the file context service.
    * @returns The file context service.
    */
@@ -72,6 +94,18 @@ export class VSCodeServiceLocator {
       this.fileContextService = new VSCodeFileContextServiceImpl();
     }
     return this.fileContextService;
+  }
+
+  /**
+   * Get the workspace navigation service.
+   * @returns The workspace navigation service.
+   */
+  public static getWorkspaceNavigationService(): IWorkspaceNavigationService {
+    if (!this.workspaceNavigationService) {
+      this.workspaceNavigationService =
+        new VSCodeWorkspaceNavigationServiceImpl();
+    }
+    return this.workspaceNavigationService;
   }
 
   /**
@@ -91,6 +125,13 @@ export class VSCodeServiceLocator {
   }
 
   /**
+   * Set the extension service implementation.
+   */
+  public static setExtensionService(service: IVSCodeExtensionService): void {
+    this.extensionService = service;
+  }
+
+  /**
    * Set the diagnostics service implementation.
    */
   public static setDiagnosticsService(
@@ -107,5 +148,15 @@ export class VSCodeServiceLocator {
     service: IVSCodeFileContextService
   ): void {
     this.fileContextService = service;
+  }
+
+  /**
+   * Set the workspace navigation service (for testing).
+   * @param service The workspace navigation service.
+   */
+  public static setWorkspaceNavigationService(
+    service: IWorkspaceNavigationService
+  ): void {
+    this.workspaceNavigationService = service;
   }
 }

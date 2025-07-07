@@ -27,6 +27,7 @@ import {
   IVSCodeFileContextService,
   FileType,
   FileResolutionResult,
+  SingleFileResolutionResult,
   FileResolutionContext,
 } from "../../src/services/VSCodeFileContextService";
 
@@ -37,6 +38,12 @@ export class MockVSCodeFileContextService implements IVSCodeFileContextService {
   // Public Properties ================================================================================================
 
   public resolveFilesCalls: Array<{
+    fileType: FileType;
+    uri?: vscode.Uri;
+    uris?: vscode.Uri[];
+  }> = [];
+
+  public resolveSingleFileCalls: Array<{
     fileType: FileType;
     uri?: vscode.Uri;
     uris?: vscode.Uri[];
@@ -59,6 +66,10 @@ export class MockVSCodeFileContextService implements IVSCodeFileContextService {
     hasSelection: false,
   };
 
+  public resolveSingleFileReturnValue: SingleFileResolutionResult = {
+    hasSelection: false,
+  };
+
   public isValidFileReturnValue: boolean = true;
 
   public formatResolutionMessagesReturnValue: {
@@ -78,6 +89,18 @@ export class MockVSCodeFileContextService implements IVSCodeFileContextService {
   ): Promise<FileResolutionResult> {
     this.resolveFilesCalls.push({ fileType, uri, uris });
     return this.resolveFilesReturnValue;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public async resolveSingleFile(
+    fileType: FileType,
+    uri?: vscode.Uri,
+    uris?: vscode.Uri[]
+  ): Promise<SingleFileResolutionResult> {
+    this.resolveSingleFileCalls.push({ fileType, uri, uris });
+    return this.resolveSingleFileReturnValue;
   }
 
   /**
@@ -128,11 +151,15 @@ export class MockVSCodeFileContextService implements IVSCodeFileContextService {
    */
   public reset(): void {
     this.resolveFilesCalls = [];
+    this.resolveSingleFileCalls = [];
     this.isValidFileCalls = [];
     this.formatResolutionMessagesCalls = [];
     this.resolveFilesReturnValue = {
       validFiles: [],
       invalidFiles: [],
+      hasSelection: false,
+    };
+    this.resolveSingleFileReturnValue = {
       hasSelection: false,
     };
     this.isValidFileReturnValue = true;
@@ -189,6 +216,48 @@ export class MockVSCodeFileContextService implements IVSCodeFileContextService {
       validFiles: [],
       invalidFiles: [],
       hasSelection: false,
+    };
+    this.resolveSingleFileReturnValue = {
+      hasSelection: false,
+      errorMessage: "No active document or selected file.",
+    };
+  }
+
+  /**
+   * Set up mock to return a single valid file.
+   * @param validFile The URI to return as the valid file
+   */
+  public setSingleValidFile(validFile: vscode.Uri): void {
+    this.resolveSingleFileReturnValue = {
+      validFile,
+      hasSelection: true,
+    };
+  }
+
+  /**
+   * Set up mock to return an error for single file resolution.
+   * @param errorMessage The error message to return
+   */
+  public setSingleFileError(errorMessage: string): void {
+    this.resolveSingleFileReturnValue = {
+      hasSelection: true,
+      errorMessage,
+    };
+  }
+
+  /**
+   * Set up mock to return a warning for single file resolution.
+   * @param validFile The valid file to return
+   * @param warningMessage The warning message to include
+   */
+  public setSingleFileWarning(
+    validFile: vscode.Uri,
+    warningMessage: string
+  ): void {
+    this.resolveSingleFileReturnValue = {
+      validFile,
+      hasSelection: true,
+      warningMessage,
     };
   }
 }

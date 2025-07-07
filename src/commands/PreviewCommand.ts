@@ -24,7 +24,12 @@
 
 import * as vscode from "vscode";
 import { IExtensionPlugin } from "../IExtensionPlugin";
-import { InkPreviewPanel } from "../panels/preview/InkPreviewPanel";
+import { PreviewManager } from "../preview/PreviewManager";
+import { VSCodeServiceLocator } from "../services/VSCodeServiceLocator";
+import {
+  IVSCodeFileContextService,
+  FileType,
+} from "../services/VSCodeFileContextService";
 
 /**
  * Implements the VSCode Command for previewing an Ink story.
@@ -32,7 +37,13 @@ import { InkPreviewPanel } from "../panels/preview/InkPreviewPanel";
 export class PreviewCommand implements IExtensionPlugin {
   // Private Properties ===============================================================================================
 
-  private previewInProgress: boolean = false;
+  private readonly fileContextService: IVSCodeFileContextService;
+
+  // Constructors =====================================================================================================
+
+  constructor() {
+    this.fileContextService = VSCodeServiceLocator.getFileContextService();
+  }
 
   // Public Methods ===================================================================================================
 
@@ -41,39 +52,49 @@ export class PreviewCommand implements IExtensionPlugin {
    */
   activate(context: vscode.ExtensionContext): void {
     const previewCommand = vscode.commands.registerCommand(
-      "ink.openPreview",
-      async () => {
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-          vscode.window.showErrorMessage("No active document.");
-          return;
-        }
-        const document = editor.document;
-        if (document.languageId !== "ink") {
-          vscode.window.showErrorMessage(
-            "Active document is not an Ink story."
-          );
-          return;
-        }
-        await document.save();
-        if (this.previewInProgress) {
-          return;
-        }
-        this.previewInProgress = true;
+      "ink.previewStory",
+      async (uri?: vscode.Uri, uris?: vscode.Uri[]) => {
         try {
-          const panel = InkPreviewPanel.getInstance();
-          if (panel) {
-            panel.initialize(document);
+          const result = await this.fileContextService.resolveSingleFile(
+            FileType.ink,
+            uri,
+            uris
+          );
+
+          // Handle no selection
+          if (!result.hasSelection) {
+            vscode.window.showErrorMessage(result.errorMessage!);
+            return;
           }
-          vscode.window.showInformationMessage(
-            "Ink story previewed successfully."
+
+          // Handle no valid file found
+          if (!result.validFile) {
+            vscode.window.showErrorMessage(result.errorMessage!);
+            return;
+          }
+
+          // Show warning if multiple files were selected
+          if (result.warningMessage) {
+            vscode.window.showWarningMessage(result.warningMessage);
+          }
+
+          // Auto-save the file if it's dirty
+          const openDoc = vscode.workspace.textDocuments.find(
+            (doc) => doc.uri.toString() === result.validFile!.toString()
           );
-        } catch (err: any) {
-          vscode.window.showErrorMessage(
-            `Failed to preview Ink story: ${err.message || err}`
-          );
-        } finally {
-          this.previewInProgress = false;
+          if (openDoc && openDoc.isDirty) {
+            await openDoc.save();
+          }
+
+          // Preview the story
+          const document =
+            openDoc ||
+            (await vscode.workspace.openTextDocument(result.validFile));
+          await PreviewManager.getInstance().preview(document);
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error occurred";
+          vscode.window.showErrorMessage(`Preview failed: ${errorMessage}`);
         }
       }
     );

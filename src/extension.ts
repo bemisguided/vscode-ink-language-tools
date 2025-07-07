@@ -32,6 +32,8 @@ import { VSCodeServiceLocator } from "./services/VSCodeServiceLocator";
 import { VSCodeDiagnosticsServiceImpl } from "./services/VSCodeDiagnosticsService";
 import { VSCodeDocumentServiceImpl } from "./services/VSCodeDocumentService";
 import { VSCodeConfigurationServiceImpl } from "./services/VSCodeConfigurationService";
+import { VSCodeExtensionServiceImpl } from "./services/VSCodeExtensionService";
+import { VSCodeWorkspaceNavigationServiceImpl } from "./services/VSCodeWorkspaceNavigationService";
 
 let systems: IExtensionPlugin[] = [];
 
@@ -55,16 +57,28 @@ export function activate(context: vscode.ExtensionContext): void {
   const documentService = new VSCodeDocumentServiceImpl(configurationService);
   context.subscriptions.push(documentService);
 
+  // Setup Extension Service
+  const extensionService = new VSCodeExtensionServiceImpl();
+  context.subscriptions.push(extensionService);
+
+  // Setup Workspace Navigation Service
+  const workspaceNavigationService = new VSCodeWorkspaceNavigationServiceImpl();
+  context.subscriptions.push(workspaceNavigationService);
+
   // Setup Service Locator
   VSCodeServiceLocator.setConfigurationService(configurationService);
   VSCodeServiceLocator.setDiagnosticsService(diagnosticsService);
   VSCodeServiceLocator.setDocumentService(documentService);
+  VSCodeServiceLocator.setExtensionService(extensionService);
+  VSCodeServiceLocator.setWorkspaceNavigationService(
+    workspaceNavigationService
+  );
 
   // Setup Systems
   systems.push(new OutlineSystem());
   systems.push(new BuildSystem());
   systems.push(new CompileCommand());
-  // systems.push(new PreviewCommand());
+  systems.push(new PreviewCommand());
   systems.forEach((s) => s.activate(context));
 }
 

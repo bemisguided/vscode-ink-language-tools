@@ -47,9 +47,6 @@ const outboundMessages = {
 
   /** Sent for debug logging */
   log: "log",
-
-  /** Sent to focus the editor */
-  focusEditor: "focusEditor",
 };
 
 /**
@@ -220,14 +217,28 @@ const storyView = {
   elements: {
     storyContent: null,
     choicesContainer: null,
-    errorContainer: null,
     restartButton: null,
     debugContainer: null,
+    // Error elements
+    errorIndicators: null,
+    errorButtonError: null,
+    errorButtonWarning: null,
+    errorButtonInfo: null,
+    errorCountError: null,
+    errorCountWarning: null,
+    errorCountInfo: null,
+    errorModal: null,
+    errorList: null,
+    closeErrorModal: null,
   },
 
   // State ==========================================================================================================
   currentGroup: null,
   history: [],
+
+  // Error State ====================================================================================================
+  errors: [],
+  isErrorModalVisible: false,
 
   // Event Handlers =================================================================================================
   keyboardHandler: null,
@@ -237,10 +248,12 @@ const storyView = {
    * This should be called when the webview is loaded.
    */
   initialize() {
-    logLocal("[preview.js] 📝 StoryView: Initializing");
+    logLocal("[preview.js] 📝 View: Initializing");
     this.initializeElements();
     this.reset();
     this.setupEventListeners();
+    // Ensure modal is hidden on initialization
+    this.hideErrorModal();
   },
 
   /**
@@ -251,8 +264,28 @@ const storyView = {
     this.elements.storyContent = document.getElementById("story-content");
     this.elements.choicesContainer =
       document.getElementById("choices-container");
-    this.elements.errorContainer = document.getElementById("error-container");
     this.elements.debugContainer = document.getElementById("debug-container");
+
+    // Initialize error elements
+    this.elements.errorIndicators = document.getElementById("error-indicators");
+    this.elements.errorButtonError = document.getElementById(
+      "button-errors-error"
+    );
+    this.elements.errorButtonWarning = document.getElementById(
+      "button-errors-warning"
+    );
+    this.elements.errorButtonInfo =
+      document.getElementById("button-errors-info");
+    this.elements.errorCountError =
+      document.getElementById("error-count-error");
+    this.elements.errorCountWarning = document.getElementById(
+      "error-count-warning"
+    );
+    this.elements.errorCountInfo = document.getElementById("error-count-info");
+    this.elements.errorModal = document.getElementById("error-modal");
+    this.elements.errorList = document.getElementById("error-list");
+    this.elements.closeErrorModal =
+      document.getElementById("close-error-modal");
   },
 
   /**
@@ -261,6 +294,7 @@ const storyView = {
   setupEventListeners() {
     this.setupRestartButton();
     this.setupKeyboardShortcuts();
+    this.setupErrorHandlers();
   },
 
   /**
@@ -283,6 +317,12 @@ const storyView = {
         storyController.actionRestartStory();
       }
 
+      // Close error modal with Escape
+      if (e.key === "Escape" && this.isErrorModalVisible) {
+        e.preventDefault();
+        this.hideErrorModal();
+      }
+
       // Select choice: Number keys 1-9
       if (e.key >= "1" && e.key <= "9") {
         const choiceIndex = parseInt(e.key) - 1;
@@ -295,14 +335,44 @@ const storyView = {
           storyController.actionSelectChoice(choiceIndex);
         }
       }
-
-      // Focus editor: Escape
-      if (e.key === "Escape") {
-        storyController.actionFocusEditor();
-      }
     };
 
     document.addEventListener("keydown", this.keyboardHandler);
+  },
+
+  /**
+   * Sets up error-related event handlers.
+   */
+  setupErrorHandlers() {
+    // Show modal when any error indicator is clicked
+    this.elements.errorButtonError.addEventListener("click", () => {
+      this.showErrorModal();
+    });
+
+    this.elements.errorButtonWarning.addEventListener("click", () => {
+      this.showErrorModal();
+    });
+
+    this.elements.errorButtonInfo.addEventListener("click", () => {
+      this.showErrorModal();
+    });
+
+    // Close modal when close button is clicked
+    this.elements.closeErrorModal.addEventListener("click", () => {
+      this.hideErrorModal();
+    });
+
+    // Close modal when clicking on overlay
+    const overlay = this.elements.errorModal.querySelector(
+      ".error-modal-overlay"
+    );
+    if (overlay) {
+      overlay.addEventListener("click", () => {
+        this.hideErrorModal();
+      });
+    } else {
+      logLocal("[preview.js] ⚠️ Error modal overlay not found");
+    }
   },
 
   /**
@@ -313,10 +383,14 @@ const storyView = {
     this.currentGroup = null;
     this.history = [];
 
+    // Clear errors
+    this.errors = [];
+    this.updateErrorButton();
+    this.hideErrorModal();
+
     // Reset UI
     this.elements.storyContent.innerHTML = "";
     this.elements.choicesContainer.innerHTML = "";
-    this.hideError();
   },
 
   /**
@@ -341,7 +415,6 @@ const storyView = {
    * @param {Object} group - The story group to render
    */
   renderStoryGroup(group) {
-    this.hideError();
     this.markCurrentContentAsHistorical();
 
     // Only create a group container if there are events
@@ -453,9 +526,13 @@ const storyView = {
     }
 
     choices.forEach((choice, index) => {
-      const choiceButton = createElement("button", "story-choice fade-in", {
-        dataChoiceNumber: (index + 1).toString(),
-      });
+      const choiceButton = createElement(
+        "button",
+        "btn btn-list story-choice fade-in",
+        {
+          dataChoiceNumber: (index + 1).toString(),
+        }
+      );
 
       // Create choice content container
       const choiceContent = createElement("div", "choice-content");
@@ -478,12 +555,7 @@ const storyView = {
         storyController.actionSelectChoice(choice.index);
       });
 
-      setTimeout(() => {
-        this.elements.choicesContainer.appendChild(choiceButton);
-        if (index === choices.length - 1) {
-          setTimeout(() => this.scrollToBottom(), 100);
-        }
-      }, index * 50);
+      this.elements.choicesContainer.appendChild(choiceButton);
     });
   },
 
@@ -551,24 +623,174 @@ const storyView = {
     setTimeout(attemptScroll, 300);
   },
 
+  // Error Management Methods ==========================================================================================
+
   /**
-   * Renders an error message in the error container.
-   * @param {string} error - The error message to display
+   * Adds an error to the error collection and updates the UI.
+   * @param {string} message - The error message
+   * @param {string} severity - The error severity ('error', 'warning', 'info')
    */
-  renderError(error) {
-    this.elements.errorContainer.innerHTML = `
-      <div class="error-message">⚠️ Error</div>
-      <div class="error-details">${this.escapeHtml(error)}</div>
-    `;
-    this.elements.errorContainer.classList.remove("hidden");
-    this.elements.errorContainer.scrollIntoView({ behavior: "smooth" });
+  addError(message, severity = "error") {
+    const error = {
+      message,
+      severity,
+      timestamp: Date.now(),
+    };
+    this.errors.push(error);
+    this.updateErrorButton();
+    logLocal(`[preview.js] 📝 Error added: ${severity} - ${message}`);
   },
 
   /**
-   * Hides the error container.
+   * Gets the count of errors by severity.
+   * @returns {Object} Object with error counts by severity
    */
-  hideError() {
-    this.elements.errorContainer.classList.add("hidden");
+  getErrorCountsBySeverity() {
+    const counts = {
+      error: 0,
+      warning: 0,
+      info: 0,
+    };
+
+    this.errors.forEach((error) => {
+      counts[error.severity]++;
+    });
+
+    return counts;
+  },
+
+  /**
+   * Updates the error indicators visibility and counts.
+   */
+  updateErrorButton() {
+    const counts = this.getErrorCountsBySeverity();
+
+    // Update error indicator
+    if (counts.error > 0) {
+      this.elements.errorButtonError.style.display = "flex";
+      this.elements.errorCountError.textContent = counts.error.toString();
+    } else {
+      this.elements.errorButtonError.style.display = "none";
+    }
+
+    // Update warning indicator
+    if (counts.warning > 0) {
+      this.elements.errorButtonWarning.style.display = "flex";
+      this.elements.errorCountWarning.textContent = counts.warning.toString();
+    } else {
+      this.elements.errorButtonWarning.style.display = "none";
+    }
+
+    // Update info indicator
+    if (counts.info > 0) {
+      this.elements.errorButtonInfo.style.display = "flex";
+      this.elements.errorCountInfo.textContent = counts.info.toString();
+    } else {
+      this.elements.errorButtonInfo.style.display = "none";
+    }
+
+    // Update tooltip text for visible indicators
+    this.updateErrorTooltips(counts);
+  },
+
+  /**
+   * Updates the tooltip text for error indicators.
+   * @param {Object} counts - Object with error counts by severity
+   */
+  updateErrorTooltips(counts) {
+    const tooltipText = "Show issues";
+
+    // Set the same tooltip for all visible error indicators
+    if (counts.error > 0) {
+      this.elements.errorButtonError.title = tooltipText;
+    }
+
+    if (counts.warning > 0) {
+      this.elements.errorButtonWarning.title = tooltipText;
+    }
+
+    if (counts.info > 0) {
+      this.elements.errorButtonInfo.title = tooltipText;
+    }
+  },
+
+  /**
+   * Shows the error modal with the list of errors.
+   */
+  showErrorModal() {
+    logLocal("[preview.js] 🔍 Showing error modal");
+    this.renderErrorList();
+    this.elements.errorModal.classList.remove("hidden");
+    this.isErrorModalVisible = true;
+  },
+
+  /**
+   * Hides the error modal.
+   */
+  hideErrorModal() {
+    logLocal("[preview.js] 🔍 Hiding error modal");
+    this.elements.errorModal.classList.add("hidden");
+    this.isErrorModalVisible = false;
+  },
+
+  /**
+   * Renders the error list in the modal.
+   */
+  renderErrorList() {
+    this.elements.errorList.innerHTML = "";
+
+    if (this.errors.length === 0) {
+      this.elements.errorList.innerHTML = "<p>No errors to display.</p>";
+      return;
+    }
+
+    this.errors.forEach((error) => {
+      const errorItem = createElement(
+        "div",
+        `error-item error-item-${error.severity}`
+      );
+
+      const errorIcon = createElement("div", "error-icon");
+      const iconSpan = createElement(
+        "span",
+        `error-indicator-icon ${this.getErrorIconClass(error.severity)}`
+      );
+      errorIcon.appendChild(iconSpan);
+
+      const errorContent = createElement("div", "error-content");
+
+      const errorMessage = createElement("div", "error-message");
+      errorMessage.textContent = error.message;
+
+      const errorMeta = createElement("div", "error-meta");
+      errorMeta.textContent = error.severity.toUpperCase();
+
+      errorContent.appendChild(errorMessage);
+      errorContent.appendChild(errorMeta);
+
+      errorItem.appendChild(errorIcon);
+      errorItem.appendChild(errorContent);
+
+      this.elements.errorList.appendChild(errorItem);
+    });
+  },
+
+  /**
+   * Gets the appropriate icon CSS class for an error severity.
+   * @param {string} severity - The error severity
+   * @returns {string} The CSS class for the icon
+   */
+  getErrorIconClass(severity) {
+    switch (severity) {
+      case "error":
+        return "error-icon-error";
+      case "warning":
+        return "error-icon-warning";
+      case "info":
+        return "error-icon-info";
+      default:
+        return "error-icon-warning";
+    }
   },
 
   /**
@@ -627,7 +849,7 @@ const storyController = {
     if (this.isInitialized) {
       return;
     }
-    logLocal("[preview.js] 📝 StoryController: Initializing");
+    logLocal("[preview.js] 📝 Controller: Initializing");
     this.setupEventListeners();
     messageHandler.postMessage(outboundMessages.ready, {});
     this.isInitialized = true;
@@ -670,15 +892,11 @@ const storyController = {
    */
   actionRestartStory() {
     logLocal("Action: Requesting story restart");
+    // Clear errors immediately when restart is requested
+    storyView.errors = [];
+    storyView.updateErrorButton();
+    storyView.hideErrorModal();
     messageHandler.postMessage(outboundMessages.restartStory, {});
-  },
-
-  /**
-   * Handles the player's request to focus the editor.
-   */
-  actionFocusEditor() {
-    logLocal("Action: Focusing editor");
-    messageHandler.postMessage(outboundMessages.focusEditor, {});
   },
 
   /**
@@ -704,17 +922,16 @@ const storyController = {
   handleEndStory() {
     logLocal("Message: Story ended");
     // Mark all current content as historical before showing end message
-    storyView.markCurrentContentAsHistorical();
     storyView.renderStoryEnded();
   },
 
   /**
    * Handles an error message from the extension.
-   * @param {string} error - The error message to display
+   * @param {Object} payload - The error payload containing message and severity
    */
-  handleShowError(error) {
-    logLocal("Message: Showing error");
-    storyView.renderError(error);
+  handleShowError(payload) {
+    logLocal("Message: Showing error", payload);
+    storyView.addError(payload.message, payload.severity);
   },
 
   /**

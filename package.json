@@ -2,7 +2,7 @@
   "name": "vscode-ink-language-tools",
   "displayName": "Ink Language Tools",
   "description": "Language tools for Inkle's Ink narrative scripting language",
-  "version": "0.0.4",
+  "version": "0.1.0",
   "publisher": "bemisguided",
   "engines": {
     "vscode": "^1.85.0"
@@ -65,12 +65,21 @@
       {
         "command": "ink.compileFile",
         "title": "Ink: Compile File"
+      },
+      {
+        "command": "ink.previewStory",
+        "title": "Ink: Preview Story"
       }
     ],
     "menus": {
       "explorer/context": [
         {
           "command": "ink.compileFile",
+          "when": "resourceExtname == .ink",
+          "group": "navigation"
+        },
+        {
+          "command": "ink.previewStory",
           "when": "resourceExtname == .ink",
           "group": "navigation"
         }
@@ -80,11 +89,21 @@
           "command": "ink.compileFile",
           "when": "resourceExtname == .ink",
           "group": "navigation"
+        },
+        {
+          "command": "ink.previewStory",
+          "when": "resourceExtname == .ink",
+          "group": "navigation"
         }
       ],
       "editor/title/context": [
         {
           "command": "ink.compileFile",
+          "when": "resourceExtname == .ink",
+          "group": "1_modification"
+        },
+        {
+          "command": "ink.previewStory",
           "when": "resourceExtname == .ink",
           "group": "1_modification"
         }
@@ -94,6 +113,11 @@
           "command": "ink.compileFile",
           "when": "editorLangId == ink",
           "group": "navigation"
+        },
+        {
+          "command": "ink.previewStory",
+          "when": "editorLangId == ink",
+          "group": "navigation"
         }
       ]
     },
@@ -101,6 +125,12 @@
       {
         "command": "ink.compileFile",
         "key": "shift+alt+k",
+        "when": "editorLangId == ink && editorTextFocus"
+      },
+      {
+        "command": "ink.previewStory",
+        "key": "ctrl+r",
+        "mac": "cmd+r",
         "when": "editorLangId == ink && editorTextFocus"
       }
     ],
