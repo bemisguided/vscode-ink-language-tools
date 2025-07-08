@@ -33,6 +33,7 @@ import { OutlineManager } from "../../src/model/OutlineManager";
 import { ISuccessfulBuildResult } from "../../src/build/IBuildResult";
 import { mockVSCodeUri } from "../__mocks__/mockVSCodeUri";
 import { OutlineParser } from "../../src/build/OutlineParser";
+import { Fixtures } from "../fixtures";
 
 describe("BuildEngine", () => {
   let depManager: DependencyManager;
@@ -72,7 +73,8 @@ describe("BuildEngine", () => {
 
     beforeEach(() => {
       uri = mockVSCodeUri("/story.ink");
-      docService.mockTextDocument(uri, "Hello, world!");
+      const simpleFixture = Fixtures.simple();
+      docService.mockTextDocument(uri, simpleFixture.inkContent);
     });
 
     it("compiles a story without errors", async () => {
@@ -133,7 +135,8 @@ describe("BuildEngine", () => {
       beforeEach(() => {
         docService.mockTextDocument(uri, "INCLUDE included.ink");
         includedUri = mockVSCodeUri("/included.ink");
-        docService.mockTextDocument(includedUri, "Hello, world!");
+        const simpleFixture = Fixtures.simple();
+        docService.mockTextDocument(includedUri, simpleFixture.inkContent);
       });
 
       it("adds the included stories to the dependency graph", async () => {
@@ -235,7 +238,8 @@ describe("BuildEngine", () => {
 
     beforeEach(() => {
       uri = mockVSCodeUri("/workspace/src/story.ink");
-      docService.mockTextDocument(uri, "Hello, world!");
+      const simpleFixture = Fixtures.simple();
+      docService.mockTextDocument(uri, simpleFixture.inkContent);
       // Enable advanced path resolution for all tests in this section
       configService.mockSettings[
         "ink.compile.behaviour.advancedPathResolution"

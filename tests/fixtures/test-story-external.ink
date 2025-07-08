@@ -1,4 +1,4 @@
-/**
+/*
  * MIT License
  *
  * Copyright (c) 2025 Martin Crawford
@@ -22,58 +22,16 @@
  * SOFTWARE.
  */
 
-import * as vscode from "vscode";
-import { Story } from "inkjs";
-import { IBuildDiagnostic } from "./IBuildDiagnostic";
-import { ExternalFunctionVM } from "./ExternalFunctionVM";
+// LINK fixtures/external-functions.js
 
-/**
- * Represents the result of a successful build.
- */
-export interface ISuccessfulBuildResult {
-  /**
-   * The diagnostics for the build.
-   */
-  diagnostics: Readonly<IBuildDiagnostic[]>;
+EXTERNAL getName()
+EXTERNAL addNumbers(a, b)
+EXTERNAL greetPlayer(name)
 
-  /**
-   * The compiled story.
-   */
-  story: Story;
-  /**
-   * The result is successful.
-   */
-  success: true;
-  /**
-   * The URI of the compiled story.
-   */
-  uri: vscode.Uri;
+Your name is {getName()}.
 
-  /**
-   * The external function VM containing loaded mock functions.
-   */
-  externalFunctionVM?: ExternalFunctionVM;
-}
+You have {addNumbers(5, 3)} gold coins.
 
-/**
- * Represents the result of a failed build.
- */
-export interface IFailedBuildResult {
-  /**
-   * The diagnostics for the build.
-   */
-  diagnostics: Readonly<IBuildDiagnostic[]>;
-  /**
-   * The result is failed.
-   */
-  success: false;
-  /**
-   * The URI of the story that failed to build.
-   */
-  uri: vscode.Uri;
-}
+{greetPlayer(getName())}
 
-/**
- * Represents the compilation result of an Ink Story.
- */
-export type IBuildResult = ISuccessfulBuildResult | IFailedBuildResult;
+-> END 

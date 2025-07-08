@@ -22,58 +22,26 @@
  * SOFTWARE.
  */
 
-import * as vscode from "vscode";
-import { Story } from "inkjs";
-import { IBuildDiagnostic } from "./IBuildDiagnostic";
-import { ExternalFunctionVM } from "./ExternalFunctionVM";
-
 /**
- * Represents the result of a successful build.
+ * External functions for test stories
  */
-export interface ISuccessfulBuildResult {
-  /**
-   * The diagnostics for the build.
-   */
-  diagnostics: Readonly<IBuildDiagnostic[]>;
 
-  /**
-   * The compiled story.
-   */
-  story: Story;
-  /**
-   * The result is successful.
-   */
-  success: true;
-  /**
-   * The URI of the compiled story.
-   */
-  uri: vscode.Uri;
+exports.getName = function () {
+  return "TestPlayer";
+};
 
-  /**
-   * The external function VM containing loaded mock functions.
-   */
-  externalFunctionVM?: ExternalFunctionVM;
-}
+exports.addNumbers = function (a, b) {
+  return a + b;
+};
 
-/**
- * Represents the result of a failed build.
- */
-export interface IFailedBuildResult {
-  /**
-   * The diagnostics for the build.
-   */
-  diagnostics: Readonly<IBuildDiagnostic[]>;
-  /**
-   * The result is failed.
-   */
-  success: false;
-  /**
-   * The URI of the story that failed to build.
-   */
-  uri: vscode.Uri;
-}
+exports.greetPlayer = function (name) {
+  return `Welcome, ${name}! Ready for adventure?`;
+};
 
-/**
- * Represents the compilation result of an Ink Story.
- */
-export type IBuildResult = ISuccessfulBuildResult | IFailedBuildResult;
+exports.multiplyNumbers = function (a, b) {
+  return a * b;
+};
+
+exports.formatMessage = function (message) {
+  return `[${message}]`;
+};

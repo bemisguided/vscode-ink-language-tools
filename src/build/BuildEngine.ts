@@ -36,6 +36,7 @@ import { JsonOutputPostProcessor } from "./JsonOutputPostProcessor";
 import { IPathResolutionStrategy } from "../util/paths/IPathResolutionStrategy";
 import { InkyDefaultPathResolutionStrategy } from "../util/paths/InkyDefaultPathResolutionStrategy";
 import { AdvancedPathResolutionStrategy } from "../util/paths/AdvancedPathResolutionStrategy";
+import { ExternalFunctionPreProcessor } from "./ExternalFunctionPreProcessor";
 
 /**
  * The build engine for the Ink language.
@@ -70,6 +71,7 @@ export class BuildEngine {
   private constructor() {
     this.registerProcessor(new OutlinePreProcessor());
     this.registerProcessor(new IncludePreProcessor());
+    this.registerProcessor(new ExternalFunctionPreProcessor());
     this.registerProcessor(new CompilationProcessor());
     this.registerProcessor(new JsonOutputPostProcessor());
   }
@@ -181,6 +183,7 @@ export class BuildEngine {
       story: context.story,
       success: true,
       diagnostics: context.getDiagnostics(),
+      externalFunctionVM: context.getExternalFunctionVM(),
     };
   }
 

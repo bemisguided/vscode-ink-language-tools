@@ -1,4 +1,4 @@
-/**
+/*
  * MIT License
  *
  * Copyright (c) 2025 Martin Crawford
@@ -22,58 +22,13 @@
  * SOFTWARE.
  */
 
-import * as vscode from "vscode";
-import { Story } from "inkjs";
-import { IBuildDiagnostic } from "./IBuildDiagnostic";
-import { ExternalFunctionVM } from "./ExternalFunctionVM";
+You wake up in a dark room.
 
-/**
- * Represents the result of a successful build.
- */
-export interface ISuccessfulBuildResult {
-  /**
-   * The diagnostics for the build.
-   */
-  diagnostics: Readonly<IBuildDiagnostic[]>;
+There's a door in front of you.
 
-  /**
-   * The compiled story.
-   */
-  story: Story;
-  /**
-   * The result is successful.
-   */
-  success: true;
-  /**
-   * The URI of the compiled story.
-   */
-  uri: vscode.Uri;
+* [Open the door] -> opened_door
 
-  /**
-   * The external function VM containing loaded mock functions.
-   */
-  externalFunctionVM?: ExternalFunctionVM;
-}
+=== opened_door ===
+You open the door and step into the light.
 
-/**
- * Represents the result of a failed build.
- */
-export interface IFailedBuildResult {
-  /**
-   * The diagnostics for the build.
-   */
-  diagnostics: Readonly<IBuildDiagnostic[]>;
-  /**
-   * The result is failed.
-   */
-  success: false;
-  /**
-   * The URI of the story that failed to build.
-   */
-  uri: vscode.Uri;
-}
-
-/**
- * Represents the compilation result of an Ink Story.
- */
-export type IBuildResult = ISuccessfulBuildResult | IFailedBuildResult;
+-> END 

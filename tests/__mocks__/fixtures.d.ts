@@ -22,58 +22,14 @@
  * SOFTWARE.
  */
 
-import * as vscode from "vscode";
-import { Story } from "inkjs";
-import { IBuildDiagnostic } from "./IBuildDiagnostic";
-import { ExternalFunctionVM } from "./ExternalFunctionVM";
-
 /**
- * Represents the result of a successful build.
+ * TypeScript declarations for test fixtures
  */
-export interface ISuccessfulBuildResult {
-  /**
-   * The diagnostics for the build.
-   */
-  diagnostics: Readonly<IBuildDiagnostic[]>;
 
-  /**
-   * The compiled story.
-   */
-  story: Story;
-  /**
-   * The result is successful.
-   */
-  success: true;
-  /**
-   * The URI of the compiled story.
-   */
-  uri: vscode.Uri;
+import { TestFixture, TestFixtures } from "../fixtures/fixture-compiler";
 
-  /**
-   * The external function VM containing loaded mock functions.
-   */
-  externalFunctionVM?: ExternalFunctionVM;
+declare global {
+  var testFixtures: TestFixtures;
 }
 
-/**
- * Represents the result of a failed build.
- */
-export interface IFailedBuildResult {
-  /**
-   * The diagnostics for the build.
-   */
-  diagnostics: Readonly<IBuildDiagnostic[]>;
-  /**
-   * The result is failed.
-   */
-  success: false;
-  /**
-   * The URI of the story that failed to build.
-   */
-  uri: vscode.Uri;
-}
-
-/**
- * Represents the compilation result of an Ink Story.
- */
-export type IBuildResult = ISuccessfulBuildResult | IFailedBuildResult;
+export {};

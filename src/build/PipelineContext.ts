@@ -27,6 +27,7 @@ import { Story } from "inkjs/engine/Story";
 import { IBuildDiagnostic } from "./IBuildDiagnostic";
 import { IPathResolutionStrategy } from "../util/paths/IPathResolutionStrategy";
 import { InkyDefaultPathResolutionStrategy } from "../util/paths/InkyDefaultPathResolutionStrategy";
+import { ExternalFunctionVM } from "./ExternalFunctionVM";
 
 /**
  * Context for a pipeline processor.
@@ -40,6 +41,8 @@ export class PipelineContext {
   private readonly resolvedDependencies = new Map<vscode.Uri, vscode.Uri[]>();
 
   private readonly pathResolutionStrategy: IPathResolutionStrategy;
+
+  private externalFunctionVM?: ExternalFunctionVM;
 
   // Public Properties ===============================================================================================
 
@@ -219,5 +222,21 @@ export class PipelineContext {
     parentUri?: vscode.Uri
   ): vscode.Uri | null {
     return this.pathResolutionStrategy.resolvePath(contextUri, path, parentUri);
+  }
+
+  /**
+   * Set the ExternalFunctionVM for this context.
+   * @param vm The ExternalFunctionVM to store
+   */
+  public setExternalFunctionVM(vm: ExternalFunctionVM): void {
+    this.externalFunctionVM = vm;
+  }
+
+  /**
+   * Get the ExternalFunctionVM for this context.
+   * @returns The ExternalFunctionVM or undefined if not set
+   */
+  public getExternalFunctionVM(): ExternalFunctionVM | undefined {
+    return this.externalFunctionVM;
   }
 }
