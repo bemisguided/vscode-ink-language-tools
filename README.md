@@ -81,13 +81,15 @@ As your story is compiled, the extension generates a detailed outline, which is 
 
 #### Managing Compiled Output
 
-By default, the extension compiles your story for analysis and error checking without creating any output files. However, you can configure it to emit the compiled Ink JSON story file.
+By default, the extension compiles your story for analysis and error checking without creating any output files. However, you can configure it to emit the compiled Ink story in various formats.
 
 -   **Enable JSON Output**: To enable writing the compiled JSON file, set the `ink.compile.output.enableEmitStoryJSON` (default: `false`) setting to `true`.
+
+-   **Enable JavaScript Output**: To enable writing the compiled story as a JavaScript file, set the `ink.compile.output.enableEmitStoryJavaScript` (default: `false`) setting to `true`. This generates a `.js` file with the JSON content wrapped in a JavaScript variable declaration (`var storyContent = { ... };`), making it ready to use in web applications.
   
 -   **Output Directory**: By default, compiled files are placed in an `out` folder in your workspace root. You can specify a different location by changing the `ink.compile.output.directory` (default: `out`) setting.
   
--   **Ignoring Included Files**: It is common to have Ink files that are meant to be included in other files and not compiled as standalone stories (e.g., `_character_definitions.ink`). By default, files starting with an underscore are not emitted as separate JSON files. You can customize this behavior with the `ink.compile.output.ignoreInkIncludes` (default: `**/_*.ink`) glob pattern setting.
+-   **Ignoring Included Files**: It is common to have Ink files that are meant to be included in other files and not compiled as standalone stories (e.g., `_character_definitions.ink`). By default, files starting with an underscore are not emitted as separate output files. You can customize this behavior with the `ink.compile.output.ignoreInkIncludes` (default: `**/_*.ink`) glob pattern setting.
 
 #### Compilation Options
 

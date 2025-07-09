@@ -27,9 +27,9 @@ import { IVSCodeConfigurationService } from "../services/VSCodeConfigurationServ
 import { IVSCodeDocumentService } from "../services/VSCodeDocumentService";
 
 /**
- * A pipeline processor that writes the compiled story's JSON to a file.
+ * A pipeline processor that writes the compiled story's JSON wrapped in JavaScript to a file.
  */
-export class JsonOutputPostProcessor extends BaseOutputPostProcessor {
+export class JavaScriptOutputPostProcessor extends BaseOutputPostProcessor {
   // Constructor ======================================================================================================
 
   constructor(
@@ -45,27 +45,27 @@ export class JsonOutputPostProcessor extends BaseOutputPostProcessor {
    * @inheritdoc
    */
   protected getSettingName(): string {
-    return "ink.compile.output.enableEmitStoryJSON";
+    return "ink.compile.output.enableEmitStoryJavaScript";
   }
 
   /**
    * @inheritdoc
    */
   protected getFileExtension(): string {
-    return "json";
+    return "js";
   }
 
   /**
    * @inheritdoc
    */
   protected transformContent(jsonContent: string): string {
-    return jsonContent;
+    return `var storyContent = ${jsonContent};`;
   }
 
   /**
    * @inheritdoc
    */
   protected getErrorMessageType(): string {
-    return "JSON";
+    return "JavaScript";
   }
 }

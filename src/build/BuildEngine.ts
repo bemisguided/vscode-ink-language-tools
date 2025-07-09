@@ -33,6 +33,7 @@ import { IncludePreProcessor } from "./IncludePreProcessor";
 import { CompilationProcessor } from "./CompilationProcessor";
 import { VSCodeServiceLocator } from "../services/VSCodeServiceLocator";
 import { JsonOutputPostProcessor } from "./JsonOutputPostProcessor";
+import { JavaScriptOutputPostProcessor } from "./JavaScriptOutputPostProcessor";
 import { IPathResolutionStrategy } from "../util/paths/IPathResolutionStrategy";
 import { InkyDefaultPathResolutionStrategy } from "../util/paths/InkyDefaultPathResolutionStrategy";
 import { AdvancedPathResolutionStrategy } from "../util/paths/AdvancedPathResolutionStrategy";
@@ -72,6 +73,7 @@ export class BuildEngine {
     this.registerProcessor(new IncludePreProcessor());
     this.registerProcessor(new CompilationProcessor());
     this.registerProcessor(new JsonOutputPostProcessor());
+    this.registerProcessor(new JavaScriptOutputPostProcessor());
   }
 
   // Private Methods ==================================================================================================

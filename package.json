@@ -147,15 +147,20 @@
           "default": false,
           "description": "Compilation will write Ink Story JSON to the output directory"
         },
+        "ink.compile.output.enableEmitStoryJavaScript": {
+          "type": "boolean",
+          "default": false,
+          "description": "Compilation will write Ink Story JavaScript to the output directory"
+        },
         "ink.compile.output.directory": {
           "type": "string",
           "default": "out",
-          "description": "Directory where compiled Ink Story JSON files are written, when Emit Story JSON is enabled"
+          "description": "Directory where compiled Ink Story files are written, when output emission is enabled"
         },
         "ink.compile.output.ignoreInkIncludes": {
           "type": "string",
           "default": "**/_*.ink",
-          "description": "Glob pattern of Ink Story files, which are considered includes, to ignore writing to the output directory"
+          "description": "Glob pattern of Ink Story files, which are considered includes, to ignore when writing compiled output files"
         },
         "ink.compile.behaviour.advancedPathResolution": {
           "type": "boolean",
