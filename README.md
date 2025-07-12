@@ -17,11 +17,11 @@ This extension currently offers the following features:
 - **Interactive Story Preview**  
   Play through your Ink Stories interactively within Visual Studio Code using a built-in story player.
 
+- **External JavaScript Function Linking**  
+  Link external JavaScript files to provide mock implementations of external functions for testing and previewing stories.
+
 ## Coming Soon
 This extension is under active development with the following planned features:
-
-- **Mocking External Functions**  
-  Simulate external function calls for testing and previewing stories without a full game engine.
 
 - **IntelliSense**  
   Context-aware code completion and suggestions for Ink syntax, variables, and functions.
@@ -110,6 +110,104 @@ The preview opens in a new panel alongside your editor, displaying your story's 
 #### Navigation Controls
 
 The preview supports both mouse and keyboard navigation for ease of use. You can click on choice buttons or the restart button in the toolbar using your mouse. For keyboard navigation, use the number keys (`1-9`) to select choices, or press `Ctrl+R` (`Cmd+R` on macOS) to restart the story. When the story is restarted, the extension will automatically recompile any changes that have occurred since the preview was last started.
+
+### Linking External JavaScript Files
+
+> [!IMPORTANT]
+> External JavaScript function linking is currently an **experimental feature** and may be subject to changes in future versions.
+
+The extension provides the ability to link external JavaScript files to your Ink stories, allowing you to provide mock implementations of external functions for testing and previewing purposes.
+
+#### LINK Directive Syntax
+
+External JavaScript files are linked using the `LINK` directive within comments in your Ink stories. The directive must be placed inside either a single-line comment or a multi-line comment block:
+
+**Single-line comment syntax:**
+```ink
+// LINK external-functions.js
+// LINK utils/helpers.js
+```
+
+**Multi-line comment syntax:**
+```ink
+/* LINK external-functions.js */
+/* LINK utils/helpers.js */
+```
+
+#### JavaScript File Format
+
+External JavaScript files must export functions using CommonJS module syntax:
+
+```javascript
+// Using exports (recommended)
+exports.getName = function() {
+  return "TestPlayer";
+};
+
+exports.addNumbers = function(a, b) {
+  return a + b;
+};
+
+exports.greetPlayer = function(name) {
+  return `Welcome, ${name}! Ready for adventure?`;
+};
+
+// Or using module.exports
+module.exports = {
+  getName: function() {
+    return "TestPlayer";
+  },
+  
+  addNumbers: function(a, b) {
+    return a + b;
+  },
+  
+  greetPlayer: function(name) {
+    return `Welcome, ${name}! Ready for adventure?`;
+  }
+};
+```
+
+#### Usage in Ink Stories
+
+Once linked, external functions can be used directly in your Ink stories:
+
+```ink
+// LINK external-functions.js
+
+EXTERNAL getName()
+EXTERNAL addNumbers(a, b)
+EXTERNAL greetPlayer(name)
+
+Your name is {getName()}.
+You have {addNumbers(5, 3)} gold coins.
+{greetPlayer(getName())}
+
+-> END
+```
+
+#### Path Resolution
+
+External JavaScript file paths are resolved using the same path resolution logic as Ink story `INCLUDE` statements.
+
+#### Security and Sandboxing
+
+External JavaScript files are executed in a secure sandboxed environment with the following restrictions:
+
+- **Limited global access**: Only safe globals like `Math`, `Date`, `JSON`, and basic parsing functions are available
+- **No file system access**: Functions cannot read or write files
+- **No network access**: Functions cannot make HTTP requests or access external resources
+- **Execution timeout**: Function execution is limited to 5 seconds to prevent infinite loops
+
+#### Error Handling
+
+Errors related to external JavaScript files are reported in the preview panel and Problems panel.
+
+#### Limitations
+
+- External JavaScript files are only processed during compilation and preview
+- Functions must be synchronous (no async/await or Promise support)
+- Limited to CommonJS module patterns (no ES6 modules or modern JavaScript features)
 
 ### Keyboard Shortcuts
 
