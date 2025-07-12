@@ -26,14 +26,26 @@ import * as vscode from "vscode";
 import path from "path";
 import { PreviewModel } from "./PreviewModel";
 import { PreviewHtmlGenerator } from "./PreviewHtmlGenerator";
-import { StoryUpdate } from "./types";
-import { inboundMessages, outboundMessages, Message } from "./PreviewMessages";
+import { PreviewStateManager } from "./PreviewStateManager";
+import { PreviewState } from "./PreviewState";
+import { ErrorInfo } from "./ErrorInfo";
+import { inboundMessages, Message } from "./PreviewMessages";
 import { BuildEngine } from "../build/BuildEngine";
 import { Deferred } from "../util/deferred";
-import { VSCodeServiceLocator } from "../services/VSCodeServiceLocator";
+import { StoryUpdate } from "./types";
+
+// Import all actions
+import { StartStoryAction } from "./actions/StartStoryAction";
+import { EndStoryAction } from "./actions/EndStoryAction";
+import { AddStoryEventsAction } from "./actions/AddStoryEventsAction";
+import { SetCurrentChoicesAction } from "./actions/SetCurrentChoicesAction";
+import { AddErrorsAction } from "./actions/AddErrorsAction";
+import { InitializeStoryAction } from "./actions/InitializeStoryAction";
 
 /**
- * Coordinates the story preview, managing the webview, model, and user interactions.
+ * Coordinates the story preview, managing the webview, state manager, and user interactions.
+ * Uses the Full State Replacement Pattern where the complete state is sent to the webview
+ * instead of individual update messages.
  */
 export class PreviewController {
   // Private Properties ===============================================================================================
@@ -41,6 +53,7 @@ export class PreviewController {
   private readonly webviewPanel: vscode.WebviewPanel;
   private readonly htmlGenerator: PreviewHtmlGenerator;
   private readonly disposables: vscode.Disposable[] = [];
+  private readonly stateManager: PreviewStateManager;
   private document?: vscode.TextDocument;
   private model?: PreviewModel;
   private isInitialized: boolean = false;
@@ -51,6 +64,12 @@ export class PreviewController {
   constructor(webviewPanel: vscode.WebviewPanel) {
     this.webviewPanel = webviewPanel;
     this.htmlGenerator = new PreviewHtmlGenerator();
+    this.stateManager = new PreviewStateManager({
+      metadata: {
+        title: "",
+        fileName: "",
+      },
+    });
     this.setupWebview();
     this.setupMessageHandlers();
   }
@@ -82,6 +101,7 @@ export class PreviewController {
    * Disposes of all resources used by the controller.
    */
   public dispose(): void {
+    this.stateManager?.dispose();
     this.disposables.forEach((d) => d.dispose());
   }
 
@@ -99,6 +119,10 @@ export class PreviewController {
       throw new Error("PreviewModel not initialized");
     }
     return this.model;
+  }
+
+  private ensureStateManager(): PreviewStateManager {
+    return this.stateManager;
   }
 
   /**
@@ -162,16 +186,17 @@ export class PreviewController {
   }
 
   /**
-   * Sends a message to the webview.
+   * Sends the complete state to the webview.
+   * This replaces individual message sending with full state replacement.
    */
-  private postMessage(command: string, payload: any): void {
+  private sendStateToWebview(state: PreviewState): void {
     this.webviewPanel.webview.postMessage({
-      command,
-      payload,
+      command: "updateState",
+      payload: state,
     });
     console.debug(
-      `[PreviewController] 📩 Posted message: ${command}:`,
-      payload
+      `[PreviewController] 📩 Sent complete state to webview:`,
+      state
     );
   }
 
@@ -183,34 +208,33 @@ export class PreviewController {
   }
 
   /**
-   * Sends a message to start the story in the webview.
+   * Processes a story update by applying it to state via actions and sending to webview.
+   * This method handles the common pattern of:
+   * 1. Adding story events (if any)
+   * 2. Setting current choices
+   * 3. Handling story end state
+   * 4. Sending updated state to webview
+   *
+   * @param storyUpdate - The story update from the model
    */
-  private startStoryInWebview(): void {
-    this.postMessage(outboundMessages.startStory, {});
-  }
+  private processStoryUpdate(storyUpdate: StoryUpdate): void {
+    const stateManager = this.ensureStateManager();
 
-  /**
-   * Sends a story update to the webview.
-   */
-  private updateStoryInWebview(update: StoryUpdate): void {
-    this.postMessage(outboundMessages.updateStory, update);
-  }
+    // 1. Add story events if any
+    if (storyUpdate.events.length > 0) {
+      stateManager.dispatch(new AddStoryEventsAction(storyUpdate.events));
+    }
 
-  /**
-   * Sends a message to indicate the story has ended.
-   */
-  private endStoryInWebview(): void {
-    this.postMessage(outboundMessages.endStory, {});
-  }
+    // 2. Set current choices
+    stateManager.dispatch(new SetCurrentChoicesAction(storyUpdate.choices));
 
-  /**
-   * Displays an error message in the webview.
-   */
-  private showErrorInWebview(
-    message: string,
-    severity: "error" | "warning" | "info" = "error"
-  ): void {
-    this.postMessage(outboundMessages.showError, { message, severity });
+    // 3. Handle story end if applicable
+    if (storyUpdate.hasEnded) {
+      stateManager.dispatch(new EndStoryAction());
+    }
+
+    // 4. Send updated state to webview
+    this.sendStateToWebview(stateManager.getState());
   }
 
   /**
@@ -221,32 +245,44 @@ export class PreviewController {
     const document = this.ensureDocument();
     const engine = BuildEngine.getInstance();
     const compiledStory = await engine.compileStory(document.uri);
+
     if (!compiledStory.success) {
-      this.showErrorInWebview(
-        "Story had errors and could not be compiled. Review the Problem Panel for more information.",
-        "error"
+      // Handle compilation failure by showing error
+      this.handleCompilationError(
+        "Story had errors and could not be compiled. Review the Problem Panel for more information."
       );
       return;
     }
-    // Start the story, with continue story
+
+    // Initialize model and state manager
     console.debug("[PreviewController] 📖 Starting story");
     this.model = new PreviewModel(compiledStory);
 
-    // Register error callback to propagate errors to the webview
+    // Reset state manager with story metadata
+    const fileName = path.basename(document.uri.fsPath);
+    this.stateManager.dispatch(
+      new InitializeStoryAction(fileName, document.uri.fsPath)
+    );
+
+    // Register error callback from model to add errors to state
     this.model.onError(
       (message: string, severity: "error" | "warning" | "info") => {
-        this.showErrorInWebview(message, severity);
+        this.addErrorToState(message, severity);
       }
     );
 
+    // Reset model and start story workflow
     this.model.reset();
-    this.startStoryInWebview();
-    const update = this.model.continueStory() || {
-      hasEnded: false,
-      text: "",
-      choices: [],
-    };
-    this.updateView(update);
+
+    // Start the story workflow using actions
+    const stateManager = this.ensureStateManager();
+
+    // 1. Start story (clears previous state)
+    stateManager.dispatch(new StartStoryAction());
+
+    // 2. Continue story and process the update
+    const storyUpdate = this.model.continueStory();
+    this.processStoryUpdate(storyUpdate);
   }
 
   /**
@@ -257,36 +293,42 @@ export class PreviewController {
     console.debug("[PreviewController] 📖 Selecting choice", index);
     const model = this.ensureModel();
 
-    // Select the choice
-    const update = model.selectChoice(index);
-
-    // Update the view
-    this.updateView(update);
+    // Select the choice and process the resulting update
+    const storyUpdate = model.selectChoice(index);
+    this.processStoryUpdate(storyUpdate);
   }
 
   /**
-   * Updates the view with a story update.
-   * If the story has ended, sends an end message.
-   * @param update - The story update to display
+   * Adds an error to the state.
+   * @param message - The error message
+   * @param severity - The error severity
    */
-  private updateView(update: StoryUpdate): void {
-    console.debug("[PreviewController] 📖 Updating story");
-    this.updateStoryInWebview(update);
-    if (update.hasEnded) {
-      console.debug("[PreviewController] 📖 Story has ended");
-      this.endStoryInWebview();
-      return;
-    }
+  private addErrorToState(
+    message: string,
+    severity: "error" | "warning" | "info"
+  ): void {
+    const stateManager = this.ensureStateManager();
+    const error: ErrorInfo = { message, severity };
+    stateManager.dispatch(new AddErrorsAction([error]));
+
+    // Send updated state to webview
+    this.sendStateToWebview(stateManager.getState());
   }
 
   /**
-   * Handles errors by displaying them in the webview.
-   * @param error - The error to handle
+   * Handles compilation errors by initializing state with error.
+   * @param message - The compilation error message
    */
-  private handleError(error: unknown): void {
-    this.showErrorInWebview(
-      error instanceof Error ? error.message : "An unknown error occurred",
-      "error"
+  private handleCompilationError(message: string): void {
+    const document = this.ensureDocument();
+    const fileName = path.basename(document.uri.fsPath);
+
+    // Reset state manager with error metadata
+    this.stateManager.dispatch(
+      new InitializeStoryAction(fileName, document.uri.fsPath)
     );
+
+    // Add compilation error to state
+    this.addErrorToState(message, "error");
   }
 }

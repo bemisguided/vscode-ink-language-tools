@@ -102,7 +102,18 @@ describe("PreviewController", () => {
       // Assert - story should start after ready message
       const messages = mockWebviewPanel.webview.getSentMessages();
       expect(messages).toContainEqual(
-        expect.objectContaining({ command: outboundMessages.startStory })
+        expect.objectContaining({
+          command: "updateState",
+          payload: expect.objectContaining({
+            isStart: true,
+            storyEvents: expect.any(Array),
+            currentChoices: expect.any(Array),
+            metadata: expect.objectContaining({
+              title: "story.ink",
+              fileName: "/test/story.ink",
+            }),
+          }),
+        })
       );
     });
 
@@ -123,7 +134,14 @@ describe("PreviewController", () => {
       // Assert - ready message should not be waited for again
       const messages = mockWebviewPanel.webview.getSentMessages();
       expect(messages).toContainEqual(
-        expect.objectContaining({ command: outboundMessages.startStory })
+        expect.objectContaining({
+          command: "updateState",
+          payload: expect.objectContaining({
+            isStart: true,
+            storyEvents: expect.any(Array),
+            currentChoices: expect.any(Array),
+          }),
+        })
       );
     });
   });
@@ -147,10 +165,16 @@ describe("PreviewController", () => {
       expect(mockBuildEngine.wasUriCompiled(mockDocument.uri)).toBe(true);
       const messages = mockWebviewPanel.webview.getSentMessages();
       expect(messages).toContainEqual(
-        expect.objectContaining({ command: outboundMessages.startStory })
-      );
-      expect(messages).toContainEqual(
-        expect.objectContaining({ command: outboundMessages.updateStory })
+        expect.objectContaining({
+          command: "updateState",
+          payload: expect.objectContaining({
+            isStart: true,
+            storyEvents: expect.any(Array),
+            currentChoices: expect.any(Array),
+            isEnded: false,
+            errors: expect.any(Array),
+          }),
+        })
       );
     });
 
@@ -174,10 +198,18 @@ describe("PreviewController", () => {
       const messages = mockWebviewPanel.webview.getSentMessages();
       expect(messages).toContainEqual(
         expect.objectContaining({
-          command: outboundMessages.showError,
+          command: "updateState",
           payload: expect.objectContaining({
-            message: expect.stringContaining("could not be compiled"),
-            severity: "error",
+            errors: expect.arrayContaining([
+              expect.objectContaining({
+                message: expect.stringContaining("could not be compiled"),
+                severity: "error",
+              }),
+            ]),
+            storyEvents: [],
+            currentChoices: [],
+            isEnded: false,
+            isStart: false,
           }),
         })
       );
@@ -199,10 +231,18 @@ describe("PreviewController", () => {
       const messages = mockWebviewPanel.webview.getSentMessages();
       expect(messages).toContainEqual(
         expect.objectContaining({
-          command: outboundMessages.showError,
+          command: "updateState",
           payload: expect.objectContaining({
-            message: expect.stringContaining("could not be compiled"),
-            severity: "error",
+            errors: expect.arrayContaining([
+              expect.objectContaining({
+                message: expect.stringContaining("could not be compiled"),
+                severity: "error",
+              }),
+            ]),
+            storyEvents: [],
+            currentChoices: [],
+            isEnded: false,
+            isStart: false,
           }),
         })
       );
@@ -236,7 +276,13 @@ describe("PreviewController", () => {
       // Assert
       const messages = mockWebviewPanel.webview.getSentMessages();
       expect(messages).toContainEqual(
-        expect.objectContaining({ command: outboundMessages.updateStory })
+        expect.objectContaining({
+          command: "updateState",
+          payload: expect.objectContaining({
+            storyEvents: expect.any(Array),
+            currentChoices: expect.any(Array),
+          }),
+        })
       );
     });
 
@@ -253,10 +299,14 @@ describe("PreviewController", () => {
       // Assert
       const messages = mockWebviewPanel.webview.getSentMessages();
       expect(messages).toContainEqual(
-        expect.objectContaining({ command: outboundMessages.startStory })
-      );
-      expect(messages).toContainEqual(
-        expect.objectContaining({ command: outboundMessages.updateStory })
+        expect.objectContaining({
+          command: "updateState",
+          payload: expect.objectContaining({
+            isStart: true,
+            storyEvents: expect.any(Array),
+            currentChoices: expect.any(Array),
+          }),
+        })
       );
     });
 
@@ -293,7 +343,13 @@ describe("PreviewController", () => {
       // Assert
       const messages = mockWebviewPanel.webview.getSentMessages();
       expect(messages).toContainEqual(
-        expect.objectContaining({ command: outboundMessages.endStory })
+        expect.objectContaining({
+          command: "updateState",
+          payload: expect.objectContaining({
+            isEnded: true,
+            isStart: false,
+          }),
+        })
       );
     });
   });
@@ -321,10 +377,13 @@ describe("PreviewController", () => {
         model.errorCallback("Test runtime error", "error");
       }
 
-      // Assert
+      // Assert - errors are now included in updateState messages
       const messages = mockWebviewPanel.webview.getSentMessages();
       const errorMessages = messages.filter(
-        (msg) => msg.command === outboundMessages.showError
+        (msg) =>
+          msg.command === "updateState" &&
+          msg.payload.errors &&
+          msg.payload.errors.length > 0
       );
       expect(errorMessages.length).toBeGreaterThan(0);
     });
@@ -372,7 +431,16 @@ describe("PreviewController", () => {
       expect(mockWebviewPanel.title).toBe("story2.ink (Preview)");
       const messages = mockWebviewPanel.webview.getSentMessages();
       expect(messages).toContainEqual(
-        expect.objectContaining({ command: outboundMessages.startStory })
+        expect.objectContaining({
+          command: "updateState",
+          payload: expect.objectContaining({
+            isStart: true,
+            metadata: expect.objectContaining({
+              title: "story2.ink",
+              fileName: "/test/story2.ink",
+            }),
+          }),
+        })
       );
     });
   });

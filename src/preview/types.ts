@@ -39,6 +39,7 @@ export interface TextStoryEvent {
   type: "text";
   text: string;
   tags: string[];
+  isCurrent?: boolean;
 }
 
 export interface FunctionStoryEvent {
@@ -46,6 +47,7 @@ export interface FunctionStoryEvent {
   functionName: string;
   args: any[];
   result: any;
+  isCurrent?: boolean;
 }
 
 export type StoryEvent = TextStoryEvent | FunctionStoryEvent;

@@ -64,6 +64,9 @@ const inboundMessages = {
 
   /** Sent to display error messages */
   showError: "showError",
+
+  /** Sent to update complete state (Full State Replacement Pattern) */
+  updateState: "updateState",
 };
 
 // Utility Functions =================================================================================================
@@ -415,8 +418,6 @@ const storyView = {
    * @param {Object} group - The story group to render
    */
   renderStoryGroup(group) {
-    this.markCurrentContentAsHistorical();
-
     // Only create a group container if there are events
     if (group.events?.length > 0) {
       const groupContainer = createElement(
@@ -568,19 +569,6 @@ const storyView = {
     endMessage.textContent = "Story Complete";
     this.elements.choicesContainer.appendChild(endMessage);
     setTimeout(() => this.scrollToBottom(), 100);
-  },
-
-  /**
-   * Marks the current content as historical by updating its CSS classes.
-   */
-  markCurrentContentAsHistorical() {
-    const currentGroups = this.elements.storyContent.querySelectorAll(
-      ".story-group-current"
-    );
-    currentGroups.forEach((group) => {
-      group.classList.remove("story-group-current");
-      group.classList.add("story-group-previous");
-    });
   },
 
   /**
@@ -876,6 +864,10 @@ const storyController = {
       inboundMessages.showError,
       this.handleShowError.bind(this)
     );
+    messageHandler.register(
+      inboundMessages.updateState,
+      this.handleUpdateState.bind(this)
+    );
   },
 
   /**
@@ -932,6 +924,140 @@ const storyController = {
   handleShowError(payload) {
     logLocal("Message: Showing error", payload);
     storyView.addError(payload.message, payload.severity);
+  },
+
+  /**
+   * Handles a complete state update from the extension.
+   * This implements the Full State Replacement Pattern where the entire state
+   * is sent and the UI is updated to match.
+   * @param {Object} state - The complete preview state
+   */
+  handleUpdateState(state) {
+    logLocal("Message: Updating complete state", state);
+
+    // Clear existing state if this is a story start
+    if (state.isStart) {
+      storyView.reset();
+    }
+
+    // Update errors - replace completely
+    storyView.errors = state.errors || [];
+    storyView.updateErrorButton();
+
+    // Update story content by directly rendering to maintain proper styling
+    this.renderCompleteStoryState(state);
+
+    // Handle story end state
+    if (state.isEnded) {
+      storyView.renderStoryEnded();
+    }
+
+    // Update metadata if needed (could be used for title updates)
+    if (state.metadata) {
+      // Currently no UI elements use metadata directly
+      // This is available for future enhancements
+    }
+  },
+
+  /**
+   * Renders the complete story state using server-side current/historical flags.
+   * Events are grouped by their isCurrent property and rendered with appropriate CSS classes.
+   * @param {Object} state - The complete preview state
+   */
+  renderCompleteStoryState(state) {
+    const storyContent = storyView.elements.storyContent;
+
+    // If starting fresh, clear everything
+    if (state.isStart) {
+      storyContent.innerHTML = "";
+    }
+
+    // If there are story events, render them using their isCurrent flags
+    if (state.storyEvents && state.storyEvents.length > 0) {
+      // Clear existing content
+      storyContent.innerHTML = "";
+
+      // Group events by their isCurrent status and render in order
+      this.renderEventsByCurrentStatus(state.storyEvents, storyContent);
+    }
+
+    // Always update choices (they can change without new events)
+    if (state.currentChoices && state.currentChoices.length > 0) {
+      storyView.renderChoices(state.currentChoices);
+    } else {
+      // Clear choices if none exist
+      storyView.elements.choicesContainer.innerHTML = "";
+    }
+
+    // Handle story end state
+    if (state.isEnded) {
+      storyView.renderStoryEnded();
+    }
+
+    // Scroll to bottom after rendering
+    storyView.scrollToBottom();
+  },
+
+  /**
+   * Renders events grouped by their isCurrent status.
+   * Creates separate containers for historical and current events.
+   * @param {Array} events - Array of story events with isCurrent property
+   * @param {HTMLElement} container - Container to render events into
+   */
+  renderEventsByCurrentStatus(events, container) {
+    // Group events by isCurrent status while preserving order
+    const groups = [];
+    let currentGroup = null;
+
+    events.forEach((event) => {
+      const isCurrent = event.isCurrent === true; // Default to false if undefined
+
+      // If this is the start of a new group (different isCurrent status)
+      if (!currentGroup || currentGroup.isCurrent !== isCurrent) {
+        currentGroup = {
+          isCurrent: isCurrent,
+          events: [],
+        };
+        groups.push(currentGroup);
+      }
+
+      currentGroup.events.push(event);
+    });
+
+    // Render each group with appropriate styling
+    groups.forEach((group, groupIndex) => {
+      const groupContainer = createElement(
+        "div",
+        group.isCurrent
+          ? "story-group story-group-current fade-in"
+          : "story-group story-group-previous",
+        {
+          dataGroupId: `group-${groupIndex}-${
+            group.isCurrent ? "current" : "historical"
+          }`,
+        }
+      );
+
+      const eventsContainer = createElement("div", "story-events");
+
+      // Render all events in this group
+      group.events.forEach((event) => {
+        switch (event.type) {
+          case "text":
+            storyView.renderTextEvent(event, eventsContainer);
+            break;
+          case "function":
+            storyView.renderFunctionEvent(event, eventsContainer);
+            break;
+          default:
+            log(`Received unknown event type: ${event.type}`);
+            break;
+        }
+      });
+
+      groupContainer.appendChild(eventsContainer);
+      container.appendChild(groupContainer);
+    });
   },
 
   /**

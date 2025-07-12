@@ -29,7 +29,6 @@ import { ErrorInfo } from "../../src/preview/ErrorInfo";
 
 // Import all actions
 import { StartStoryAction } from "../../src/preview/actions/StartStoryAction";
-import { InitializeStoryAction } from "../../src/preview/actions/InitializeStoryAction";
 import { EndStoryAction } from "../../src/preview/actions/EndStoryAction";
 import { AddStoryEventsAction } from "../../src/preview/actions/AddStoryEventsAction";
 import { SetCurrentChoicesAction } from "../../src/preview/actions/SetCurrentChoicesAction";
@@ -129,19 +128,6 @@ describe("PreviewStateManager", () => {
       expect(stateManager.getState()).toEqual(newState);
     });
 
-    it("should dispatch InitializeStoryAction", () => {
-      // Setup
-      const action = new InitializeStoryAction("My Story", "story.ink");
-
-      // Execute
-      const newState = stateManager.dispatch(action);
-
-      // Assert
-      expect(newState.metadata.title).toBe("My Story");
-      expect(newState.metadata.fileName).toBe("story.ink");
-      expect(stateManager.getState()).toEqual(newState);
-    });
-
     it("should dispatch EndStoryAction", () => {
       // Setup
       const action = new EndStoryAction();
@@ -167,7 +153,18 @@ describe("PreviewStateManager", () => {
       const newState = stateManager.dispatch(action);
 
       // Assert
-      expect(newState.storyEvents).toEqual(events);
+      // Events should have isCurrent: true added by AddStoryEventsAction
+      const expectedEvents = [
+        { type: "text", text: "Event 1", tags: ["tag1"], isCurrent: true },
+        {
+          type: "function",
+          functionName: "testFunc",
+          args: [1],
+          result: 2,
+          isCurrent: true,
+        },
+      ];
+      expect(newState.storyEvents).toEqual(expectedEvents);
       expect(newState.storyEvents).toHaveLength(2);
       expect(stateManager.getState()).toEqual(newState);
     });
@@ -295,7 +292,7 @@ describe("PreviewStateManager", () => {
       states.push(stateManager.getState());
 
       // Execute
-      stateManager.dispatch(new InitializeStoryAction("Story", "story.ink"));
+      stateManager.dispatch(new StartStoryAction());
       states.push(stateManager.getState());
 
       stateManager.dispatch(
@@ -309,8 +306,8 @@ describe("PreviewStateManager", () => {
       states.push(stateManager.getState());
 
       // Assert
-      expect(states[0].metadata.title).toBe("Untitled Story");
-      expect(states[1].metadata.title).toBe("Story");
+      expect(states[0].isStart).toBe(false);
+      expect(states[1].isStart).toBe(true);
       expect(states[1].storyEvents).toHaveLength(0);
       expect(states[2].storyEvents).toHaveLength(1);
       expect(states[2].currentChoices).toHaveLength(0);
@@ -342,24 +339,29 @@ describe("PreviewStateManager", () => {
     });
 
     it("should preserve metadata when resetting", () => {
-      // Setup
-      stateManager.dispatch(
-        new InitializeStoryAction("Custom Story", "custom.ink")
-      );
-      stateManager.dispatch(new StartStoryAction());
-      stateManager.dispatch(
+      // Setup - Create state manager with custom metadata
+      const customStateManager = new PreviewStateManager({
+        metadata: {
+          title: "Custom Story",
+          fileName: "custom.ink",
+        },
+      });
+      customStateManager.dispatch(new StartStoryAction());
+      customStateManager.dispatch(
         new AddStoryEventsAction([{ type: "text", text: "Event", tags: [] }])
       );
 
       // Execute
-      stateManager.reset();
+      customStateManager.reset();
 
       // Assert
-      const state = stateManager.getState();
+      const state = customStateManager.getState();
       expect(state.metadata.title).toBe("Custom Story");
       expect(state.metadata.fileName).toBe("custom.ink");
       expect(state.storyEvents).toEqual([]);
       expect(state.isStart).toBe(false);
+
+      customStateManager.dispose();
     });
   });
 
@@ -388,18 +390,21 @@ describe("PreviewStateManager", () => {
 
   describe("Complex State Workflows", () => {
     it("should handle complete story workflow", () => {
-      // Setup - Initialize story
-      stateManager.dispatch(
-        new InitializeStoryAction("Test Story", "test.ink")
-      );
+      // Setup - Use state manager with custom metadata
+      const customStateManager = new PreviewStateManager({
+        metadata: {
+          title: "Test Story",
+          fileName: "test.ink",
+        },
+      });
 
       // Execute - Run complete workflow
-      stateManager.dispatch(new StartStoryAction());
-      let state = stateManager.getState();
+      customStateManager.dispatch(new StartStoryAction());
+      let state = customStateManager.getState();
       expect(state.isStart).toBe(true);
       expect(state.isEnded).toBe(false);
 
-      stateManager.dispatch(
+      customStateManager.dispatch(
         new AddStoryEventsAction([
           { type: "text", text: "Welcome to the story", tags: [] },
           {
@@ -409,28 +414,28 @@ describe("PreviewStateManager", () => {
           },
         ])
       );
-      state = stateManager.getState();
+      state = customStateManager.getState();
       expect(state.storyEvents).toHaveLength(2);
 
-      stateManager.dispatch(
+      customStateManager.dispatch(
         new SetCurrentChoicesAction([
           { index: 0, text: "Go left", tags: [] },
           { index: 1, text: "Go right", tags: [] },
         ])
       );
-      state = stateManager.getState();
+      state = customStateManager.getState();
       expect(state.currentChoices).toHaveLength(2);
 
-      stateManager.dispatch(
+      customStateManager.dispatch(
         new AddStoryEventsAction([
           { type: "text", text: "You chose to go left", tags: [] },
         ])
       );
-      state = stateManager.getState();
+      state = customStateManager.getState();
       expect(state.storyEvents).toHaveLength(3);
 
-      stateManager.dispatch(new EndStoryAction());
-      state = stateManager.getState();
+      customStateManager.dispatch(new EndStoryAction());
+      state = customStateManager.getState();
 
       // Assert - Final state verification
       expect(state.isEnded).toBe(true);
@@ -439,6 +444,8 @@ describe("PreviewStateManager", () => {
       expect(state.metadata.fileName).toBe("test.ink");
       expect(state.storyEvents).toHaveLength(3);
       expect(state.currentChoices).toHaveLength(2);
+
+      customStateManager.dispose();
     });
 
     it("should handle error scenarios", () => {
@@ -472,27 +479,30 @@ describe("PreviewStateManager", () => {
     });
 
     it("should handle restart scenario", () => {
-      // Setup - Create story with full state
-      stateManager.dispatch(
-        new InitializeStoryAction("Test Story", "test.ink")
-      );
-      stateManager.dispatch(
+      // Setup - Create story with full state and custom metadata
+      const customStateManager = new PreviewStateManager({
+        metadata: {
+          title: "Test Story",
+          fileName: "test.ink",
+        },
+      });
+      customStateManager.dispatch(
         new AddStoryEventsAction([
           { type: "text", text: "Story event", tags: [] },
         ])
       );
-      stateManager.dispatch(
+      customStateManager.dispatch(
         new SetCurrentChoicesAction([{ index: 0, text: "Choice", tags: [] }])
       );
-      stateManager.dispatch(
+      customStateManager.dispatch(
         new AddErrorsAction([{ message: "Error", severity: "error" }])
       );
 
       // Execute - Restart using StartStoryAction
-      stateManager.dispatch(new StartStoryAction());
+      customStateManager.dispatch(new StartStoryAction());
 
       // Assert
-      const state = stateManager.getState();
+      const state = customStateManager.getState();
       expect(state.storyEvents).toEqual([]);
       expect(state.currentChoices).toEqual([]);
       expect(state.errors).toEqual([]);
@@ -500,6 +510,8 @@ describe("PreviewStateManager", () => {
       expect(state.isStart).toBe(true);
       expect(state.metadata.title).toBe("Test Story"); // Preserved
       expect(state.metadata.fileName).toBe("test.ink"); // Preserved
+
+      customStateManager.dispose();
     });
   });
 });

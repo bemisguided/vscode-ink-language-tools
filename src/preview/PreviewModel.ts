@@ -112,6 +112,7 @@ export class PreviewModel {
             functionName: call.functionName,
             args: call.args,
             result: call.result,
+            isCurrent: false, // Set to false here as it will be set properly by AddStoryEventsAction
           };
           return functionEvent;
         })
@@ -292,6 +293,7 @@ export class PreviewModel {
         type: "text",
         text: lineText,
         tags: lineTags,
+        isCurrent: false, // Set to false here as it will be set properly by AddStoryEventsAction
       };
 
       // Add the event to the events array

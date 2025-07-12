@@ -40,15 +40,21 @@ export class AddStoryEventsAction implements PreviewAction {
 
   /**
    * Reduces the current state by appending new story events.
-   * All other state properties remain unchanged.
+   * Marks all existing events as historical and all new events as current.
+   * This creates natural "turns" or "groups" in the story progression.
    *
    * @param state - The current preview state
-   * @returns New state with the new events appended to storyEvents
+   * @returns New state with existing events marked as historical and new events marked as current
    */
   reduce(state: PreviewState): PreviewState {
     return {
       ...state,
-      storyEvents: [...state.storyEvents, ...this.events],
+      storyEvents: [
+        // Mark all existing events as historical
+        ...state.storyEvents.map((event) => ({ ...event, isCurrent: false })),
+        // Add new events as current
+        ...this.events.map((event) => ({ ...event, isCurrent: true })),
+      ],
     };
   }
 }
