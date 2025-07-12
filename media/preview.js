@@ -30,8 +30,6 @@ const eventType = {
   function: "function",
 };
 
-// Message Constants =================================================================================================
-
 /**
  * Messages sent from Webview to MVC
  */
@@ -53,18 +51,6 @@ const outboundMessages = {
  * Messages sent from MVC to Webview
  */
 const inboundMessages = {
-  /** Sent to start/restart the story */
-  startStory: "startStory",
-
-  /** Sent with story updates (events, choices) */
-  updateStory: "updateStory",
-
-  /** Sent when story reaches an end */
-  endStory: "endStory",
-
-  /** Sent to display error messages */
-  showError: "showError",
-
   /** Sent to update complete state (Full State Replacement Pattern) */
   updateState: "updateState",
 };
@@ -235,10 +221,6 @@ const storyView = {
     closeErrorModal: null,
   },
 
-  // State ==========================================================================================================
-  currentGroup: null,
-  history: [],
-
   // Error State ====================================================================================================
   errors: [],
   isErrorModalVisible: false,
@@ -383,8 +365,7 @@ const storyView = {
    */
   reset() {
     // Reset state
-    this.currentGroup = null;
-    this.history = [];
+    // (No client-side state tracking needed with Full State Replacement Pattern)
 
     // Clear errors
     this.errors = [];
@@ -394,64 +375,6 @@ const storyView = {
     // Reset UI
     this.elements.storyContent.innerHTML = "";
     this.elements.choicesContainer.innerHTML = "";
-  },
-
-  /**
-   * Updates the story view with new content.
-   * @param {Object} group - The story group containing events and choices
-   */
-  updateStory(group) {
-    // Add to history if there's a current group
-    if (this.currentGroup) {
-      this.history.push(this.currentGroup);
-    }
-
-    // Update current group
-    this.currentGroup = group;
-
-    // Render the story group
-    this.renderStoryGroup(group);
-  },
-
-  /**
-   * Renders a story group with its events and choices.
-   * @param {Object} group - The story group to render
-   */
-  renderStoryGroup(group) {
-    // Only create a group container if there are events
-    if (group.events?.length > 0) {
-      const groupContainer = createElement(
-        "div",
-        "story-group story-group-current fade-in",
-        {
-          dataGroupId: group.id,
-        }
-      );
-
-      const eventsContainer = createElement("div", "story-events");
-
-      // Render events in exact order they arrived
-      group.events.forEach((event) => {
-        switch (event.type) {
-          case eventType.text:
-            this.renderTextEvent(event, eventsContainer);
-            break;
-          case eventType.function:
-            this.renderFunctionEvent(event, eventsContainer);
-            break;
-          default:
-            log(`Received unknown event type: ${event.type}`);
-            break;
-        }
-      });
-
-      groupContainer.appendChild(eventsContainer);
-      this.elements.storyContent.appendChild(groupContainer);
-    }
-
-    // Render choices after all events
-    this.renderChoices(group.choices);
-    this.scrollToBottom();
   },
 
   /**
@@ -526,6 +449,9 @@ const storyView = {
       return;
     }
 
+    // Use DocumentFragment to batch DOM operations for better performance
+    const fragment = document.createDocumentFragment();
+
     choices.forEach((choice, index) => {
       const choiceButton = createElement(
         "button",
@@ -556,8 +482,12 @@ const storyView = {
         storyController.actionSelectChoice(choice.index);
       });
 
-      this.elements.choicesContainer.appendChild(choiceButton);
+      // Add to fragment instead of directly to DOM
+      fragment.appendChild(choiceButton);
     });
+
+    // Single DOM operation to append all choices at once
+    this.elements.choicesContainer.appendChild(fragment);
   },
 
   /**
@@ -732,6 +662,9 @@ const storyView = {
       return;
     }
 
+    // Use DocumentFragment to batch DOM operations for better performance
+    const fragment = document.createDocumentFragment();
+
     this.errors.forEach((error) => {
       const errorItem = createElement(
         "div",
@@ -759,8 +692,12 @@ const storyView = {
       errorItem.appendChild(errorIcon);
       errorItem.appendChild(errorContent);
 
-      this.elements.errorList.appendChild(errorItem);
+      // Add to fragment instead of directly to DOM
+      fragment.appendChild(errorItem);
     });
+
+    // Single DOM operation to append all error items at once
+    this.elements.errorList.appendChild(fragment);
   },
 
   /**
@@ -847,23 +784,7 @@ const storyController = {
    * Sets up event listeners for story messages.
    */
   setupEventListeners() {
-    // Message handler
-    messageHandler.register(
-      inboundMessages.startStory,
-      this.handleStartStory.bind(this)
-    );
-    messageHandler.register(
-      inboundMessages.updateStory,
-      this.handleStoryUpdate.bind(this)
-    );
-    messageHandler.register(
-      inboundMessages.endStory,
-      this.handleEndStory.bind(this)
-    );
-    messageHandler.register(
-      inboundMessages.showError,
-      this.handleShowError.bind(this)
-    );
+    // Message handler for Full State Replacement Pattern
     messageHandler.register(
       inboundMessages.updateState,
       this.handleUpdateState.bind(this)
@@ -889,41 +810,6 @@ const storyController = {
     storyView.updateErrorButton();
     storyView.hideErrorModal();
     messageHandler.postMessage(outboundMessages.restartStory, {});
-  },
-
-  /**
-   * Handles the start story message from the extension.
-   */
-  handleStartStory() {
-    logLocal("Message: Starting story");
-    storyView.reset();
-  },
-
-  /**
-   * Handles a story update message from the extension.
-   * @param {Object} payload - The story update payload
-   */
-  handleStoryUpdate(payload) {
-    logLocal("Message: Updating story", payload);
-    storyView.updateStory(payload);
-  },
-
-  /**
-   * Handles the end story message from the extension.
-   */
-  handleEndStory() {
-    logLocal("Message: Story ended");
-    // Mark all current content as historical before showing end message
-    storyView.renderStoryEnded();
-  },
-
-  /**
-   * Handles an error message from the extension.
-   * @param {Object} payload - The error payload containing message and severity
-   */
-  handleShowError(payload) {
-    logLocal("Message: Showing error", payload);
-    storyView.addError(payload.message, payload.severity);
   },
 
   /**
@@ -1024,6 +910,9 @@ const storyController = {
       currentGroup.events.push(event);
     });
 
+    // Use DocumentFragment to batch DOM operations for better performance
+    const fragment = document.createDocumentFragment();
+
     // Render each group with appropriate styling
     groups.forEach((group, groupIndex) => {
       const groupContainer = createElement(
@@ -1056,8 +945,13 @@ const storyController = {
       });
 
       groupContainer.appendChild(eventsContainer);
-      container.appendChild(groupContainer);
+
+      // Add to fragment instead of directly to DOM
+      fragment.appendChild(groupContainer);
     });
+
+    // Single DOM operation to append all groups at once
+    container.appendChild(fragment);
   },
 
   /**

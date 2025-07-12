@@ -231,14 +231,6 @@ export class PreviewModel {
   }
 
   /**
-   * Gets available mock function names (for debugging/info purposes).
-   * @returns Array of available function names
-   */
-  public getAvailableMockFunctions(): string[] {
-    return this.externalFunctionVM?.getFunctionNames() || [];
-  }
-
-  /**
    * Resets the story to its initial state.
    * Clears all function calls and story state.
    */

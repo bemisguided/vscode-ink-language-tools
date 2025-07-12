@@ -32,10 +32,7 @@ import {
   createMockSuccessfulBuildResult,
   createMockFailedBuildResult,
 } from "../__mocks__/mockBuildResult";
-import {
-  inboundMessages,
-  outboundMessages,
-} from "../../src/preview/PreviewMessages";
+import { inboundMessages } from "../../src/preview/PreviewMessages";
 
 // Mock the BuildEngine
 jest.mock("../../src/build/BuildEngine");
