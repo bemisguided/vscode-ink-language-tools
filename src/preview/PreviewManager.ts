@@ -24,7 +24,6 @@
 
 import * as vscode from "vscode";
 import { PreviewController } from "./PreviewController";
-import { PreviewView } from "./PreviewView";
 import { VSCodeServiceLocator } from "../services/VSCodeServiceLocator";
 
 export class PreviewManager {
@@ -81,8 +80,7 @@ export class PreviewManager {
     this.webviewPanel.iconPath =
       VSCodeServiceLocator.getExtensionService().getIconUri("ink.png");
 
-    const view = new PreviewView(this.webviewPanel);
-    this.controller = new PreviewController(view);
+    this.controller = new PreviewController(this.webviewPanel);
 
     this.webviewPanel.onDidDispose(() => this.dispose());
   }
@@ -115,6 +113,7 @@ export class PreviewManager {
 
   public dispose(): void {
     console.log("[InkPreviewPanel] Disposing");
+    this.controller.dispose();
     this.webviewPanel.dispose();
     PreviewManager.instance = undefined;
   }

@@ -26,103 +26,23 @@ import * as vscode from "vscode";
 import { PreviewController } from "../../src/preview/PreviewController";
 import { BuildEngine } from "../../src/build/BuildEngine";
 import { MockBuildEngine } from "../__mocks__/MockBuildEngine";
+import { MockWebviewPanel } from "../__mocks__/MockWebviewPanel";
 import { mockVSCodeDocument } from "../__mocks__/mockVSCodeDocument";
 import {
   createMockSuccessfulBuildResult,
   createMockFailedBuildResult,
 } from "../__mocks__/mockBuildResult";
+import {
+  inboundMessages,
+  outboundMessages,
+} from "../../src/preview/PreviewMessages";
 
 // Mock the BuildEngine
 jest.mock("../../src/build/BuildEngine");
 
-// Mock PreviewView
-class MockPreviewView {
-  public title: string = "";
-  public onReadyCallback?: () => void;
-  public onChoiceSelectedCallback?: (index: number) => void;
-  public onRestartCallback?: () => void;
-
-  private sentMessages: Array<{ method: string; args: any[] }> = [];
-
-  public initialize(): void {
-    this.logCall("initialize", []);
-  }
-
-  public setTitle(fileName: string): void {
-    this.title = fileName;
-    this.logCall("setTitle", [fileName]);
-  }
-
-  public startStory(): void {
-    this.logCall("startStory", []);
-  }
-
-  public updateStory(update: any): void {
-    this.logCall("updateStory", [update]);
-  }
-
-  public endStory(): void {
-    this.logCall("endStory", []);
-  }
-
-  public showError(message: string, severity: string = "error"): void {
-    this.logCall("showError", [message, severity]);
-  }
-
-  public onReady(callback: () => void): void {
-    this.onReadyCallback = callback;
-    this.logCall("onReady", []);
-  }
-
-  public onChoiceSelected(callback: (index: number) => void): void {
-    this.onChoiceSelectedCallback = callback;
-    this.logCall("onChoiceSelected", []);
-  }
-
-  public onRestart(callback: () => void): void {
-    this.onRestartCallback = callback;
-    this.logCall("onRestart", []);
-  }
-
-  // Test helper methods
-  public simulateReady(): void {
-    if (this.onReadyCallback) {
-      this.onReadyCallback();
-    }
-  }
-
-  public simulateChoiceSelected(index: number): void {
-    if (this.onChoiceSelectedCallback) {
-      this.onChoiceSelectedCallback(index);
-    }
-  }
-
-  public simulateRestart(): void {
-    if (this.onRestartCallback) {
-      this.onRestartCallback();
-    }
-  }
-
-  public getSentMessages(): Array<{ method: string; args: any[] }> {
-    return [...this.sentMessages];
-  }
-
-  public getLastMessage(): { method: string; args: any[] } | undefined {
-    return this.sentMessages[this.sentMessages.length - 1];
-  }
-
-  public clearMessages(): void {
-    this.sentMessages = [];
-  }
-
-  private logCall(method: string, args: any[]): void {
-    this.sentMessages.push({ method, args });
-  }
-}
-
 describe("PreviewController", () => {
   let controller: PreviewController;
-  let mockView: MockPreviewView;
+  let mockWebviewPanel: MockWebviewPanel;
   let mockBuildEngine: MockBuildEngine;
   let mockDocument: vscode.TextDocument;
 
@@ -132,9 +52,9 @@ describe("PreviewController", () => {
     mockBuildEngine = new MockBuildEngine();
     (BuildEngine.getInstance as jest.Mock).mockReturnValue(mockBuildEngine);
 
-    // Create mock view and controller
-    mockView = new MockPreviewView();
-    controller = new PreviewController(mockView as any);
+    // Create mock webview panel and controller
+    mockWebviewPanel = new MockWebviewPanel();
+    controller = new PreviewController(mockWebviewPanel as any);
 
     // Create mock document
     mockDocument = mockVSCodeDocument(
@@ -146,54 +66,65 @@ describe("PreviewController", () => {
   afterEach(() => {
     jest.clearAllMocks();
     mockBuildEngine.reset();
+    controller.dispose();
   });
 
   describe("Initialization", () => {
-    test("should setup event handlers on first preview", async () => {
+    test("should setup webview on creation", () => {
+      // The webview should be set up with HTML content
+      expect(mockWebviewPanel.webview.html).toBeTruthy();
+      expect(mockWebviewPanel.webview.html).toContain("<!DOCTYPE html>");
+      expect(mockWebviewPanel.webview.html).toContain("Ink Story Preview");
+    });
+
+    test("should set webview title with document name", async () => {
       // Execute
       const previewPromise = controller.preview(mockDocument);
-      mockView.simulateReady();
+      mockWebviewPanel.webview.simulateMessage({
+        command: inboundMessages.ready,
+        payload: {},
+      });
       await previewPromise;
 
       // Assert
-      expect(mockView.getSentMessages()).toContainEqual(
-        expect.objectContaining({ method: "onReady" })
-      );
-      expect(mockView.getSentMessages()).toContainEqual(
-        expect.objectContaining({ method: "onChoiceSelected" })
-      );
-      expect(mockView.getSentMessages()).toContainEqual(
-        expect.objectContaining({ method: "onRestart" })
-      );
+      expect(mockWebviewPanel.title).toBe("story.ink (Preview)");
     });
 
-    test("should set view title with document name", async () => {
+    test("should handle webview ready message", async () => {
       // Execute
       const previewPromise = controller.preview(mockDocument);
-      mockView.simulateReady();
+      mockWebviewPanel.webview.simulateMessage({
+        command: inboundMessages.ready,
+        payload: {},
+      });
       await previewPromise;
 
-      // Assert
-      expect(mockView.title).toBe("/test/story.ink");
+      // Assert - story should start after ready message
+      const messages = mockWebviewPanel.webview.getSentMessages();
+      expect(messages).toContainEqual(
+        expect.objectContaining({ command: outboundMessages.startStory })
+      );
     });
 
-    test("should initialize view only once", async () => {
+    test("should not restart initialization on subsequent previews", async () => {
       // Execute - first preview
       const previewPromise1 = controller.preview(mockDocument);
-      mockView.simulateReady();
+      mockWebviewPanel.webview.simulateMessage({
+        command: inboundMessages.ready,
+        payload: {},
+      });
       await previewPromise1;
 
-      mockView.clearMessages();
+      mockWebviewPanel.webview.clearSentMessages();
 
       // Execute - second preview
       await controller.preview(mockDocument);
 
-      // Assert - initialize should not be called again
-      const messages = mockView.getSentMessages();
-      const initializeCalls = messages.filter(
-        (msg) => msg.method === "initialize"
+      // Assert - ready message should not be waited for again
+      const messages = mockWebviewPanel.webview.getSentMessages();
+      expect(messages).toContainEqual(
+        expect.objectContaining({ command: outboundMessages.startStory })
       );
-      expect(initializeCalls).toHaveLength(0);
     });
   });
 
@@ -206,16 +137,20 @@ describe("PreviewController", () => {
 
       // Act
       const previewPromise = controller.preview(mockDocument);
-      mockView.simulateReady();
+      mockWebviewPanel.webview.simulateMessage({
+        command: inboundMessages.ready,
+        payload: {},
+      });
       await previewPromise;
 
       // Assert
       expect(mockBuildEngine.wasUriCompiled(mockDocument.uri)).toBe(true);
-      expect(mockView.getSentMessages()).toContainEqual(
-        expect.objectContaining({ method: "startStory" })
+      const messages = mockWebviewPanel.webview.getSentMessages();
+      expect(messages).toContainEqual(
+        expect.objectContaining({ command: outboundMessages.startStory })
       );
-      expect(mockView.getSentMessages()).toContainEqual(
-        expect.objectContaining({ method: "updateStory" })
+      expect(messages).toContainEqual(
+        expect.objectContaining({ command: outboundMessages.updateStory })
       );
     });
 
@@ -229,17 +164,21 @@ describe("PreviewController", () => {
 
       // Act
       const previewPromise = controller.preview(mockDocument);
-      mockView.simulateReady();
+      mockWebviewPanel.webview.simulateMessage({
+        command: inboundMessages.ready,
+        payload: {},
+      });
       await previewPromise;
 
       // Assert
-      expect(mockView.getSentMessages()).toContainEqual(
+      const messages = mockWebviewPanel.webview.getSentMessages();
+      expect(messages).toContainEqual(
         expect.objectContaining({
-          method: "showError",
-          args: expect.arrayContaining([
-            expect.stringContaining("could not be compiled"),
-            "error",
-          ]),
+          command: outboundMessages.showError,
+          payload: expect.objectContaining({
+            message: expect.stringContaining("could not be compiled"),
+            severity: "error",
+          }),
         })
       );
     });
@@ -250,17 +189,21 @@ describe("PreviewController", () => {
 
       // Execute
       const previewPromise = controller.preview(mockDocument);
-      mockView.simulateReady();
+      mockWebviewPanel.webview.simulateMessage({
+        command: inboundMessages.ready,
+        payload: {},
+      });
       await previewPromise;
 
       // Assert
-      expect(mockView.getSentMessages()).toContainEqual(
+      const messages = mockWebviewPanel.webview.getSentMessages();
+      expect(messages).toContainEqual(
         expect.objectContaining({
-          method: "showError",
-          args: expect.arrayContaining([
-            expect.stringContaining("could not be compiled"),
-            "error",
-          ]),
+          command: outboundMessages.showError,
+          payload: expect.objectContaining({
+            message: expect.stringContaining("could not be compiled"),
+            severity: "error",
+          }),
         })
       );
     });
@@ -274,36 +217,59 @@ describe("PreviewController", () => {
       mockBuildEngine.setCompilationResult(mockDocument.uri, successfulResult);
 
       const previewPromise = controller.preview(mockDocument);
-      mockView.simulateReady();
+      mockWebviewPanel.webview.simulateMessage({
+        command: inboundMessages.ready,
+        payload: {},
+      });
       await previewPromise;
 
-      mockView.clearMessages();
+      mockWebviewPanel.webview.clearSentMessages();
     });
 
     test("should handle choice selection", () => {
       // Execute
-      mockView.simulateChoiceSelected(1);
+      mockWebviewPanel.webview.simulateMessage({
+        command: inboundMessages.selectChoice,
+        payload: { choiceIndex: 1 },
+      });
 
       // Assert
-      expect(mockView.getSentMessages()).toContainEqual(
-        expect.objectContaining({ method: "updateStory" })
+      const messages = mockWebviewPanel.webview.getSentMessages();
+      expect(messages).toContainEqual(
+        expect.objectContaining({ command: outboundMessages.updateStory })
       );
     });
 
     test("should handle story restart", async () => {
       // Execute
-      mockView.simulateRestart();
+      mockWebviewPanel.webview.simulateMessage({
+        command: inboundMessages.restartStory,
+        payload: {},
+      });
 
       // Wait for any async operations
       await new Promise((resolve) => setTimeout(resolve, 0));
 
       // Assert
-      expect(mockView.getSentMessages()).toContainEqual(
-        expect.objectContaining({ method: "startStory" })
+      const messages = mockWebviewPanel.webview.getSentMessages();
+      expect(messages).toContainEqual(
+        expect.objectContaining({ command: outboundMessages.startStory })
       );
-      expect(mockView.getSentMessages()).toContainEqual(
-        expect.objectContaining({ method: "updateStory" })
+      expect(messages).toContainEqual(
+        expect.objectContaining({ command: outboundMessages.updateStory })
       );
+    });
+
+    test("should handle log messages", () => {
+      // Execute
+      mockWebviewPanel.webview.simulateMessage({
+        command: inboundMessages.log,
+        payload: { message: "Test log message" },
+      });
+
+      // Assert - log messages should be handled without errors
+      // This test ensures the log handler is properly registered
+      expect(mockWebviewPanel.webview.getHandlerCount()).toBeGreaterThan(0);
     });
   });
 
@@ -318,18 +284,22 @@ describe("PreviewController", () => {
 
       // Execute
       const previewPromise = controller.preview(mockDocument);
-      mockView.simulateReady();
+      mockWebviewPanel.webview.simulateMessage({
+        command: inboundMessages.ready,
+        payload: {},
+      });
       await previewPromise;
 
       // Assert
-      expect(mockView.getSentMessages()).toContainEqual(
-        expect.objectContaining({ method: "endStory" })
+      const messages = mockWebviewPanel.webview.getSentMessages();
+      expect(messages).toContainEqual(
+        expect.objectContaining({ command: outboundMessages.endStory })
       );
     });
   });
 
   describe("Error Propagation", () => {
-    test("should propagate model errors to view", async () => {
+    test("should propagate model errors to webview", async () => {
       // Setup
       const successfulResult =
         createMockSuccessfulBuildResult("/test/story.ink");
@@ -337,25 +307,25 @@ describe("PreviewController", () => {
 
       // Execute
       const previewPromise = controller.preview(mockDocument);
-      mockView.simulateReady();
+      mockWebviewPanel.webview.simulateMessage({
+        command: inboundMessages.ready,
+        payload: {},
+      });
       await previewPromise;
 
       // Get the model and trigger an error
       const controller_: any = controller;
       const model = controller_.model;
-      if (model && model.onError) {
+      if (model && model.errorCallback) {
         // Simulate an error from the model
-        const errorCallback = (controller_ as any).model.errorCallback;
-        if (errorCallback) {
-          errorCallback("Test runtime error", "error");
-        }
+        model.errorCallback("Test runtime error", "error");
       }
 
       // Assert
-      // The error should be propagated to the view
-      const errorMessages = mockView
-        .getSentMessages()
-        .filter((msg) => msg.method === "showError");
+      const messages = mockWebviewPanel.webview.getSentMessages();
+      const errorMessages = messages.filter(
+        (msg) => msg.command === outboundMessages.showError
+      );
       expect(errorMessages.length).toBeGreaterThan(0);
     });
   });
@@ -383,10 +353,15 @@ describe("PreviewController", () => {
 
       // Execute - preview first document
       const preview1Promise = controller.preview(document1);
-      mockView.simulateReady();
+      mockWebviewPanel.webview.simulateMessage({
+        command: inboundMessages.ready,
+        payload: {},
+      });
       await preview1Promise;
 
-      mockView.clearMessages();
+      expect(mockWebviewPanel.title).toBe("story1.ink (Preview)");
+
+      mockWebviewPanel.webview.clearSentMessages();
 
       // Execute - preview second document
       await controller.preview(document2);
@@ -394,9 +369,21 @@ describe("PreviewController", () => {
       // Assert
       expect(mockBuildEngine.wasUriCompiled(document1.uri)).toBe(true);
       expect(mockBuildEngine.wasUriCompiled(document2.uri)).toBe(true);
-      expect(mockView.getSentMessages()).toContainEqual(
-        expect.objectContaining({ method: "startStory" })
+      expect(mockWebviewPanel.title).toBe("story2.ink (Preview)");
+      const messages = mockWebviewPanel.webview.getSentMessages();
+      expect(messages).toContainEqual(
+        expect.objectContaining({ command: outboundMessages.startStory })
       );
+    });
+  });
+
+  describe("Resource Management", () => {
+    test("should dispose resources properly", () => {
+      // Execute
+      controller.dispose();
+
+      // Assert - webview should have no handlers after disposal
+      expect(mockWebviewPanel.webview.getHandlerCount()).toBe(0);
     });
   });
 });

@@ -23,30 +23,36 @@
  */
 
 import * as vscode from "vscode";
+import path from "path";
 import { PreviewModel } from "./PreviewModel";
-import { PreviewView } from "./PreviewView";
+import { PreviewHtmlGenerator } from "./PreviewHtmlGenerator";
 import { StoryUpdate } from "./types";
+import { inboundMessages, outboundMessages, Message } from "./PreviewMessages";
 import { BuildEngine } from "../build/BuildEngine";
 import { Deferred } from "../util/deferred";
 import { VSCodeServiceLocator } from "../services/VSCodeServiceLocator";
 
 /**
- * Coordinates between the PreviewModel and PreviewView, managing the story lifecycle
- * and handling user interactions.
+ * Coordinates the story preview, managing the webview, model, and user interactions.
  */
 export class PreviewController {
   // Private Properties ===============================================================================================
 
+  private readonly webviewPanel: vscode.WebviewPanel;
+  private readonly htmlGenerator: PreviewHtmlGenerator;
+  private readonly disposables: vscode.Disposable[] = [];
   private document?: vscode.TextDocument;
   private model?: PreviewModel;
-  private view: PreviewView;
   private isInitialized: boolean = false;
   private viewReadyDeferred: Deferred<void> | null = null;
 
   // Constructor ======================================================================================================
 
-  constructor(view: PreviewView) {
-    this.view = view;
+  constructor(webviewPanel: vscode.WebviewPanel) {
+    this.webviewPanel = webviewPanel;
+    this.htmlGenerator = new PreviewHtmlGenerator();
+    this.setupWebview();
+    this.setupMessageHandlers();
   }
 
   // Public Methods ===================================================================================================
@@ -59,7 +65,7 @@ export class PreviewController {
     this.document = document;
 
     // Update the preview panel title with the current document name
-    this.view.setTitle(document.uri.fsPath);
+    this.setTitle(document.uri.fsPath);
 
     if (this.isInitialized) {
       await this.startStory();
@@ -68,10 +74,15 @@ export class PreviewController {
 
     this.isInitialized = true;
     this.viewReadyDeferred = new Deferred<void>();
-    this.setupEventHandlers();
-    this.view.initialize();
     await this.viewReadyDeferred.promise;
     await this.startStory();
+  }
+
+  /**
+   * Disposes of all resources used by the controller.
+   */
+  public dispose(): void {
+    this.disposables.forEach((d) => d.dispose());
   }
 
   // Private Methods ==================================================================================================
@@ -91,11 +102,26 @@ export class PreviewController {
   }
 
   /**
-   * Sets up event handlers for user interactions and story events.
+   * Sets up the webview and initializes its content.
    */
-  private setupEventHandlers(): void {
+  private setupWebview(): void {
+    console.debug("[PreviewController] 👀 Initializing preview webview");
+    this.webviewPanel.webview.html = this.htmlGenerator.generateHtml(
+      this.webviewPanel.webview
+    );
+  }
+
+  /**
+   * Sets up message handlers for webview communication.
+   */
+  private setupMessageHandlers(): void {
+    // Register log handler
+    this.registerMessageHandler(inboundMessages.log, (payload) => {
+      console.debug(`[PreviewController] [Webview] ${payload.message}`);
+    });
+
     // Handle webview ready
-    this.view.onReady(() => {
+    this.registerMessageHandler(inboundMessages.ready, () => {
       console.debug("[PreviewController] 📖 Webview ready");
       if (this.viewReadyDeferred) {
         this.viewReadyDeferred.resolve();
@@ -104,14 +130,87 @@ export class PreviewController {
     });
 
     // Handle choice selection
-    this.view.onChoiceSelected((index: number) => {
-      this.handleChoice(index);
+    this.registerMessageHandler(inboundMessages.selectChoice, (payload) => {
+      this.handleChoice(payload.choiceIndex);
     });
 
     // Handle restart request
-    this.view.onRestart(() => {
+    this.registerMessageHandler(inboundMessages.restartStory, () => {
       this.startStory();
     });
+  }
+
+  /**
+   * Registers a message handler for a specific command.
+   */
+  private registerMessageHandler(
+    command: string,
+    callback: (payload: any) => void
+  ): void {
+    const handler = (message: Message) => {
+      if (message.command !== command) {
+        return;
+      }
+      const logMessage = `[PreviewController] 📥 Received message: ${command}:`;
+      console.debug(logMessage, message.payload);
+      callback(message.payload);
+    };
+
+    this.disposables.push(
+      this.webviewPanel.webview.onDidReceiveMessage(handler)
+    );
+  }
+
+  /**
+   * Sends a message to the webview.
+   */
+  private postMessage(command: string, payload: any): void {
+    this.webviewPanel.webview.postMessage({
+      command,
+      payload,
+    });
+    console.debug(
+      `[PreviewController] 📩 Posted message: ${command}:`,
+      payload
+    );
+  }
+
+  /**
+   * Sets the title of the webview panel.
+   */
+  private setTitle(fileName: string): void {
+    this.webviewPanel.title = `${path.basename(fileName)} (Preview)`;
+  }
+
+  /**
+   * Sends a message to start the story in the webview.
+   */
+  private startStoryInWebview(): void {
+    this.postMessage(outboundMessages.startStory, {});
+  }
+
+  /**
+   * Sends a story update to the webview.
+   */
+  private updateStoryInWebview(update: StoryUpdate): void {
+    this.postMessage(outboundMessages.updateStory, update);
+  }
+
+  /**
+   * Sends a message to indicate the story has ended.
+   */
+  private endStoryInWebview(): void {
+    this.postMessage(outboundMessages.endStory, {});
+  }
+
+  /**
+   * Displays an error message in the webview.
+   */
+  private showErrorInWebview(
+    message: string,
+    severity: "error" | "warning" | "info" = "error"
+  ): void {
+    this.postMessage(outboundMessages.showError, { message, severity });
   }
 
   /**
@@ -123,7 +222,7 @@ export class PreviewController {
     const engine = BuildEngine.getInstance();
     const compiledStory = await engine.compileStory(document.uri);
     if (!compiledStory.success) {
-      this.view.showError(
+      this.showErrorInWebview(
         "Story had errors and could not be compiled. Review the Problem Panel for more information.",
         "error"
       );
@@ -133,15 +232,15 @@ export class PreviewController {
     console.debug("[PreviewController] 📖 Starting story");
     this.model = new PreviewModel(compiledStory);
 
-    // Register error callback to propagate errors to the view
+    // Register error callback to propagate errors to the webview
     this.model.onError(
       (message: string, severity: "error" | "warning" | "info") => {
-        this.view.showError(message, severity);
+        this.showErrorInWebview(message, severity);
       }
     );
 
     this.model.reset();
-    this.view.startStory();
+    this.startStoryInWebview();
     const update = this.model.continueStory() || {
       hasEnded: false,
       text: "",
@@ -172,20 +271,20 @@ export class PreviewController {
    */
   private updateView(update: StoryUpdate): void {
     console.debug("[PreviewController] 📖 Updating story");
-    this.view.updateStory(update);
+    this.updateStoryInWebview(update);
     if (update.hasEnded) {
       console.debug("[PreviewController] 📖 Story has ended");
-      this.view.endStory();
+      this.endStoryInWebview();
       return;
     }
   }
 
   /**
-   * Handles errors by displaying them in the view.
+   * Handles errors by displaying them in the webview.
    * @param error - The error to handle
    */
   private handleError(error: unknown): void {
-    this.view.showError(
+    this.showErrorInWebview(
       error instanceof Error ? error.message : "An unknown error occurred",
       "error"
     );
