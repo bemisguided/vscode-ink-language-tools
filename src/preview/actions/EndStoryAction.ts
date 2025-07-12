@@ -22,20 +22,20 @@
  * SOFTWARE.
  */
 
-import { PreviewAction } from "../PreviewAction";
+import { PreviewReducerAction } from "../PreviewAction";
 import { PreviewState } from "../PreviewState";
 
 /**
- * Action to mark the story as ended.
- * Sets isEnded to true and isStart to false while preserving all other state.
+ * Action to end the story.
+ * Marks the story as ended and no longer starting.
  */
-export class EndStoryAction implements PreviewAction {
+export class EndStoryAction extends PreviewReducerAction {
   /**
-   * Reduces the current state by marking the story as ended.
-   * All other state properties remain unchanged.
+   * Reduces the current state to mark the story as ended.
+   * Sets isEnded to true and isStart to false.
    *
    * @param state - The current preview state
-   * @returns New state with isEnded set to true and isStart set to false
+   * @returns New state with story marked as ended
    */
   reduce(state: PreviewState): PreviewState {
     return {

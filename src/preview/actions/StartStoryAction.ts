@@ -22,14 +22,14 @@
  * SOFTWARE.
  */
 
-import { PreviewAction } from "../PreviewAction";
+import { PreviewReducerAction } from "../PreviewAction";
 import { PreviewState } from "../PreviewState";
 
 /**
  * Action to start/restart the story.
  * Resets the story state to its initial state and marks it as starting.
  */
-export class StartStoryAction implements PreviewAction {
+export class StartStoryAction extends PreviewReducerAction {
   /**
    * Reduces the current state to a fresh starting state.
    * Clears all story events, choices, and errors, and marks the story as starting.

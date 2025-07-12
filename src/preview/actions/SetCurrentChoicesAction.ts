@@ -22,32 +22,33 @@
  * SOFTWARE.
  */
 
-import { PreviewAction } from "../PreviewAction";
+import { PreviewReducerAction } from "../PreviewAction";
 import { PreviewState } from "../PreviewState";
 import { Choice } from "../types";
 
 /**
- * Action to set the current choices available to the player.
- * Replaces all current choices with the provided choices array.
+ * Action to set the current choices available in the story.
+ * Replaces the existing currentChoices array with the provided choices.
  */
-export class SetCurrentChoicesAction implements PreviewAction {
+export class SetCurrentChoicesAction extends PreviewReducerAction {
   private readonly choices: Choice[];
 
   constructor(choices: Choice[]) {
+    super();
     this.choices = choices;
   }
 
   /**
    * Reduces the current state by replacing the current choices.
-   * All other state properties remain unchanged.
+   * This updates the available choices that the user can select from.
    *
    * @param state - The current preview state
-   * @returns New state with updated currentChoices
+   * @returns New state with updated current choices
    */
   reduce(state: PreviewState): PreviewState {
     return {
       ...state,
-      currentChoices: this.choices,
+      currentChoices: [...this.choices],
     };
   }
 }

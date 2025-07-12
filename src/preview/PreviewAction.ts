@@ -25,16 +25,72 @@
 import { PreviewState } from "./PreviewState";
 
 /**
- * Base interface for all preview state actions.
+ * Context object passed to PreviewAction.apply() method.
+ * Provides access to current state, state mutation, action dispatching, and side-effect resources.
+ */
+export interface PreviewActionContext {
+  /**
+   * Gets the current preview state.
+   * @returns The current preview state (immutable)
+   */
+  getState(): PreviewState;
+
+  /**
+   * Sets the preview state to a new state.
+   * This should only be called by reducer actions that perform state mutations.
+   * @param newState - The new state to set
+   */
+  setState(newState: PreviewState): void;
+
+  /**
+   * Dispatches another action within this action's context.
+   * This allows side-effect actions to dispatch mutation actions.
+   * @param action - The action to dispatch
+   */
+  dispatch(action: PreviewAction): void;
+
+  /**
+   * The Ink story instance for performing side effects.
+   * This is provided for actions that need to interact with the story engine.
+   */
+  story?: any; // Will be typed as Story when available
+}
+
+/**
+ * Base interface for all preview actions.
  *
  * This interface implements the Command pattern where each action encapsulates
- * both the data it operates on and the logic for how it transforms the state.
- * Actions are the only way to modify the preview state, ensuring predictable
- * and testable state mutations.
+ * both the data it operates on and the logic for how it transforms the state
+ * and/or applies side effects.
  *
- * All implementations must be pure functions with no side effects.
+ * Actions are the primary way to modify preview state and perform side effects.
+ * They can be pure state mutations or complex side-effect operations that
+ * dispatch other actions.
  */
 export interface PreviewAction {
+  /**
+   * Applies this action within the given context.
+   *
+   * This method can:
+   * - Perform side effects (interact with story, file system, etc.)
+   * - Dispatch other actions via context.dispatch()
+   * - Update state via context.setState() (for reducer actions)
+   *
+   * The method should be idempotent when possible to support replay functionality.
+   *
+   * @param context - The action context providing state access and dispatch capability
+   */
+  apply(context: PreviewActionContext): void;
+}
+
+/**
+ * Abstract base class for actions that primarily perform state mutations.
+ * This provides backward compatibility for existing reducer-style actions.
+ *
+ * Actions that extend this class should implement the reduce() method,
+ * which will be called automatically from apply().
+ */
+export abstract class PreviewReducerAction implements PreviewAction {
   /**
    * Applies this action to the current state and returns a new state.
    *
@@ -47,5 +103,17 @@ export interface PreviewAction {
    * @param state - The current preview state (must not be mutated)
    * @returns A new preview state with this action applied
    */
-  reduce(state: PreviewState): PreviewState;
+  abstract reduce(state: PreviewState): PreviewState;
+
+  /**
+   * Applies this reducer action by calling reduce() and updating the state.
+   * This bridges the gap between the new action system and existing reducer actions.
+   *
+   * @param context - The action context
+   */
+  apply(context: PreviewActionContext): void {
+    const currentState = context.getState();
+    const newState = this.reduce(currentState);
+    context.setState(newState);
+  }
 }

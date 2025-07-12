@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-import { PreviewAction } from "../PreviewAction";
+import { PreviewReducerAction } from "../PreviewAction";
 import { PreviewState } from "../PreviewState";
 import { StoryEvent } from "../types";
 
@@ -31,10 +31,11 @@ import { StoryEvent } from "../types";
  * Appends a list of new story events to the existing storyEvents array.
  * This allows for flexible addition of single events or multiple events at once.
  */
-export class AddStoryEventsAction implements PreviewAction {
+export class AddStoryEventsAction extends PreviewReducerAction {
   private readonly events: StoryEvent[];
 
   constructor(events: StoryEvent[]) {
+    super();
     this.events = events;
   }
 

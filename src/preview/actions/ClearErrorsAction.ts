@@ -22,15 +22,18 @@
  * SOFTWARE.
  */
 
+import { PreviewReducerAction } from "../PreviewAction";
 import { PreviewState } from "../PreviewState";
 
 /**
- * Action to clear all errors from the preview state.
- * This action removes all errors while preserving all other state properties.
+ * Action to clear all errors from the state.
+ * Removes all errors from the errors array.
  */
-export class ClearErrorsAction {
+export class ClearErrorsAction extends PreviewReducerAction {
   /**
-   * Reduces the state by clearing all errors.
+   * Reduces the current state by clearing all errors.
+   * Resets the errors array to an empty array.
+   *
    * @param state - The current preview state
    * @returns New state with errors cleared
    */

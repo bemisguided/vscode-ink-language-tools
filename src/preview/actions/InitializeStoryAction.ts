@@ -22,25 +22,26 @@
  * SOFTWARE.
  */
 
-import { PreviewAction } from "../PreviewAction";
+import { PreviewReducerAction } from "../PreviewAction";
 import { PreviewState } from "../PreviewState";
 
 /**
- * Action to initialize story metadata.
- * Sets the title and fileName for the story being previewed.
+ * Action to initialize the story metadata.
+ * Sets the title and file name for the story being previewed.
  */
-export class InitializeStoryAction implements PreviewAction {
+export class InitializeStoryAction extends PreviewReducerAction {
   private readonly title: string;
   private readonly fileName: string;
 
   constructor(title: string, fileName: string) {
+    super();
     this.title = title;
     this.fileName = fileName;
   }
 
   /**
-   * Reduces the current state by setting the metadata title and fileName.
-   * All other state properties remain unchanged.
+   * Reduces the current state by updating the metadata.
+   * Sets the story title and file name while preserving other state.
    *
    * @param state - The current preview state
    * @returns New state with updated metadata
@@ -49,6 +50,7 @@ export class InitializeStoryAction implements PreviewAction {
     return {
       ...state,
       metadata: {
+        ...state.metadata,
         title: this.title,
         fileName: this.fileName,
       },

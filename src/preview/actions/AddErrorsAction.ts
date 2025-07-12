@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-import { PreviewAction } from "../PreviewAction";
+import { PreviewReducerAction } from "../PreviewAction";
 import { PreviewState } from "../PreviewState";
 import { ErrorInfo } from "../ErrorInfo";
 
@@ -31,19 +31,20 @@ import { ErrorInfo } from "../ErrorInfo";
  * Appends a list of new errors to the existing errors array.
  * This allows for flexible addition of single errors or multiple errors at once.
  */
-export class AddErrorsAction implements PreviewAction {
+export class AddErrorsAction extends PreviewReducerAction {
   private readonly errors: ErrorInfo[];
 
   constructor(errors: ErrorInfo[]) {
+    super();
     this.errors = errors;
   }
 
   /**
    * Reduces the current state by appending new errors.
-   * All other state properties remain unchanged.
+   * Maintains all existing errors and adds the new ones.
    *
    * @param state - The current preview state
-   * @returns New state with the new errors appended to the errors array
+   * @returns New state with additional errors appended
    */
   reduce(state: PreviewState): PreviewState {
     return {
