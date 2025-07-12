@@ -29,8 +29,18 @@ import {
   IFailedBuildResult,
 } from "../../src/build/IBuildResult";
 import { mockVSCodeUri } from "./mockVSCodeUri";
-import testStoryJson from "../fixtures/test-story.json";
-import testStorySimpleJson from "../fixtures/test-story-simple.json";
+
+// Helper function to get fixture stories
+function getFixtureStory(name: string): string {
+  if (!global.testFixtures || !global.testFixtures[name]) {
+    throw new Error(`Fixture "${name}" not found. Available fixtures: ${Object.keys(global.testFixtures || {}).join(", ")}`);
+  }
+  const fixture = global.testFixtures[name];
+  if (name === "externalFunctions") {
+    throw new Error(`Cannot get story JSON from external functions`);
+  }
+  return (fixture as any).storyJson;
+}
 
 /**
  * Creates a mock successful build result with a test story.
@@ -42,10 +52,10 @@ export function createMockSuccessfulBuildResult(
   filePath: string = "/mock/path/test.ink",
   useSimpleStory: boolean = false
 ): ISuccessfulBuildResult {
-  // Use the imported test story JSON or minimal story
+  // Use the fixture stories
   const storyJson = useSimpleStory
-    ? JSON.stringify(testStorySimpleJson)
-    : JSON.stringify(testStoryJson);
+    ? getFixtureStory("test-story-simple")
+    : getFixtureStory("test-story");
 
   return {
     success: true,

@@ -23,7 +23,6 @@
  */
 
 import { Story } from "inkjs/engine/Story";
-import { BindableFunction } from "../types";
 import {
   StoryUpdate,
   FunctionCall,
@@ -32,6 +31,7 @@ import {
   FunctionStoryEvent,
 } from "./types";
 import { ISuccessfulBuildResult } from "../build/IBuildResult";
+import { ExternalFunctionVM } from "../build/ExternalFunctionVM";
 
 export type ErrorCallback = (
   message: string,
@@ -48,15 +48,21 @@ export class PreviewModel {
   private currentFunctionCalls: FunctionCall[] = [];
   private errorCallback?: ErrorCallback;
   private story: Story;
+  private externalFunctionVM?: ExternalFunctionVM;
 
   // Constructor ======================================================================================================
 
   constructor(compiledStory: ISuccessfulBuildResult) {
     this.story = compiledStory.story;
+    this.externalFunctionVM = compiledStory.externalFunctionVM;
+
     this.story.onError = (error) => {
       // Propagate error immediately to controller via callback
       this.errorCallback?.(error.toString(), "error");
     };
+
+    // Automatically bind all available external functions
+    this.bindAllExternalFunctions();
   }
 
   // Public Methods ===================================================================================================
@@ -170,6 +176,68 @@ export class PreviewModel {
   }
 
   /**
+   * Automatically binds all available external functions to the story.
+   */
+  private bindAllExternalFunctions(): void {
+    if (!this.externalFunctionVM) {
+      console.debug(
+        "[PreviewModel] No ExternalFunctionVM available for binding"
+      );
+      return;
+    }
+
+    const availableFunctions = this.externalFunctionVM.getFunctionNames();
+
+    if (availableFunctions.length === 0) {
+      console.debug("[PreviewModel] No mock functions available for binding");
+      return;
+    }
+
+    console.debug(
+      `[PreviewModel] Attempting to bind ${availableFunctions.length} functions:`,
+      availableFunctions
+    );
+
+    const failedBindings = this.externalFunctionVM.bindFunctions(
+      this.story,
+      availableFunctions,
+      (functionName, args, result) => {
+        // Track function calls
+        this.addFunctionCall({
+          functionName,
+          args,
+          result,
+          timestamp: Date.now(),
+        });
+      }
+    );
+
+    // Handle failed bindings
+    if (failedBindings.length > 0) {
+      console.error(
+        `[PreviewModel] Failed to bind mock functions:`,
+        failedBindings
+      );
+      this.errorCallback?.(
+        `Failed to bind mock functions: ${failedBindings.join(", ")}`,
+        "error"
+      );
+    } else {
+      console.debug(
+        `[PreviewModel] Successfully bound all ${availableFunctions.length} functions`
+      );
+    }
+  }
+
+  /**
+   * Gets available mock function names (for debugging/info purposes).
+   * @returns Array of available function names
+   */
+  public getAvailableMockFunctions(): string[] {
+    return this.externalFunctionVM?.getFunctionNames() || [];
+  }
+
+  /**
    * Resets the story to its initial state.
    * Clears all function calls and story state.
    */
@@ -184,6 +252,9 @@ export class PreviewModel {
     }
 
     this.currentFunctionCalls = [];
+
+    // Note: External functions remain bound to the story object after reset
+    // No need to rebind them as they persist across story state resets
   }
 
   // Private Methods ==================================================================================================
@@ -195,30 +266,6 @@ export class PreviewModel {
   private addFunctionCall(call: FunctionCall): void {
     this.ensureStoryIsLoaded();
     this.currentFunctionCalls.push(call);
-  }
-
-  /**
-   * Binds external functions to the story.
-   * @param bindableFunctions - Array of functions to bind
-   */
-  private bindExternalFunctions(bindableFunctions: BindableFunction[]): void {
-    this.ensureStoryIsLoaded();
-    bindableFunctions.forEach((bindableFunction) => {
-      this.story.BindExternalFunction(
-        bindableFunction.name,
-        (...args: any[]) => {
-          const result = bindableFunction.fn.apply(this, args);
-          this.addFunctionCall({
-            functionName: bindableFunction.name,
-            args,
-            result,
-            timestamp: Date.now(),
-          });
-          return result;
-        },
-        false
-      );
-    });
   }
 
   /**
