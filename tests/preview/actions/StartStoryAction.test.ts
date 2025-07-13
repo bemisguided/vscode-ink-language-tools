@@ -24,7 +24,7 @@
 
 import { StartStoryAction } from "../../../src/preview/actions/StartStoryAction";
 import { PreviewState } from "../../../src/preview/PreviewState";
-import { ErrorInfo } from "../../../src/preview/ErrorInfo";
+import { mockPreviewState } from "../../__mocks__/mockPreviewState";
 
 describe("StartStoryAction", () => {
   let action: StartStoryAction;
@@ -35,11 +35,11 @@ describe("StartStoryAction", () => {
 
   describe("reduce", () => {
     test("should reset state to initial starting state", () => {
-      // Arrange
-      const currentState: PreviewState = {
+      // Set up
+      const currentState: PreviewState = mockPreviewState({
         storyEvents: [
           {
-            type: "text",
+            type: "text" as const,
             text: "Some existing text",
             tags: ["tag1"],
           },
@@ -59,13 +59,14 @@ describe("StartStoryAction", () => {
         ],
         isEnded: true,
         isStart: false,
+        lastChoiceIndex: 0,
         metadata: {
           title: "Test Story",
           fileName: "/path/to/test.ink",
         },
-      };
+      });
 
-      // Act
+      // Execute
       const newState = action.reduce(currentState);
 
       // Assert
@@ -77,103 +78,47 @@ describe("StartStoryAction", () => {
     });
 
     test("should preserve existing metadata unchanged", () => {
-      // Arrange
-      const currentState: PreviewState = {
-        storyEvents: [],
-        currentChoices: [],
-        errors: [],
-        isEnded: false,
-        isStart: false,
+      // Set up
+      const currentState: PreviewState = mockPreviewState({
         metadata: {
           title: "Test Story",
           fileName: "/path/to/test.ink",
         },
-      };
+      });
 
-      // Act
+      // Execute
       const newState = action.reduce(currentState);
 
       // Assert
-      expect(newState.metadata.title).toBe("Test Story");
-      expect(newState.metadata.fileName).toBe("/path/to/test.ink");
+      expect(newState.metadata).toEqual({
+        title: "Test Story",
+        fileName: "/path/to/test.ink",
+      });
     });
 
-    test("should handle empty initial state", () => {
-      // Arrange
-      const currentState: PreviewState = {
-        storyEvents: [],
-        currentChoices: [],
-        errors: [],
-        isEnded: false,
-        isStart: false,
-        metadata: {
-          title: "Test Story",
-          fileName: "/path/to/test.ink",
-        },
-      };
+    test("should reset lastChoiceIndex to 0", () => {
+      // Set up
+      const currentState: PreviewState = mockPreviewState({
+        lastChoiceIndex: 5,
+      });
 
-      // Act
+      // Execute
       const newState = action.reduce(currentState);
 
       // Assert
-      expect(newState.storyEvents).toEqual([]);
-      expect(newState.currentChoices).toEqual([]);
-      expect(newState.errors).toEqual([]);
-      expect(newState.isEnded).toBe(false);
-      expect(newState.isStart).toBe(true);
+      expect(newState.lastChoiceIndex).toBe(0);
     });
 
-    test("should not mutate the original state", () => {
-      // Arrange
-      const originalErrors: ErrorInfo[] = [
-        {
-          message: "Original error",
-          severity: "error",
-        },
-      ];
-      const originalMetadata = {
-        title: "Original Story",
-        fileName: "/path/to/original.ink",
-      };
-      const currentState: PreviewState = {
-        storyEvents: [
-          {
-            type: "text",
-            text: "Original text",
-            tags: [],
-          },
-        ],
-        currentChoices: [
-          {
-            index: 0,
-            text: "Original choice",
-            tags: [],
-          },
-        ],
-        errors: originalErrors,
-        isEnded: true,
-        isStart: false,
-        metadata: originalMetadata,
-      };
+    test("should return a new state object", () => {
+      // Set up
+      const currentState: PreviewState = mockPreviewState();
 
-      // Act
+      // Execute
       const newState = action.reduce(currentState);
 
-      // Assert - original state should be unchanged
-      expect(currentState.storyEvents).toHaveLength(1);
-      expect(currentState.currentChoices).toHaveLength(1);
-      expect(currentState.errors).toHaveLength(1);
-      expect(currentState.isEnded).toBe(true);
-      expect(currentState.isStart).toBe(false);
-      expect(currentState.metadata.title).toBe("Original Story");
-      expect(currentState.metadata.fileName).toBe("/path/to/original.ink");
-
-      // New state should be different
-      expect(newState.storyEvents).toHaveLength(0);
-      expect(newState.currentChoices).toHaveLength(0);
-      expect(newState.errors).toHaveLength(0);
-      expect(newState.isEnded).toBe(false);
-      expect(newState.isStart).toBe(true);
+      // Assert
+      expect(newState).not.toBe(currentState);
+      expect(newState).toEqual(mockPreviewState({ isStart: true }));
     });
   });
 });

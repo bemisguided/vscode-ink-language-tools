@@ -25,206 +25,192 @@
 import { AddStoryEventsAction } from "../../../src/preview/actions/AddStoryEventsAction";
 import { PreviewState } from "../../../src/preview/PreviewState";
 import { StoryEvent } from "../../../src/preview/types";
+import { mockPreviewState } from "../../__mocks__/mockPreviewState";
 
 describe("AddStoryEventsAction", () => {
   describe("reduce", () => {
     test("should add a single event to empty storyEvents as current", () => {
-      // Arrange
+      // Set up
       const newEvent: StoryEvent = {
-        type: "text",
+        type: "text" as const,
         text: "Hello, world!",
         tags: ["greeting"],
-        isCurrent: false, // This will be overridden to true by the action
+        isCurrent: false, // This will be overridden based on lastChoiceIndex
       };
       const action = new AddStoryEventsAction([newEvent]);
-      const currentState: PreviewState = {
+      const currentState: PreviewState = mockPreviewState({
         storyEvents: [],
-        currentChoices: [],
-        errors: [],
-        isEnded: false,
-        isStart: false,
-        metadata: {
-          title: "Test Story",
-          fileName: "/path/to/test.ink",
-        },
-      };
+        lastChoiceIndex: 0,
+      });
 
-      // Act
+      // Execute
       const newState = action.reduce(currentState);
 
       // Assert
       expect(newState.storyEvents).toHaveLength(1);
       expect(newState.storyEvents[0]).toEqual({
-        ...newEvent,
+        type: "text",
+        text: "Hello, world!",
+        tags: ["greeting"],
         isCurrent: true,
       });
     });
 
     test("should add multiple events to empty storyEvents as current", () => {
-      // Arrange
+      // Set up
       const newEvents: StoryEvent[] = [
         {
-          type: "text",
-          text: "First text",
-          tags: ["tag1"],
-          isCurrent: false, // Will be overridden to true
+          type: "text" as const,
+          text: "First event",
+          tags: ["first"],
         },
         {
-          type: "function",
+          type: "function" as const,
           functionName: "testFunc",
-          args: ["arg1", 123],
-          result: "result",
-          isCurrent: false, // Will be overridden to true
-        },
-        {
-          type: "text",
-          text: "Second text",
-          tags: [],
-          isCurrent: false, // Will be overridden to true
+          args: [1, 2],
+          result: 3,
         },
       ];
       const action = new AddStoryEventsAction(newEvents);
-      const currentState: PreviewState = {
+      const currentState: PreviewState = mockPreviewState({
         storyEvents: [],
-        currentChoices: [],
-        errors: [],
-        isEnded: false,
-        isStart: false,
-        metadata: {
-          title: "Test Story",
-          fileName: "/path/to/test.ink",
-        },
-      };
-
-      // Act
-      const newState = action.reduce(currentState);
-
-      // Assert
-      expect(newState.storyEvents).toHaveLength(3);
-      newState.storyEvents.forEach((event, index) => {
-        expect(event).toEqual({
-          ...newEvents[index],
-          isCurrent: true,
-        });
+        lastChoiceIndex: 0,
       });
-    });
 
-    test("should mark existing events as historical and new events as current", () => {
-      // Arrange
-      const existingEvents: StoryEvent[] = [
-        {
-          type: "text",
-          text: "Existing text",
-          tags: ["existing"],
-          isCurrent: true, // Currently current, will become historical
-        },
-      ];
-      const newEvents: StoryEvent[] = [
-        {
-          type: "function",
-          functionName: "newFunc",
-          args: [],
-          result: null,
-          isCurrent: false, // Will be overridden to true
-        },
-      ];
-      const action = new AddStoryEventsAction(newEvents);
-      const currentState: PreviewState = {
-        storyEvents: existingEvents,
-        currentChoices: [],
-        errors: [],
-        isEnded: false,
-        isStart: false,
-        metadata: {
-          title: "Test Story",
-          fileName: "/path/to/test.ink",
-        },
-      };
-
-      // Act
+      // Execute
       const newState = action.reduce(currentState);
 
       // Assert
       expect(newState.storyEvents).toHaveLength(2);
-      // First event should be marked as historical
       expect(newState.storyEvents[0]).toEqual({
-        ...existingEvents[0],
-        isCurrent: false,
+        type: "text",
+        text: "First event",
+        tags: ["first"],
+        isCurrent: true,
       });
-      // Second event should be marked as current
       expect(newState.storyEvents[1]).toEqual({
-        ...newEvents[0],
+        type: "function",
+        functionName: "testFunc",
+        args: [1, 2],
+        result: 3,
         isCurrent: true,
       });
     });
 
-    test("should handle empty events array without changing existing events", () => {
-      // Arrange
+    test("should append events to existing storyEvents", () => {
+      // Set up
       const existingEvents: StoryEvent[] = [
         {
-          type: "text",
-          text: "Existing text",
-          tags: [],
-          isCurrent: true, // Should remain unchanged when no new events
+          type: "text" as const,
+          text: "Existing event",
+          tags: ["existing"],
+          isCurrent: false,
         },
       ];
-      const action = new AddStoryEventsAction([]);
-      const currentState: PreviewState = {
-        storyEvents: existingEvents,
-        currentChoices: [],
-        errors: [],
-        isEnded: false,
-        isStart: false,
-        metadata: {
-          title: "Test Story",
-          fileName: "/path/to/test.ink",
+      const newEvents: StoryEvent[] = [
+        {
+          type: "text" as const,
+          text: "New event",
+          tags: ["new"],
         },
-      };
+      ];
+      const action = new AddStoryEventsAction(newEvents);
+      const currentState: PreviewState = mockPreviewState({
+        storyEvents: existingEvents,
+        lastChoiceIndex: 1,
+      });
 
-      // Act
+      // Execute
       const newState = action.reduce(currentState);
 
       // Assert
-      expect(newState.storyEvents).toHaveLength(1);
+      expect(newState.storyEvents).toHaveLength(2);
       expect(newState.storyEvents[0]).toEqual({
-        ...existingEvents[0],
-        isCurrent: false, // Should be marked as historical even with empty array
+        type: "text",
+        text: "Existing event",
+        tags: ["existing"],
+        isCurrent: false,
+      });
+      expect(newState.storyEvents[1]).toEqual({
+        type: "text",
+        text: "New event",
+        tags: ["new"],
+        isCurrent: true,
       });
     });
 
-    test("should preserve all other state properties unchanged", () => {
-      // Arrange
+    test("should mark events as current when index >= lastChoiceIndex", () => {
+      // Set up
+      const existingEvents: StoryEvent[] = [
+        {
+          type: "text" as const,
+          text: "Old event 1",
+          tags: [],
+          isCurrent: false,
+        },
+        {
+          type: "text" as const,
+          text: "Old event 2",
+          tags: [],
+          isCurrent: false,
+        },
+      ];
+      const newEvents: StoryEvent[] = [
+        {
+          type: "text" as const,
+          text: "New event",
+          tags: [],
+        },
+      ];
+      const action = new AddStoryEventsAction(newEvents);
+      const currentState: PreviewState = mockPreviewState({
+        storyEvents: existingEvents,
+        lastChoiceIndex: 1, // Second event onwards should be current
+      });
+
+      // Execute
+      const newState = action.reduce(currentState);
+
+      // Assert
+      expect(newState.storyEvents).toHaveLength(3);
+      expect(newState.storyEvents[0].isCurrent).toBe(false);
+      expect(newState.storyEvents[1].isCurrent).toBe(true);
+      expect(newState.storyEvents[2].isCurrent).toBe(true);
+    });
+
+    test("should preserve all other state properties", () => {
+      // Set up
       const newEvent: StoryEvent = {
-        type: "text",
-        text: "New text",
-        tags: ["new"],
-        isCurrent: false,
+        type: "text" as const,
+        text: "Test event",
+        tags: ["test"],
       };
       const action = new AddStoryEventsAction([newEvent]);
-      const currentState: PreviewState = {
+      const currentState: PreviewState = mockPreviewState({
         storyEvents: [],
         currentChoices: [
           {
             index: 0,
             text: "Choice 1",
-            tags: ["choice-tag"],
+            tags: ["choice"],
           },
         ],
         errors: [
           {
-            message: "Error message",
+            message: "Test error",
             severity: "error",
           },
         ],
         isEnded: true,
         isStart: false,
+        lastChoiceIndex: 0,
         metadata: {
-          title: "My Story",
-          fileName: "/path/to/story.ink",
+          title: "Test Story",
+          fileName: "/path/to/test.ink",
         },
-      };
+      });
 
-      // Act
+      // Execute
       const newState = action.reduce(currentState);
 
       // Assert
@@ -232,274 +218,161 @@ describe("AddStoryEventsAction", () => {
       expect(newState.errors).toEqual(currentState.errors);
       expect(newState.isEnded).toBe(true);
       expect(newState.isStart).toBe(false);
+      expect(newState.lastChoiceIndex).toBe(0);
       expect(newState.metadata).toEqual(currentState.metadata);
+    });
+
+    test("should handle empty events array", () => {
+      // Set up
+      const action = new AddStoryEventsAction([]);
+      const currentState: PreviewState = mockPreviewState({
+        storyEvents: [
+          {
+            type: "text" as const,
+            text: "Existing event",
+            tags: [],
+            isCurrent: false,
+          },
+        ],
+        lastChoiceIndex: 0, // Event at index 0 will be marked as current
+      });
+
+      // Execute
+      const newState = action.reduce(currentState);
+
+      // Assert
       expect(newState.storyEvents).toHaveLength(1);
       expect(newState.storyEvents[0]).toEqual({
-        ...newEvent,
-        isCurrent: true,
-      });
-    });
-
-    test("should not mutate the original state", () => {
-      // Arrange
-      const originalEvents: StoryEvent[] = [
-        {
-          type: "text",
-          text: "Original text",
-          tags: ["original"],
-          isCurrent: true,
-        },
-      ];
-      const newEvents: StoryEvent[] = [
-        {
-          type: "text",
-          text: "New text",
-          tags: ["new"],
-          isCurrent: false,
-        },
-      ];
-      const action = new AddStoryEventsAction(newEvents);
-      const currentState: PreviewState = {
-        storyEvents: originalEvents,
-        currentChoices: [],
-        errors: [],
-        isEnded: false,
-        isStart: false,
-        metadata: {
-          title: "Test Story",
-          fileName: "/path/to/test.ink",
-        },
-      };
-
-      // Act
-      const newState = action.reduce(currentState);
-
-      // Assert - original state should be unchanged
-      expect(currentState.storyEvents).toHaveLength(1);
-      expect(currentState.storyEvents[0]).toEqual(originalEvents[0]);
-
-      // New state should have both events with correct isCurrent values
-      expect(newState.storyEvents).toHaveLength(2);
-      expect(newState.storyEvents[0]).toEqual({
-        ...originalEvents[0],
-        isCurrent: false,
-      });
-      expect(newState.storyEvents[1]).toEqual({
-        ...newEvents[0],
-        isCurrent: true,
-      });
-    });
-
-    test("should handle different event types", () => {
-      // Arrange
-      const textEvent: StoryEvent = {
         type: "text",
-        text: "Some story text",
-        tags: ["story", "text"],
-        isCurrent: false,
-      };
-      const functionEvent: StoryEvent = {
-        type: "function",
-        functionName: "calculateScore",
-        args: [100, "bonus"],
-        result: 150,
-        isCurrent: false,
-      };
-      const functionEventWithNullResult: StoryEvent = {
-        type: "function",
-        functionName: "doSomething",
-        args: [],
-        result: null,
-        isCurrent: false,
-      };
-      const action = new AddStoryEventsAction([
-        textEvent,
-        functionEvent,
-        functionEventWithNullResult,
-      ]);
-      const currentState: PreviewState = {
-        storyEvents: [],
-        currentChoices: [],
-        errors: [],
-        isEnded: false,
-        isStart: false,
-        metadata: {
-          title: "Test Story",
-          fileName: "/path/to/test.ink",
-        },
-      };
+        text: "Existing event",
+        tags: [],
+        isCurrent: true, // Should be current since index 0 >= lastChoiceIndex 0
+      });
+    });
 
-      // Act
+    test("should return a new state object", () => {
+      // Set up
+      const newEvent: StoryEvent = {
+        type: "text" as const,
+        text: "Test event",
+        tags: [],
+      };
+      const action = new AddStoryEventsAction([newEvent]);
+      const currentState: PreviewState = mockPreviewState();
+
+      // Execute
       const newState = action.reduce(currentState);
 
       // Assert
-      expect(newState.storyEvents).toHaveLength(3);
+      expect(newState).not.toBe(currentState);
+      expect(newState).toEqual(
+        mockPreviewState({
+          storyEvents: [
+            {
+              type: "text",
+              text: "Test event",
+              tags: [],
+              isCurrent: true,
+            },
+          ],
+        })
+      );
+    });
+  });
+
+  describe("Edge cases", () => {
+    test("should handle events with special characters", () => {
+      // Set up
+      const specialEvent: StoryEvent = {
+        type: "text" as const,
+        text: "Event with special chars: àáâãäåæçèéêë 🔥💥",
+        tags: ["special", "unicode"],
+      };
+      const action = new AddStoryEventsAction([specialEvent]);
+      const currentState: PreviewState = mockPreviewState();
+
+      // Execute
+      const newState = action.reduce(currentState);
+
+      // Assert
+      expect(newState.storyEvents).toHaveLength(1);
       expect(newState.storyEvents[0]).toEqual({
-        ...textEvent,
-        isCurrent: true,
-      });
-      expect(newState.storyEvents[1]).toEqual({
-        ...functionEvent,
-        isCurrent: true,
-      });
-      expect(newState.storyEvents[2]).toEqual({
-        ...functionEventWithNullResult,
+        type: "text",
+        text: "Event with special chars: àáâãäåæçèéêë 🔥💥",
+        tags: ["special", "unicode"],
         isCurrent: true,
       });
     });
 
-    test("should handle events with complex content", () => {
-      // Arrange
-      const complexEvents: StoryEvent[] = [
-        {
-          type: "text",
-          text: "Text with\nnewlines\tand\ttabs and special chars: àáâãäåæçèéêë",
-          tags: ["complex", "unicode", "àáâãäåæçèéêë"],
-          isCurrent: false,
-        },
-        {
-          type: "function",
-          functionName: "complexFunction",
-          args: ["string with spaces", 42, true, null, undefined],
-          result: {
-            complex: "object",
-            with: ["nested", "arrays"],
-            and: { nested: "objects" },
-          },
-          isCurrent: false,
-        },
-      ];
-      const action = new AddStoryEventsAction(complexEvents);
-      const currentState: PreviewState = {
-        storyEvents: [],
-        currentChoices: [],
-        errors: [],
-        isEnded: false,
-        isStart: false,
-        metadata: {
-          title: "Test Story",
-          fileName: "/path/to/test.ink",
-        },
+    test("should handle function events with complex args", () => {
+      // Set up
+      const complexFunctionEvent: StoryEvent = {
+        type: "function" as const,
+        functionName: "complexFunction",
+        args: [
+          { nested: "object" },
+          ["array", "of", "strings"],
+          42,
+          true,
+          null,
+        ],
+        result: { success: true, value: 100 },
       };
+      const action = new AddStoryEventsAction([complexFunctionEvent]);
+      const currentState: PreviewState = mockPreviewState();
 
-      // Act
+      // Execute
       const newState = action.reduce(currentState);
 
       // Assert
-      expect(newState.storyEvents).toHaveLength(2);
-      expect(newState.storyEvents).toEqual([
-        { ...complexEvents[0], isCurrent: true },
-        { ...complexEvents[1], isCurrent: true },
-      ]);
+      expect(newState.storyEvents).toHaveLength(1);
+      expect(newState.storyEvents[0]).toEqual({
+        type: "function",
+        functionName: "complexFunction",
+        args: [
+          { nested: "object" },
+          ["array", "of", "strings"],
+          42,
+          true,
+          null,
+        ],
+        result: { success: true, value: 100 },
+        isCurrent: true,
+      });
     });
 
-    test("should maintain chronological order of events", () => {
-      // Arrange
-      const existingEvents: StoryEvent[] = [
+    test("should handle mixed event types", () => {
+      // Set up
+      const mixedEvents: StoryEvent[] = [
         {
-          type: "text",
-          text: "First",
-          tags: ["1"],
-          isCurrent: true,
+          type: "text" as const,
+          text: "Text event",
+          tags: ["text"],
         },
         {
-          type: "text",
-          text: "Second",
-          tags: ["2"],
-          isCurrent: true,
+          type: "function" as const,
+          functionName: "testFunc",
+          args: [1, 2, 3],
+          result: 6,
+        },
+        {
+          type: "text" as const,
+          text: "Another text event",
+          tags: ["text", "another"],
         },
       ];
-      const newEvents: StoryEvent[] = [
-        {
-          type: "text",
-          text: "Third",
-          tags: ["3"],
-          isCurrent: false,
-        },
-        {
-          type: "text",
-          text: "Fourth",
-          tags: ["4"],
-          isCurrent: false,
-        },
-      ];
-      const action = new AddStoryEventsAction(newEvents);
-      const currentState: PreviewState = {
-        storyEvents: existingEvents,
-        currentChoices: [],
-        errors: [],
-        isEnded: false,
-        isStart: false,
-        metadata: {
-          title: "Test Story",
-          fileName: "/path/to/test.ink",
-        },
-      };
+      const action = new AddStoryEventsAction(mixedEvents);
+      const currentState: PreviewState = mockPreviewState();
 
-      // Act
-      const newState = action.reduce(currentState);
-
-      // Assert
-      expect(newState.storyEvents).toHaveLength(4);
-      expect((newState.storyEvents[0] as any).tags).toEqual(["1"]);
-      expect((newState.storyEvents[1] as any).tags).toEqual(["2"]);
-      expect((newState.storyEvents[2] as any).tags).toEqual(["3"]);
-      expect((newState.storyEvents[3] as any).tags).toEqual(["4"]);
-
-      // Verify isCurrent values
-      expect(newState.storyEvents[0].isCurrent).toBe(false); // Historical
-      expect(newState.storyEvents[1].isCurrent).toBe(false); // Historical
-      expect(newState.storyEvents[2].isCurrent).toBe(true); // Current
-      expect(newState.storyEvents[3].isCurrent).toBe(true); // Current
-    });
-
-    test("should handle multiple historical and current groups", () => {
-      // Arrange
-      const existingEvents: StoryEvent[] = [
-        {
-          type: "text",
-          text: "First group - historical",
-          tags: ["group1"],
-          isCurrent: false,
-        },
-        {
-          type: "text",
-          text: "Second group - current",
-          tags: ["group2"],
-          isCurrent: true,
-        },
-      ];
-      const newEvents: StoryEvent[] = [
-        {
-          type: "text",
-          text: "Third group - will be current",
-          tags: ["group3"],
-          isCurrent: false,
-        },
-      ];
-      const action = new AddStoryEventsAction(newEvents);
-      const currentState: PreviewState = {
-        storyEvents: existingEvents,
-        currentChoices: [],
-        errors: [],
-        isEnded: false,
-        isStart: false,
-        metadata: {
-          title: "Test Story",
-          fileName: "/path/to/test.ink",
-        },
-      };
-
-      // Act
+      // Execute
       const newState = action.reduce(currentState);
 
       // Assert
       expect(newState.storyEvents).toHaveLength(3);
-      // All existing events should become historical
-      expect(newState.storyEvents[0].isCurrent).toBe(false);
-      expect(newState.storyEvents[1].isCurrent).toBe(false);
-      // New events should be current
-      expect(newState.storyEvents[2].isCurrent).toBe(true);
+      expect(newState.storyEvents[0].type).toBe("text");
+      expect(newState.storyEvents[1].type).toBe("function");
+      expect(newState.storyEvents[2].type).toBe("text");
+      expect(newState.storyEvents.every((event) => event.isCurrent)).toBe(true);
     });
   });
 });

@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 
+import { Story } from "inkjs";
 import { PreviewState } from "./PreviewState";
 import { PreviewAction, PreviewActionContext } from "./PreviewAction";
 
@@ -47,7 +48,7 @@ export class PreviewStateManager {
 
   private currentState: PreviewState;
   private actionHistory: HistoryEntry[] = [];
-  private story?: any; // Will be typed as Story when available
+  private story?: Story;
   private isProcessing = false;
   private maxHistorySize = 100; // Configurable history limit
 
@@ -117,8 +118,16 @@ export class PreviewStateManager {
    * Sets the story instance for side effects.
    * @param story - The Ink story instance
    */
-  public setStory(story: any): void {
+  public setStory(story: Story): void {
     this.story = story;
+  }
+
+  /**
+   * Gets the story instance.
+   * @returns The Ink story instance
+   */
+  public getStory(): Story | undefined {
+    return this.story;
   }
 
   /**
@@ -254,6 +263,7 @@ export class PreviewStateManager {
       errors: [],
       isEnded: false,
       isStart: false,
+      lastChoiceIndex: 0,
       metadata: {
         title: "Untitled Story",
         fileName: "unknown.ink",

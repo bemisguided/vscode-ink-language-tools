@@ -41,21 +41,26 @@ export class AddStoryEventsAction extends PreviewReducerAction {
 
   /**
    * Reduces the current state by appending new story events.
-   * Marks all existing events as historical and all new events as current.
-   * This creates natural "turns" or "groups" in the story progression.
+   * Uses lastChoiceIndex to determine which events should be marked as current.
+   * Events with index >= lastChoiceIndex are marked as current (from the current turn).
+   * Events with index < lastChoiceIndex are marked as historical (from previous turns).
    *
    * @param state - The current preview state
-   * @returns New state with existing events marked as historical and new events marked as current
+   * @returns New state with events appended and isCurrent flags set based on lastChoiceIndex
    */
   reduce(state: PreviewState): PreviewState {
+    // Combine existing events with new events
+    const allEvents = [...state.storyEvents, ...this.events];
+
+    // Set isCurrent based on lastChoiceIndex
+    const eventsWithCurrentFlags = allEvents.map((event, index) => ({
+      ...event,
+      isCurrent: index >= state.lastChoiceIndex,
+    }));
+
     return {
       ...state,
-      storyEvents: [
-        // Mark all existing events as historical
-        ...state.storyEvents.map((event) => ({ ...event, isCurrent: false })),
-        // Add new events as current
-        ...this.events.map((event) => ({ ...event, isCurrent: true })),
-      ],
+      storyEvents: eventsWithCurrentFlags,
     };
   }
 }

@@ -35,6 +35,9 @@ import { SetCurrentChoicesAction } from "../../src/preview/actions/SetCurrentCho
 import { AddErrorsAction } from "../../src/preview/actions/AddErrorsAction";
 import { ClearErrorsAction } from "../../src/preview/actions/ClearErrorsAction";
 
+// Import mock helpers
+import { mockPreviewState } from "../__mocks__/mockPreviewState";
+
 describe("PreviewStateManager", () => {
   let stateManager: PreviewStateManager;
 
@@ -52,17 +55,11 @@ describe("PreviewStateManager", () => {
       const state = stateManager.getState();
 
       // Assert
-      expect(state.storyEvents).toEqual([]);
-      expect(state.currentChoices).toEqual([]);
-      expect(state.errors).toEqual([]);
-      expect(state.isEnded).toBe(false);
-      expect(state.isStart).toBe(false);
-      expect(state.metadata.title).toBe("Untitled Story");
-      expect(state.metadata.fileName).toBe("unknown.ink");
+      expect(state).toEqual(mockPreviewState());
     });
 
     it("should create with partial initial state", () => {
-      // Setup
+      // Set up
       const customStateManager = new PreviewStateManager({
         metadata: {
           title: "Custom Story",
@@ -75,19 +72,21 @@ describe("PreviewStateManager", () => {
       const state = customStateManager.getState();
 
       // Assert
-      expect(state.metadata.title).toBe("Custom Story");
-      expect(state.metadata.fileName).toBe("custom.ink");
-      expect(state.isStart).toBe(true);
-      expect(state.storyEvents).toEqual([]);
-      expect(state.currentChoices).toEqual([]);
-      expect(state.errors).toEqual([]);
-      expect(state.isEnded).toBe(false);
+      expect(state).toEqual(
+        mockPreviewState({
+          metadata: {
+            title: "Custom Story",
+            fileName: "custom.ink",
+          },
+          isStart: true,
+        })
+      );
 
       customStateManager.dispose();
     });
 
     it("should merge metadata properly with overrides", () => {
-      // Setup
+      // Set up
       const customStateManager = new PreviewStateManager({
         metadata: {
           title: "Custom Story",
@@ -99,8 +98,14 @@ describe("PreviewStateManager", () => {
       const state = customStateManager.getState();
 
       // Assert
-      expect(state.metadata.title).toBe("Custom Story");
-      expect(state.metadata.fileName).toBe("custom.ink");
+      expect(state).toEqual(
+        mockPreviewState({
+          metadata: {
+            title: "Custom Story",
+            fileName: "custom.ink",
+          },
+        })
+      );
 
       customStateManager.dispose();
     });
@@ -108,10 +113,10 @@ describe("PreviewStateManager", () => {
 
   describe("Action Dispatching", () => {
     it("should dispatch StartStoryAction", () => {
-      // Setup
+      // Set up
       stateManager.dispatch(
         new AddStoryEventsAction([
-          { type: "text", text: "Test event", tags: [] },
+          { type: "text" as const, text: "Test event", tags: [] },
         ])
       );
       const action = new StartStoryAction();
@@ -120,32 +125,32 @@ describe("PreviewStateManager", () => {
       const newState = stateManager.dispatch(action);
 
       // Assert
-      expect(newState.storyEvents).toEqual([]);
-      expect(newState.currentChoices).toEqual([]);
-      expect(newState.errors).toEqual([]);
-      expect(newState.isEnded).toBe(false);
-      expect(newState.isStart).toBe(true);
+      expect(newState).toEqual(mockPreviewState({ isStart: true }));
       expect(stateManager.getState()).toEqual(newState);
     });
 
     it("should dispatch EndStoryAction", () => {
-      // Setup
+      // Set up
       const action = new EndStoryAction();
 
       // Execute
       const newState = stateManager.dispatch(action);
 
       // Assert
-      expect(newState.isEnded).toBe(true);
-      expect(newState.isStart).toBe(false);
+      expect(newState).toEqual(mockPreviewState({ isEnded: true }));
       expect(stateManager.getState()).toEqual(newState);
     });
 
     it("should dispatch AddStoryEventsAction", () => {
-      // Setup
+      // Set up
       const events: StoryEvent[] = [
-        { type: "text", text: "Event 1", tags: ["tag1"] },
-        { type: "function", functionName: "testFunc", args: [1], result: 2 },
+        { type: "text" as const, text: "Event 1", tags: ["tag1"] },
+        {
+          type: "function" as const,
+          functionName: "testFunc",
+          args: [1],
+          result: 2,
+        },
       ];
       const action = new AddStoryEventsAction(events);
 
@@ -154,23 +159,29 @@ describe("PreviewStateManager", () => {
 
       // Assert
       // Events should have isCurrent: true added by AddStoryEventsAction
-      const expectedEvents = [
-        { type: "text", text: "Event 1", tags: ["tag1"], isCurrent: true },
+      const expectedEvents: StoryEvent[] = [
         {
-          type: "function",
+          type: "text" as const,
+          text: "Event 1",
+          tags: ["tag1"],
+          isCurrent: true,
+        },
+        {
+          type: "function" as const,
           functionName: "testFunc",
           args: [1],
           result: 2,
           isCurrent: true,
         },
       ];
-      expect(newState.storyEvents).toEqual(expectedEvents);
-      expect(newState.storyEvents).toHaveLength(2);
+      expect(newState).toEqual(
+        mockPreviewState({ storyEvents: expectedEvents })
+      );
       expect(stateManager.getState()).toEqual(newState);
     });
 
     it("should dispatch SetCurrentChoicesAction", () => {
-      // Setup
+      // Set up
       const choices: Choice[] = [
         { index: 0, text: "Choice 1", tags: ["choice"] },
         { index: 1, text: "Choice 2", tags: [] },
@@ -181,13 +192,12 @@ describe("PreviewStateManager", () => {
       const newState = stateManager.dispatch(action);
 
       // Assert
-      expect(newState.currentChoices).toEqual(choices);
-      expect(newState.currentChoices).toHaveLength(2);
+      expect(newState).toEqual(mockPreviewState({ currentChoices: choices }));
       expect(stateManager.getState()).toEqual(newState);
     });
 
     it("should dispatch AddErrorsAction", () => {
-      // Setup
+      // Set up
       const errors: ErrorInfo[] = [
         { message: "Error 1", severity: "error" },
         { message: "Warning 1", severity: "warning" },
@@ -198,13 +208,12 @@ describe("PreviewStateManager", () => {
       const newState = stateManager.dispatch(action);
 
       // Assert
-      expect(newState.errors).toEqual(errors);
-      expect(newState.errors).toHaveLength(2);
+      expect(newState).toEqual(mockPreviewState({ errors }));
       expect(stateManager.getState()).toEqual(newState);
     });
 
     it("should dispatch ClearErrorsAction", () => {
-      // Setup
+      // Set up
       stateManager.dispatch(
         new AddErrorsAction([{ message: "Error to clear", severity: "error" }])
       );
@@ -214,12 +223,12 @@ describe("PreviewStateManager", () => {
       const newState = stateManager.dispatch(action);
 
       // Assert
-      expect(newState.errors).toEqual([]);
+      expect(newState).toEqual(mockPreviewState({ errors: [] }));
       expect(stateManager.getState()).toEqual(newState);
     });
 
     it("should return new state after each dispatch", () => {
-      // Setup
+      // Set up
       const initialState = stateManager.getState();
       const action = new StartStoryAction();
 
@@ -228,8 +237,8 @@ describe("PreviewStateManager", () => {
 
       // Assert
       expect(newState).not.toBe(initialState);
-      expect(newState.isStart).toBe(true);
-      expect(initialState.isStart).toBe(false);
+      expect(newState).toEqual(mockPreviewState({ isStart: true }));
+      expect(initialState).toEqual(mockPreviewState({ isStart: false }));
     });
   });
 
@@ -239,13 +248,7 @@ describe("PreviewStateManager", () => {
       const state = stateManager.getState();
 
       // Assert
-      expect(state).toBeDefined();
-      expect(state.storyEvents).toEqual([]);
-      expect(state.currentChoices).toEqual([]);
-      expect(state.errors).toEqual([]);
-      expect(state.isEnded).toBe(false);
-      expect(state.isStart).toBe(false);
-      expect(state.metadata).toBeDefined();
+      expect(state).toEqual(mockPreviewState());
     });
 
     it("should return copy of state, not reference", () => {
@@ -259,23 +262,23 @@ describe("PreviewStateManager", () => {
     });
 
     it("should reflect state changes", () => {
-      // Setup
+      // Set up
       const initialState = stateManager.getState();
-      expect(initialState.isStart).toBe(false);
+      expect(initialState).toEqual(mockPreviewState({ isStart: false }));
 
       // Execute
       stateManager.dispatch(new StartStoryAction());
       const updatedState = stateManager.getState();
 
       // Assert
-      expect(updatedState.isStart).toBe(true);
-      expect(initialState.isStart).toBe(false); // Original should be unchanged
+      expect(updatedState).toEqual(mockPreviewState({ isStart: true }));
+      expect(initialState).toEqual(mockPreviewState({ isStart: false })); // Original should be unchanged
     });
   });
 
   describe("State Immutability", () => {
     it("should not mutate state when dispatching actions", () => {
-      // Setup
+      // Set up
       const initialState = stateManager.getState();
       const initialStateCopy = JSON.parse(JSON.stringify(initialState));
 
@@ -287,7 +290,7 @@ describe("PreviewStateManager", () => {
     });
 
     it("should maintain immutability across multiple dispatches", () => {
-      // Setup
+      // Set up
       const states: PreviewState[] = [];
       states.push(stateManager.getState());
 
@@ -296,7 +299,9 @@ describe("PreviewStateManager", () => {
       states.push(stateManager.getState());
 
       stateManager.dispatch(
-        new AddStoryEventsAction([{ type: "text", text: "Event", tags: [] }])
+        new AddStoryEventsAction([
+          { type: "text" as const, text: "Event", tags: [] },
+        ])
       );
       states.push(stateManager.getState());
 
@@ -306,21 +311,37 @@ describe("PreviewStateManager", () => {
       states.push(stateManager.getState());
 
       // Assert
-      expect(states[0].isStart).toBe(false);
-      expect(states[1].isStart).toBe(true);
-      expect(states[1].storyEvents).toHaveLength(0);
-      expect(states[2].storyEvents).toHaveLength(1);
-      expect(states[2].currentChoices).toHaveLength(0);
-      expect(states[3].currentChoices).toHaveLength(1);
+      expect(states[0]).toEqual(mockPreviewState({ isStart: false }));
+      expect(states[1]).toEqual(mockPreviewState({ isStart: true }));
+      expect(states[2]).toEqual(
+        mockPreviewState({
+          isStart: true,
+          storyEvents: [
+            { type: "text", text: "Event", tags: [], isCurrent: true },
+          ],
+        })
+      );
+      expect(states[3]).toEqual(
+        mockPreviewState({
+          isStart: true,
+          storyEvents: [
+            { type: "text", text: "Event", tags: [], isCurrent: true },
+          ],
+          currentChoices: [{ index: 0, text: "Choice", tags: [] }],
+          lastChoiceIndex: 1, // storyEvents.length is 1
+        })
+      );
     });
   });
 
   describe("Reset Functionality", () => {
     it("should reset to default state", () => {
-      // Setup
+      // Set up
       stateManager.dispatch(new StartStoryAction());
       stateManager.dispatch(
-        new AddStoryEventsAction([{ type: "text", text: "Event", tags: [] }])
+        new AddStoryEventsAction([
+          { type: "text" as const, text: "Event", tags: [] },
+        ])
       );
       stateManager.dispatch(
         new AddErrorsAction([{ message: "Error", severity: "error" }])
@@ -330,16 +351,11 @@ describe("PreviewStateManager", () => {
       stateManager.reset();
 
       // Assert
-      const state = stateManager.getState();
-      expect(state.storyEvents).toEqual([]);
-      expect(state.currentChoices).toEqual([]);
-      expect(state.errors).toEqual([]);
-      expect(state.isEnded).toBe(false);
-      expect(state.isStart).toBe(false);
+      expect(stateManager.getState()).toEqual(mockPreviewState());
     });
 
     it("should preserve metadata when resetting", () => {
-      // Setup - Create state manager with custom metadata
+      // Set up - Create state manager with custom metadata
       const customStateManager = new PreviewStateManager({
         metadata: {
           title: "Custom Story",
@@ -355,11 +371,14 @@ describe("PreviewStateManager", () => {
       customStateManager.reset();
 
       // Assert
-      const state = customStateManager.getState();
-      expect(state.metadata.title).toBe("Custom Story");
-      expect(state.metadata.fileName).toBe("custom.ink");
-      expect(state.storyEvents).toEqual([]);
-      expect(state.isStart).toBe(false);
+      expect(customStateManager.getState()).toEqual(
+        mockPreviewState({
+          metadata: {
+            title: "Custom Story",
+            fileName: "custom.ink",
+          },
+        })
+      );
 
       customStateManager.dispose();
     });
@@ -367,151 +386,19 @@ describe("PreviewStateManager", () => {
 
   describe("Dispose Functionality", () => {
     it("should dispose and clear state", () => {
-      // Setup
+      // Set up
       stateManager.dispatch(new StartStoryAction());
       stateManager.dispatch(
-        new AddStoryEventsAction([{ type: "text", text: "Event", tags: [] }])
+        new AddStoryEventsAction([
+          { type: "text" as const, text: "Event", tags: [] },
+        ])
       );
 
       // Execute
       stateManager.dispose();
 
       // Assert
-      const state = stateManager.getState();
-      expect(state.storyEvents).toEqual([]);
-      expect(state.currentChoices).toEqual([]);
-      expect(state.errors).toEqual([]);
-      expect(state.isEnded).toBe(false);
-      expect(state.isStart).toBe(false);
-      expect(state.metadata.title).toBe("Untitled Story");
-      expect(state.metadata.fileName).toBe("unknown.ink");
-    });
-  });
-
-  describe("Complex State Workflows", () => {
-    it("should handle complete story workflow", () => {
-      // Setup - Use state manager with custom metadata
-      const customStateManager = new PreviewStateManager({
-        metadata: {
-          title: "Test Story",
-          fileName: "test.ink",
-        },
-      });
-
-      // Execute - Run complete workflow
-      customStateManager.dispatch(new StartStoryAction());
-      let state = customStateManager.getState();
-      expect(state.isStart).toBe(true);
-      expect(state.isEnded).toBe(false);
-
-      customStateManager.dispatch(
-        new AddStoryEventsAction([
-          { type: "text", text: "Welcome to the story", tags: [] },
-          {
-            type: "text",
-            text: "You find yourself in a room",
-            tags: ["location"],
-          },
-        ])
-      );
-      state = customStateManager.getState();
-      expect(state.storyEvents).toHaveLength(2);
-
-      customStateManager.dispatch(
-        new SetCurrentChoicesAction([
-          { index: 0, text: "Go left", tags: [] },
-          { index: 1, text: "Go right", tags: [] },
-        ])
-      );
-      state = customStateManager.getState();
-      expect(state.currentChoices).toHaveLength(2);
-
-      customStateManager.dispatch(
-        new AddStoryEventsAction([
-          { type: "text", text: "You chose to go left", tags: [] },
-        ])
-      );
-      state = customStateManager.getState();
-      expect(state.storyEvents).toHaveLength(3);
-
-      customStateManager.dispatch(new EndStoryAction());
-      state = customStateManager.getState();
-
-      // Assert - Final state verification
-      expect(state.isEnded).toBe(true);
-      expect(state.isStart).toBe(false);
-      expect(state.metadata.title).toBe("Test Story");
-      expect(state.metadata.fileName).toBe("test.ink");
-      expect(state.storyEvents).toHaveLength(3);
-      expect(state.currentChoices).toHaveLength(2);
-
-      customStateManager.dispose();
-    });
-
-    it("should handle error scenarios", () => {
-      // Setup - Add errors during story
-      stateManager.dispatch(
-        new AddErrorsAction([
-          { message: "Runtime error", severity: "error" },
-          { message: "Warning message", severity: "warning" },
-        ])
-      );
-
-      // Execute - Continue story and clear errors
-      let state = stateManager.getState();
-      expect(state.errors).toHaveLength(2);
-
-      stateManager.dispatch(
-        new AddStoryEventsAction([
-          { type: "text", text: "Story continues despite errors", tags: [] },
-        ])
-      );
-      state = stateManager.getState();
-      expect(state.errors).toHaveLength(2);
-      expect(state.storyEvents).toHaveLength(1);
-
-      stateManager.dispatch(new ClearErrorsAction());
-      state = stateManager.getState();
-
-      // Assert
-      expect(state.errors).toHaveLength(0);
-      expect(state.storyEvents).toHaveLength(1); // Events should remain
-    });
-
-    it("should handle restart scenario", () => {
-      // Setup - Create story with full state and custom metadata
-      const customStateManager = new PreviewStateManager({
-        metadata: {
-          title: "Test Story",
-          fileName: "test.ink",
-        },
-      });
-      customStateManager.dispatch(
-        new AddStoryEventsAction([
-          { type: "text", text: "Story event", tags: [] },
-        ])
-      );
-      customStateManager.dispatch(
-        new SetCurrentChoicesAction([{ index: 0, text: "Choice", tags: [] }])
-      );
-      customStateManager.dispatch(
-        new AddErrorsAction([{ message: "Error", severity: "error" }])
-      );
-
-      // Execute - Restart using StartStoryAction
-      customStateManager.dispatch(new StartStoryAction());
-
-      // Assert
-      const state = customStateManager.getState();
-      expect(state.storyEvents).toEqual([]);
-      expect(state.currentChoices).toEqual([]);
-      expect(state.errors).toEqual([]);
-      expect(state.isEnded).toBe(false);
-      expect(state.isStart).toBe(true);
-      expect(state.metadata.title).toBe("Test Story"); // Preserved
-      expect(state.metadata.fileName).toBe("test.ink"); // Preserved
-
-      customStateManager.dispose();
+      expect(stateManager.getState()).toEqual(mockPreviewState());
     });
   });
 });

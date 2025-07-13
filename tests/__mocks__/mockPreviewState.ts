@@ -22,35 +22,37 @@
  * SOFTWARE.
  */
 
-import { PreviewReducerAction } from "../PreviewAction";
-import { PreviewState } from "../PreviewState";
-import { Choice } from "../types";
+import { PreviewState } from "../../src/preview/PreviewState";
 
 /**
- * Action to set the current choices available in the story.
- * Replaces the existing currentChoices array with the provided choices.
+ * Creates a mock PreviewState with default values merged with provided overrides.
+ * This allows tests to only specify properties relevant to the test case.
+ * @param overrides - Partial PreviewState to override defaults
+ * @returns Complete PreviewState with defaults
  */
-export class SetCurrentChoicesAction extends PreviewReducerAction {
-  private readonly choices: Choice[];
+export function mockPreviewState(
+  overrides: Partial<PreviewState> = {}
+): PreviewState {
+  const defaultState: PreviewState = {
+    storyEvents: [],
+    currentChoices: [],
+    errors: [],
+    isEnded: false,
+    isStart: false,
+    lastChoiceIndex: 0,
+    metadata: {
+      title: "Untitled Story",
+      fileName: "unknown.ink",
+    },
+  };
 
-  constructor(choices: Choice[]) {
-    super();
-    this.choices = choices;
-  }
-
-  /**
-   * Reduces the current state by replacing the current choices.
-   * This updates the available choices that the user can select from.
-   * Also sets lastChoiceIndex to the current length of storyEvents to mark the turn boundary.
-   *
-   * @param state - The current preview state
-   * @returns New state with updated current choices and turn boundary
-   */
-  reduce(state: PreviewState): PreviewState {
-    return {
-      ...state,
-      currentChoices: [...this.choices],
-      lastChoiceIndex: state.storyEvents.length,
-    };
-  }
+  return {
+    ...defaultState,
+    ...overrides,
+    // Ensure metadata is properly merged
+    metadata: {
+      ...defaultState.metadata,
+      ...overrides.metadata,
+    },
+  };
 }

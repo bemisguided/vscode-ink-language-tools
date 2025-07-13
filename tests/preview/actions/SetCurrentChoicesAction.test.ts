@@ -25,11 +25,12 @@
 import { SetCurrentChoicesAction } from "../../../src/preview/actions/SetCurrentChoicesAction";
 import { PreviewState } from "../../../src/preview/PreviewState";
 import { Choice } from "../../../src/preview/types";
+import { mockPreviewState } from "../../__mocks__/mockPreviewState";
 
 describe("SetCurrentChoicesAction", () => {
   describe("reduce", () => {
     test("should set choices when currentChoices is empty", () => {
-      // Arrange
+      // Set up
       const newChoices: Choice[] = [
         {
           index: 0,
@@ -43,101 +44,101 @@ describe("SetCurrentChoicesAction", () => {
         },
       ];
       const action = new SetCurrentChoicesAction(newChoices);
-      const currentState: PreviewState = {
-        storyEvents: [],
+      const currentState: PreviewState = mockPreviewState({
         currentChoices: [],
-        errors: [],
-        isEnded: false,
-        isStart: false,
-        metadata: {
-          title: "Test Story",
-          fileName: "/path/to/test.ink",
-        },
-      };
+        storyEvents: [],
+      });
 
-      // Act
+      // Execute
       const newState = action.reduce(currentState);
 
       // Assert
-      expect(newState.currentChoices).toHaveLength(2);
       expect(newState.currentChoices).toEqual(newChoices);
+      expect(newState.lastChoiceIndex).toBe(0); // storyEvents.length
     });
 
     test("should replace existing choices", () => {
-      // Arrange
+      // Set up
       const existingChoices: Choice[] = [
         {
           index: 0,
-          text: "Old choice 1",
-          tags: ["old"],
-        },
-        {
-          index: 1,
-          text: "Old choice 2",
+          text: "Old choice",
           tags: ["old"],
         },
       ];
       const newChoices: Choice[] = [
         {
           index: 0,
-          text: "New choice",
+          text: "New choice 1",
+          tags: ["new"],
+        },
+        {
+          index: 1,
+          text: "New choice 2",
           tags: ["new"],
         },
       ];
       const action = new SetCurrentChoicesAction(newChoices);
-      const currentState: PreviewState = {
-        storyEvents: [],
+      const currentState: PreviewState = mockPreviewState({
         currentChoices: existingChoices,
-        errors: [],
-        isEnded: false,
-        isStart: false,
-        metadata: {
-          title: "Test Story",
-          fileName: "/path/to/test.ink",
-        },
-      };
+        storyEvents: [
+          {
+            type: "text" as const,
+            text: "Some story",
+            tags: [],
+          },
+        ],
+      });
 
-      // Act
+      // Execute
       const newState = action.reduce(currentState);
 
       // Assert
-      expect(newState.currentChoices).toHaveLength(1);
       expect(newState.currentChoices).toEqual(newChoices);
-      expect(newState.currentChoices).not.toEqual(existingChoices);
+      expect(newState.lastChoiceIndex).toBe(1); // storyEvents.length
     });
 
-    test("should set empty choices array", () => {
-      // Arrange
-      const existingChoices: Choice[] = [
+    test("should update lastChoiceIndex to storyEvents length", () => {
+      // Set up
+      const newChoices: Choice[] = [
         {
           index: 0,
-          text: "Existing choice",
+          text: "Choice",
           tags: [],
         },
       ];
-      const action = new SetCurrentChoicesAction([]);
-      const currentState: PreviewState = {
-        storyEvents: [],
-        currentChoices: existingChoices,
-        errors: [],
-        isEnded: false,
-        isStart: false,
-        metadata: {
-          title: "Test Story",
-          fileName: "/path/to/test.ink",
-        },
-      };
+      const action = new SetCurrentChoicesAction(newChoices);
+      const currentState: PreviewState = mockPreviewState({
+        storyEvents: [
+          {
+            type: "text" as const,
+            text: "Event 1",
+            tags: [],
+          },
+          {
+            type: "text" as const,
+            text: "Event 2",
+            tags: [],
+          },
+          {
+            type: "function" as const,
+            functionName: "testFunc",
+            args: [],
+            result: "result",
+          },
+        ],
+        lastChoiceIndex: 99, // Should be overwritten
+      });
 
-      // Act
+      // Execute
       const newState = action.reduce(currentState);
 
       // Assert
-      expect(newState.currentChoices).toHaveLength(0);
-      expect(newState.currentChoices).toEqual([]);
+      expect(newState.lastChoiceIndex).toBe(3); // storyEvents.length
     });
 
-    test("should preserve all other state properties unchanged", () => {
-      // Arrange
+    test("should preserve all other state properties", () => {
+      // Set up
       const newChoices: Choice[] = [
         {
           index: 0,
@@ -146,238 +147,180 @@ describe("SetCurrentChoicesAction", () => {
         },
       ];
       const action = new SetCurrentChoicesAction(newChoices);
-      const currentState: PreviewState = {
+      const currentState: PreviewState = mockPreviewState({
         storyEvents: [
           {
-            type: "text",
-            text: "Story text",
+            type: "text" as const,
+            text: "Story content",
             tags: ["story"],
           },
         ],
         currentChoices: [],
         errors: [
           {
-            message: "Error message",
+            message: "Test error",
             severity: "error",
           },
         ],
         isEnded: true,
-        isStart: true,
+        isStart: false,
+        lastChoiceIndex: 0,
         metadata: {
-          title: "My Story",
-          fileName: "/path/to/story.ink",
+          title: "Test Story",
+          fileName: "/path/to/test.ink",
         },
-      };
+      });
 
-      // Act
+      // Execute
       const newState = action.reduce(currentState);
 
       // Assert
       expect(newState.storyEvents).toEqual(currentState.storyEvents);
       expect(newState.errors).toEqual(currentState.errors);
       expect(newState.isEnded).toBe(true);
-      expect(newState.isStart).toBe(true);
+      expect(newState.isStart).toBe(false);
       expect(newState.metadata).toEqual(currentState.metadata);
-      expect(newState.currentChoices).toEqual(newChoices);
     });
 
-    test("should not mutate the original state", () => {
-      // Arrange
-      const originalChoices: Choice[] = [
-        {
-          index: 0,
-          text: "Original choice",
-          tags: ["original"],
-        },
-      ];
+    test("should handle empty choices array", () => {
+      // Set up
+      const action = new SetCurrentChoicesAction([]);
+      const currentState: PreviewState = mockPreviewState({
+        currentChoices: [
+          {
+            index: 0,
+            text: "Existing choice",
+            tags: [],
+          },
+        ],
+        storyEvents: [
+          {
+            type: "text" as const,
+            text: "Story event",
+            tags: [],
+          },
+        ],
+      });
+
+      // Execute
+      const newState = action.reduce(currentState);
+
+      // Assert
+      expect(newState.currentChoices).toEqual([]);
+      expect(newState.lastChoiceIndex).toBe(1); // storyEvents.length
+    });
+
+    test("should return a new state object", () => {
+      // Set up
       const newChoices: Choice[] = [
         {
           index: 0,
-          text: "New choice",
-          tags: ["new"],
+          text: "Test choice",
+          tags: [],
         },
       ];
       const action = new SetCurrentChoicesAction(newChoices);
-      const currentState: PreviewState = {
-        storyEvents: [],
-        currentChoices: originalChoices,
-        errors: [],
-        isEnded: false,
-        isStart: false,
-        metadata: {
-          title: "Test Story",
-          fileName: "/path/to/test.ink",
-        },
-      };
+      const currentState: PreviewState = mockPreviewState();
 
-      // Act
-      const newState = action.reduce(currentState);
-
-      // Assert - original state should be unchanged
-      expect(currentState.currentChoices).toHaveLength(1);
-      expect(currentState.currentChoices[0]).toEqual(originalChoices[0]);
-
-      // New state should have new choices
-      expect(newState.currentChoices).toHaveLength(1);
-      expect(newState.currentChoices[0]).toEqual(newChoices[0]);
-    });
-
-    test("should handle single choice", () => {
-      // Arrange
-      const singleChoice: Choice[] = [
-        {
-          index: 0,
-          text: "Continue",
-          tags: ["continue"],
-        },
-      ];
-      const action = new SetCurrentChoicesAction(singleChoice);
-      const currentState: PreviewState = {
-        storyEvents: [],
-        currentChoices: [],
-        errors: [],
-        isEnded: false,
-        isStart: false,
-        metadata: {
-          title: "Test Story",
-          fileName: "/path/to/test.ink",
-        },
-      };
-
-      // Act
+      // Execute
       const newState = action.reduce(currentState);
 
       // Assert
-      expect(newState.currentChoices).toHaveLength(1);
-      expect(newState.currentChoices[0]).toEqual(singleChoice[0]);
+      expect(newState).not.toBe(currentState);
+      expect(newState).toEqual(
+        mockPreviewState({
+          currentChoices: newChoices,
+          lastChoiceIndex: 0,
+        })
+      );
     });
+  });
 
-    test("should handle multiple choices", () => {
-      // Arrange
-      const multipleChoices: Choice[] = [
+  describe("Edge cases", () => {
+    test("should handle choices with empty text", () => {
+      // Set up
+      const choicesWithEmptyText: Choice[] = [
         {
           index: 0,
-          text: "First choice",
-          tags: ["1"],
-        },
-        {
-          index: 1,
-          text: "Second choice",
-          tags: ["2"],
-        },
-        {
-          index: 2,
-          text: "Third choice",
-          tags: ["3"],
-        },
-        {
-          index: 3,
-          text: "Fourth choice",
-          tags: ["4"],
-        },
-      ];
-      const action = new SetCurrentChoicesAction(multipleChoices);
-      const currentState: PreviewState = {
-        storyEvents: [],
-        currentChoices: [],
-        errors: [],
-        isEnded: false,
-        isStart: false,
-        metadata: {
-          title: "Test Story",
-          fileName: "/path/to/test.ink",
-        },
-      };
-
-      // Act
-      const newState = action.reduce(currentState);
-
-      // Assert
-      expect(newState.currentChoices).toHaveLength(4);
-      expect(newState.currentChoices).toEqual(multipleChoices);
-    });
-
-    test("should handle choices with complex content", () => {
-      // Arrange
-      const complexChoices: Choice[] = [
-        {
-          index: 0,
-          text: "Choice with\nnewlines\tand\ttabs and special chars: àáâãäåæçèéêë",
-          tags: ["complex", "unicode", "àáâãäåæçèéêë"],
-        },
-        {
-          index: 1,
-          text: "Choice with empty tags",
+          text: "",
           tags: [],
         },
         {
-          index: 2,
+          index: 1,
+          text: "Normal choice",
+          tags: [],
+        },
+      ];
+      const action = new SetCurrentChoicesAction(choicesWithEmptyText);
+      const currentState: PreviewState = mockPreviewState();
+
+      // Execute
+      const newState = action.reduce(currentState);
+
+      // Assert
+      expect(newState.currentChoices).toEqual(choicesWithEmptyText);
+    });
+
+    test("should handle choices with special characters", () => {
+      // Set up
+      const specialChoices: Choice[] = [
+        {
+          index: 0,
+          text: "Choice with special chars: àáâãäåæçèéêë 🔥💥",
+          tags: ["special", "unicode"],
+        },
+      ];
+      const action = new SetCurrentChoicesAction(specialChoices);
+      const currentState: PreviewState = mockPreviewState();
+
+      // Execute
+      const newState = action.reduce(currentState);
+
+      // Assert
+      expect(newState.currentChoices).toEqual(specialChoices);
+    });
+
+    test("should handle choices with many tags", () => {
+      // Set up
+      const choicesWithManyTags: Choice[] = [
+        {
+          index: 0,
           text: "Choice with many tags",
           tags: ["tag1", "tag2", "tag3", "tag4", "tag5"],
         },
       ];
-      const action = new SetCurrentChoicesAction(complexChoices);
-      const currentState: PreviewState = {
-        storyEvents: [],
-        currentChoices: [],
-        errors: [],
-        isEnded: false,
-        isStart: false,
-        metadata: {
-          title: "Test Story",
-          fileName: "/path/to/test.ink",
-        },
-      };
+      const action = new SetCurrentChoicesAction(choicesWithManyTags);
+      const currentState: PreviewState = mockPreviewState();
 
-      // Act
+      // Execute
       const newState = action.reduce(currentState);
 
       // Assert
-      expect(newState.currentChoices).toHaveLength(3);
-      expect(newState.currentChoices).toEqual(complexChoices);
+      expect(newState.currentChoices).toEqual(choicesWithManyTags);
     });
 
-    test("should maintain choice order", () => {
-      // Arrange
-      const orderedChoices: Choice[] = [
+    test("should handle choices with duplicate indices", () => {
+      // Set up
+      const duplicateIndexChoices: Choice[] = [
         {
-          index: 3,
-          text: "Third index first",
-          tags: ["3"],
+          index: 0,
+          text: "First choice",
+          tags: [],
         },
         {
-          index: 1,
-          text: "First index second",
-          tags: ["1"],
-        },
-        {
-          index: 2,
-          text: "Second index third",
-          tags: ["2"],
+          index: 0,
+          text: "Second choice with same index",
+          tags: [],
         },
       ];
-      const action = new SetCurrentChoicesAction(orderedChoices);
-      const currentState: PreviewState = {
-        storyEvents: [],
-        currentChoices: [],
-        errors: [],
-        isEnded: false,
-        isStart: false,
-        metadata: {
-          title: "Test Story",
-          fileName: "/path/to/test.ink",
-        },
-      };
+      const action = new SetCurrentChoicesAction(duplicateIndexChoices);
+      const currentState: PreviewState = mockPreviewState();
 
-      // Act
+      // Execute
       const newState = action.reduce(currentState);
 
       // Assert
-      expect(newState.currentChoices).toHaveLength(3);
-      expect(newState.currentChoices[0].index).toBe(3);
-      expect(newState.currentChoices[1].index).toBe(1);
-      expect(newState.currentChoices[2].index).toBe(2);
-      expect(newState.currentChoices).toEqual(orderedChoices);
+      expect(newState.currentChoices).toEqual(duplicateIndexChoices);
     });
   });
 });

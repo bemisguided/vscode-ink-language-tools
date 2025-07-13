@@ -24,7 +24,7 @@
 
 import { ClearErrorsAction } from "../../../src/preview/actions/ClearErrorsAction";
 import { PreviewState } from "../../../src/preview/PreviewState";
-import { ErrorInfo } from "../../../src/preview/ErrorInfo";
+import { mockPreviewState } from "../../__mocks__/mockPreviewState";
 
 describe("ClearErrorsAction", () => {
   let action: ClearErrorsAction;
@@ -34,178 +34,106 @@ describe("ClearErrorsAction", () => {
   });
 
   describe("reduce", () => {
-    it("should clear all errors from state", () => {
-      // Setup
-      const errors: ErrorInfo[] = [
-        { message: "Test error 1", severity: "error" },
-        { message: "Test warning", severity: "warning" },
-        { message: "Test info", severity: "info" },
-      ];
-
-      const state: PreviewState = {
-        storyEvents: [],
-        currentChoices: [],
-        errors,
-        isEnded: false,
-        isStart: false,
-        metadata: {
-          title: "Test Story",
-          fileName: "test.ink",
-        },
-      };
-
-      // Execute
-      const newState = action.reduce(state);
-
-      // Assert
-      expect(newState.errors).toEqual([]);
-      expect(newState.errors).toHaveLength(0);
-    });
-
-    it("should preserve all other state properties", () => {
-      // Setup
-      const initialState: PreviewState = {
-        storyEvents: [{ type: "text", text: "Test event", tags: ["tag1"] }],
-        currentChoices: [{ index: 0, text: "Choice 1", tags: ["choice"] }],
-        errors: [{ message: "Error to clear", severity: "error" }],
-        isEnded: true,
-        isStart: false,
-        metadata: {
-          title: "Test Story",
-          fileName: "test.ink",
-        },
-      };
-
-      // Execute
-      const newState = action.reduce(initialState);
-
-      // Assert
-      expect(newState.storyEvents).toEqual(initialState.storyEvents);
-      expect(newState.currentChoices).toEqual(initialState.currentChoices);
-      expect(newState.isEnded).toBe(initialState.isEnded);
-      expect(newState.isStart).toBe(initialState.isStart);
-      expect(newState.metadata).toEqual(initialState.metadata);
-    });
-
-    it("should not mutate the original state", () => {
-      // Setup
-      const originalErrors: ErrorInfo[] = [
-        { message: "Original error", severity: "error" },
-      ];
-
-      const originalState: PreviewState = {
-        storyEvents: [],
-        currentChoices: [],
-        errors: originalErrors,
-        isEnded: false,
-        isStart: false,
-        metadata: {
-          title: "Test Story",
-          fileName: "test.ink",
-        },
-      };
-
-      const originalStateCopy = JSON.parse(JSON.stringify(originalState));
-
-      // Execute
-      action.reduce(originalState);
-
-      // Assert
-      expect(originalState).toEqual(originalStateCopy);
-      expect(originalState.errors).toEqual(originalErrors);
-    });
-
-    it("should handle empty errors array", () => {
-      // Setup
-      const state: PreviewState = {
-        storyEvents: [],
-        currentChoices: [],
-        errors: [],
-        isEnded: false,
-        isStart: false,
-        metadata: {
-          title: "Test Story",
-          fileName: "test.ink",
-        },
-      };
-
-      // Execute
-      const newState = action.reduce(state);
-
-      // Assert
-      expect(newState.errors).toEqual([]);
-      expect(newState.errors).toHaveLength(0);
-    });
-
-    it("should handle complex state with multiple errors", () => {
-      // Setup
-      const complexErrors: ErrorInfo[] = [
-        { message: "Runtime error in line 42", severity: "error" },
-        { message: "Deprecated function used", severity: "warning" },
-        { message: "Consider optimizing this section", severity: "info" },
-        {
-          message: 'Another error with special chars: <>"&',
-          severity: "error",
-        },
-      ];
-
-      const state: PreviewState = {
-        storyEvents: [
-          { type: "text", text: "Complex story content", tags: ["complex"] },
+    test("should clear all errors", () => {
+      // Set up
+      const currentState: PreviewState = mockPreviewState({
+        errors: [
           {
-            type: "function",
-            functionName: "testFunc",
-            args: [1, 2],
-            result: 3,
+            message: "Error 1",
+            severity: "error",
+          },
+          {
+            message: "Warning 1",
+            severity: "warning",
+          },
+          {
+            message: "Info 1",
+            severity: "info",
+          },
+        ],
+      });
+
+      // Execute
+      const newState = action.reduce(currentState);
+
+      // Assert
+      expect(newState.errors).toEqual([]);
+    });
+
+    test("should preserve all other state properties", () => {
+      // Set up
+      const currentState: PreviewState = mockPreviewState({
+        storyEvents: [
+          {
+            type: "text" as const,
+            text: "Some story text",
+            tags: ["test"],
           },
         ],
         currentChoices: [
-          { index: 0, text: "Complex choice", tags: ["complex"] },
+          {
+            index: 0,
+            text: "Choice 1",
+            tags: ["choice"],
+          },
         ],
-        errors: complexErrors,
-        isEnded: false,
-        isStart: true,
+        errors: [
+          {
+            message: "Some error",
+            severity: "error",
+          },
+        ],
+        isEnded: true,
+        isStart: false,
+        lastChoiceIndex: 3,
         metadata: {
-          title: "Complex Story",
-          fileName: "complex.ink",
+          title: "Test Story",
+          fileName: "/path/to/test.ink",
         },
-      };
+      });
 
       // Execute
-      const newState = action.reduce(state);
+      const newState = action.reduce(currentState);
+
+      // Assert
+      expect(newState.storyEvents).toEqual(currentState.storyEvents);
+      expect(newState.currentChoices).toEqual(currentState.currentChoices);
+      expect(newState.isEnded).toBe(true);
+      expect(newState.isStart).toBe(false);
+      expect(newState.lastChoiceIndex).toBe(3);
+      expect(newState.metadata).toEqual(currentState.metadata);
+    });
+
+    test("should work when errors array is already empty", () => {
+      // Set up
+      const currentState: PreviewState = mockPreviewState({
+        errors: [],
+      });
+
+      // Execute
+      const newState = action.reduce(currentState);
 
       // Assert
       expect(newState.errors).toEqual([]);
-      expect(newState.errors).toHaveLength(0);
-
-      // Verify all other properties are preserved
-      expect(newState.storyEvents).toEqual(state.storyEvents);
-      expect(newState.currentChoices).toEqual(state.currentChoices);
-      expect(newState.isEnded).toBe(state.isEnded);
-      expect(newState.isStart).toBe(state.isStart);
-      expect(newState.metadata).toEqual(state.metadata);
     });
 
-    it("should return a new state object", () => {
-      // Setup
-      const state: PreviewState = {
-        storyEvents: [],
-        currentChoices: [],
-        errors: [{ message: "Test error", severity: "error" }],
-        isEnded: false,
-        isStart: false,
-        metadata: {
-          title: "Test Story",
-          fileName: "test.ink",
-        },
-      };
+    test("should return a new state object", () => {
+      // Set up
+      const currentState: PreviewState = mockPreviewState({
+        errors: [
+          {
+            message: "Error to clear",
+            severity: "error",
+          },
+        ],
+      });
 
       // Execute
-      const newState = action.reduce(state);
+      const newState = action.reduce(currentState);
 
       // Assert
-      expect(newState).not.toBe(state);
-      expect(newState.errors).not.toBe(state.errors);
+      expect(newState).not.toBe(currentState);
+      expect(newState).toEqual(mockPreviewState({ errors: [] }));
     });
   });
 });

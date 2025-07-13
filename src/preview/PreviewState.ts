@@ -68,6 +68,14 @@ export interface PreviewState {
   isStart: boolean;
 
   /**
+   * Index in storyEvents array where the current turn started.
+   * Events with index >= lastChoiceIndex are considered current (from the current turn).
+   * Events with index < lastChoiceIndex are considered historical (from previous turns).
+   * Updated by SetCurrentChoicesAction when new choices are presented.
+   */
+  lastChoiceIndex: number;
+
+  /**
    * Metadata about the current story file and presentation.
    * Used for display purposes in the webview title and UI elements.
    * Can be extended with additional properties for action-specific metadata.

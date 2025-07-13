@@ -44,6 +44,7 @@ export class StartStoryAction extends PreviewReducerAction {
       errors: [],
       isEnded: false,
       isStart: true,
+      lastChoiceIndex: 0,
       metadata: state.metadata,
     };
   }

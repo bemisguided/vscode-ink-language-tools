@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 
+import { Story } from "inkjs";
 import { PreviewState } from "./PreviewState";
 
 /**
@@ -53,7 +54,7 @@ export interface PreviewActionContext {
    * The Ink story instance for performing side effects.
    * This is provided for actions that need to interact with the story engine.
    */
-  story?: any; // Will be typed as Story when available
+  story?: Story;
 }
 
 /**

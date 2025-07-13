@@ -24,69 +24,88 @@
 
 import { InitializeStoryAction } from "../../../src/preview/actions/InitializeStoryAction";
 import { PreviewState } from "../../../src/preview/PreviewState";
-import { ErrorInfo } from "../../../src/preview/ErrorInfo";
+import { mockPreviewState } from "../../__mocks__/mockPreviewState";
 
 describe("InitializeStoryAction", () => {
   describe("reduce", () => {
-    test("should set metadata title and fileName", () => {
-      // Arrange
-      const action = new InitializeStoryAction(
-        "My Story",
-        "/path/to/story.ink"
-      );
-      const currentState: PreviewState = {
-        storyEvents: [],
-        currentChoices: [],
-        errors: [],
-        isEnded: false,
-        isStart: false,
-        metadata: {
-          title: "Old Title",
-          fileName: "/old/path.ink",
-        },
-      };
+    test("should initialize story with provided metadata", () => {
+      // Set up
+      const title = "Adventure Story";
+      const fileName = "/path/to/adventure.ink";
+      const action = new InitializeStoryAction(title, fileName);
+      const currentState: PreviewState = mockPreviewState();
 
-      // Act
+      // Execute
       const newState = action.reduce(currentState);
 
       // Assert
-      expect(newState.metadata.title).toBe("My Story");
-      expect(newState.metadata.fileName).toBe("/path/to/story.ink");
+      expect(newState.metadata).toEqual({
+        title: title,
+        fileName: fileName,
+      });
+      expect(newState.storyEvents).toEqual([]);
+      expect(newState.currentChoices).toEqual([]);
+      expect(newState.errors).toEqual([]);
+      expect(newState.isEnded).toBe(false);
+      expect(newState.isStart).toBe(false);
+      expect(newState.lastChoiceIndex).toBe(0);
     });
 
-    test("should preserve all other state properties unchanged", () => {
-      // Arrange
-      const action = new InitializeStoryAction("Test Story", "/test/path.ink");
-      const currentState: PreviewState = {
+    test("should replace existing metadata", () => {
+      // Set up
+      const newTitle = "New Story";
+      const newFileName = "/new/path/story.ink";
+      const action = new InitializeStoryAction(newTitle, newFileName);
+      const currentState: PreviewState = mockPreviewState({
+        metadata: {
+          title: "Old Story",
+          fileName: "/old/path/story.ink",
+        },
+      });
+
+      // Execute
+      const newState = action.reduce(currentState);
+
+      // Assert
+      expect(newState.metadata).toEqual({
+        title: newTitle,
+        fileName: newFileName,
+      });
+    });
+
+    test("should preserve existing state data", () => {
+      // Set up
+      const title = "Test Story";
+      const fileName = "/test/story.ink";
+      const action = new InitializeStoryAction(title, fileName);
+      const currentState: PreviewState = mockPreviewState({
         storyEvents: [
           {
-            type: "text",
-            text: "Existing text",
-            tags: ["tag1"],
+            type: "text" as const,
+            text: "Existing event",
+            tags: ["existing"],
+            isCurrent: true,
           },
         ],
         currentChoices: [
           {
             index: 0,
-            text: "Choice 1",
-            tags: ["choice-tag"],
+            text: "Existing choice",
+            tags: ["choice"],
           },
         ],
         errors: [
           {
-            message: "Some error",
+            message: "Existing error",
             severity: "error",
           },
         ],
         isEnded: true,
         isStart: true,
-        metadata: {
-          title: "Old Title",
-          fileName: "/old/path.ink",
-        },
-      };
+        lastChoiceIndex: 5,
+      });
 
-      // Act
+      // Execute
       const newState = action.reduce(currentState);
 
       // Assert
@@ -95,127 +114,81 @@ describe("InitializeStoryAction", () => {
       expect(newState.errors).toEqual(currentState.errors);
       expect(newState.isEnded).toBe(true);
       expect(newState.isStart).toBe(true);
-      expect(newState.metadata.title).toBe("Test Story");
-      expect(newState.metadata.fileName).toBe("/test/path.ink");
+      expect(newState.lastChoiceIndex).toBe(5);
     });
 
-    test("should work with empty strings", () => {
-      // Arrange
-      const action = new InitializeStoryAction("", "");
-      const currentState: PreviewState = {
-        storyEvents: [],
-        currentChoices: [],
-        errors: [],
-        isEnded: false,
-        isStart: false,
-        metadata: {
-          title: "Old Title",
-          fileName: "/old/path.ink",
-        },
-      };
+    test("should return a new state object", () => {
+      // Set up
+      const title = "Test Story";
+      const fileName = "/test/story.ink";
+      const action = new InitializeStoryAction(title, fileName);
+      const currentState: PreviewState = mockPreviewState();
 
-      // Act
+      // Execute
       const newState = action.reduce(currentState);
 
       // Assert
-      expect(newState.metadata.title).toBe("");
-      expect(newState.metadata.fileName).toBe("");
+      expect(newState).not.toBe(currentState);
+      expect(newState).toEqual(
+        mockPreviewState({
+          metadata: {
+            title: title,
+            fileName: fileName,
+          },
+        })
+      );
     });
+  });
 
-    test("should not mutate the original state", () => {
-      // Arrange
-      const action = new InitializeStoryAction("New Title", "/new/path.ink");
-      const originalErrors: ErrorInfo[] = [
-        {
-          message: "Original error",
-          severity: "warning",
-        },
-      ];
-      const currentState: PreviewState = {
-        storyEvents: [
-          {
-            type: "text",
-            text: "Original text",
-            tags: [],
-          },
-        ],
-        currentChoices: [
-          {
-            index: 0,
-            text: "Original choice",
-            tags: [],
-          },
-        ],
-        errors: originalErrors,
-        isEnded: false,
-        isStart: true,
-        metadata: {
-          title: "Original Title",
-          fileName: "/original/path.ink",
-        },
-      };
+  describe("Edge cases", () => {
+    test("should handle metadata with special characters", () => {
+      // Set up
+      const title = "Story with special chars: àáâãäåæçèéêë 🔥💥";
+      const fileName = "/path/with spaces/àáâãäåæçèéêë.ink";
+      const action = new InitializeStoryAction(title, fileName);
+      const currentState: PreviewState = mockPreviewState();
 
-      // Act
+      // Execute
       const newState = action.reduce(currentState);
 
-      // Assert - original state should be unchanged
-      expect(currentState.storyEvents).toHaveLength(1);
-      expect(currentState.currentChoices).toHaveLength(1);
-      expect(currentState.errors).toHaveLength(1);
-      expect(currentState.isEnded).toBe(false);
-      expect(currentState.isStart).toBe(true);
-      expect(currentState.metadata.title).toBe("Original Title");
-      expect(currentState.metadata.fileName).toBe("/original/path.ink");
-
-      // New state should have updated metadata
-      expect(newState.storyEvents).toHaveLength(1);
-      expect(newState.currentChoices).toHaveLength(1);
-      expect(newState.errors).toHaveLength(1);
-      expect(newState.isEnded).toBe(false);
-      expect(newState.isStart).toBe(true);
-      expect(newState.metadata.title).toBe("New Title");
-      expect(newState.metadata.fileName).toBe("/new/path.ink");
+      // Assert
+      expect(newState.metadata).toEqual({
+        title: title,
+        fileName: fileName,
+      });
     });
 
-    test("should handle different file paths and titles", () => {
-      // Arrange
-      const testCases = [
-        {
-          title: "Adventure Story",
-          fileName: "/Users/test/Documents/adventure.ink",
-        },
-        {
-          title: "Short Story",
-          fileName: "C:\\Projects\\story.ink",
-        },
-        {
-          title: "Story with Special Characters àáâãäåæçèéêë",
-          fileName: "/path/with spaces/file-name.ink",
-        },
-      ];
+    test("should handle empty strings in metadata", () => {
+      // Set up
+      const title = "";
+      const fileName = "";
+      const action = new InitializeStoryAction(title, fileName);
+      const currentState: PreviewState = mockPreviewState();
 
-      const baseState: PreviewState = {
-        storyEvents: [],
-        currentChoices: [],
-        errors: [],
-        isEnded: false,
-        isStart: false,
-        metadata: {
-          title: "Base Title",
-          fileName: "/base/path.ink",
-        },
-      };
+      // Execute
+      const newState = action.reduce(currentState);
 
-      testCases.forEach(({ title, fileName }) => {
-        // Arrange
-        const action = new InitializeStoryAction(title, fileName);
+      // Assert
+      expect(newState.metadata).toEqual({
+        title: title,
+        fileName: fileName,
+      });
+    });
 
-        // Act
-        const newState = action.reduce(baseState);
+    test("should handle long metadata values", () => {
+      // Set up
+      const title = "A".repeat(1000);
+      const fileName = "/very/long/path/to/file/" + "B".repeat(500) + ".ink";
+      const action = new InitializeStoryAction(title, fileName);
+      const currentState: PreviewState = mockPreviewState();
 
-        // Assert
-        expect(newState.metadata.title).toBe(title);
-        expect(newState.metadata.fileName).toBe(fileName);
+      // Execute
+      const newState = action.reduce(currentState);
+
+      // Assert
+      expect(newState.metadata).toEqual({
+        title: title,
+        fileName: fileName,
       });
     });
   });

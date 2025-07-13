@@ -22,35 +22,37 @@
  * SOFTWARE.
  */
 
-import { PreviewReducerAction } from "../PreviewAction";
-import { PreviewState } from "../PreviewState";
-import { Choice } from "../types";
-
 /**
- * Action to set the current choices available in the story.
- * Replaces the existing currentChoices array with the provided choices.
+ * Parses an error message to extract severity and clean message.
+ * @param rawMessage - The raw error message
+ * @returns Object with parsed message and severity
  */
-export class SetCurrentChoicesAction extends PreviewReducerAction {
-  private readonly choices: Choice[];
+export function parseErrorMessage(rawMessage: string): {
+  message: string;
+  severity: "error" | "warning" | "info" | null;
+} {
+  // Default values
+  let message = rawMessage;
+  let severity: "error" | "warning" | "info" | null = null;
 
-  constructor(choices: Choice[]) {
-    super();
-    this.choices = choices;
+  // Extract severity from common prefixes
+  if (rawMessage.startsWith("RUNTIME ERROR:")) {
+    severity = "error";
+  } else if (rawMessage.startsWith("RUNTIME WARNING:")) {
+    severity = "warning";
+  } else if (rawMessage.startsWith("Error:")) {
+    severity = "error";
+  } else if (rawMessage.startsWith("Warning:")) {
+    severity = "warning";
   }
 
-  /**
-   * Reduces the current state by replacing the current choices.
-   * This updates the available choices that the user can select from.
-   * Also sets lastChoiceIndex to the current length of storyEvents to mark the turn boundary.
-   *
-   * @param state - The current preview state
-   * @returns New state with updated current choices and turn boundary
-   */
-  reduce(state: PreviewState): PreviewState {
-    return {
-      ...state,
-      currentChoices: [...this.choices],
-      lastChoiceIndex: state.storyEvents.length,
-    };
+  // Find the first colon and extract message after it
+  const firstColonIndex = rawMessage.indexOf(":");
+
+  // If we have at least 1 colon, extract message after the first one
+  if (firstColonIndex !== -1) {
+    message = rawMessage.substring(firstColonIndex + 1).trim();
   }
+
+  return { message, severity };
 }
