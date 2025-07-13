@@ -24,7 +24,7 @@
 
 import { AddErrorsAction } from "../../../src/preview/actions/AddErrorsAction";
 import { PreviewState } from "../../../src/preview/PreviewState";
-import { ErrorInfo } from "../../../src/preview/ErrorInfo";
+import { ErrorInfo } from "../../../src/preview/PreviewState";
 import { mockPreviewState } from "../../__mocks__/mockPreviewState";
 
 describe("AddErrorsAction", () => {

@@ -23,7 +23,32 @@
  */
 
 import { StoryEvent, Choice } from "./types";
-import { ErrorInfo } from "./ErrorInfo";
+
+/**
+ * Represents the severity level of an error.
+ * - 'error': Critical issues that prevent story execution
+ * - 'warning': Non-critical issues that may affect story behavior
+ * - 'info': Informational messages or suggestions
+ */
+export type ErrorSeverity = "error" | "warning" | "info";
+
+/**
+ * Represents an error that occurred during story execution.
+ * Used to track compilation errors, runtime errors, and warnings
+ * that should be displayed to the user in the preview interface.
+ */
+export interface ErrorInfo {
+  /**
+   * The human-readable error message to display to the user.
+   * This should be clear and actionable when possible.
+   */
+  message: string;
+
+  /**
+   * The severity level of this error.
+   */
+  severity: ErrorSeverity;
+}
 
 /**
  * Represents the complete state of the preview webview.

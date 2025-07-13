@@ -22,6 +22,8 @@
  * SOFTWARE.
  */
 
+import { ErrorSeverity } from "./PreviewState";
+
 /**
  * Parses an error message to extract severity and clean message.
  * @param rawMessage - The raw error message
@@ -29,11 +31,11 @@
  */
 export function parseErrorMessage(rawMessage: string): {
   message: string;
-  severity: "error" | "warning" | "info" | null;
+  severity: ErrorSeverity | null;
 } {
   // Default values
   let message = rawMessage;
-  let severity: "error" | "warning" | "info" | null = null;
+  let severity: ErrorSeverity | null = null;
 
   // Extract severity from common prefixes
   if (rawMessage.startsWith("RUNTIME ERROR:")) {

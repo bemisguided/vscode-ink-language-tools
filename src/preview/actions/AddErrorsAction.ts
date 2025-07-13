@@ -24,7 +24,7 @@
 
 import { PreviewReducerAction } from "../PreviewAction";
 import { PreviewState } from "../PreviewState";
-import { ErrorInfo } from "../ErrorInfo";
+import { ErrorInfo } from "../PreviewState";
 
 /**
  * Action to add errors to the state.

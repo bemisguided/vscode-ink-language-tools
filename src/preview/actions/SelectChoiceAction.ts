@@ -27,7 +27,7 @@ import { ContinueStoryAction } from "./ContinueStoryAction";
 import { AddErrorsAction } from "./AddErrorsAction";
 import { EndStoryAction } from "./EndStoryAction";
 import { SetCurrentChoicesAction } from "./SetCurrentChoicesAction";
-import { ErrorInfo } from "../ErrorInfo";
+import { ErrorInfo } from "../PreviewState";
 import { parseErrorMessage } from "../parseErrorMessage";
 
 /**

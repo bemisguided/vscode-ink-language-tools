@@ -28,7 +28,7 @@ import { AddStoryEventsAction } from "./AddStoryEventsAction";
 import { SetCurrentChoicesAction } from "./SetCurrentChoicesAction";
 import { EndStoryAction } from "./EndStoryAction";
 import { AddErrorsAction } from "./AddErrorsAction";
-import { ErrorInfo } from "../ErrorInfo";
+import { ErrorInfo, ErrorSeverity } from "../PreviewState";
 import { parseErrorMessage } from "../parseErrorMessage";
 
 /**
@@ -168,7 +168,7 @@ export class ContinueStoryAction implements PreviewAction {
     error: unknown,
     fallbackMessage: string = "Unknown error occurred",
     context: PreviewActionContext,
-    severity: "error" | "warning" | "info" = "error"
+    severity: ErrorSeverity = "error"
   ): void {
     const rawMessage = error instanceof Error ? error.message : fallbackMessage;
     const { message, severity: parsedSeverity } = parseErrorMessage(rawMessage);

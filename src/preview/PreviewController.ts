@@ -27,7 +27,7 @@ import path from "path";
 import { PreviewHtmlGenerator } from "./PreviewHtmlGenerator";
 import { PreviewStateManager } from "./PreviewStateManager";
 import { PreviewState } from "./PreviewState";
-import { ErrorInfo } from "./ErrorInfo";
+import { ErrorInfo, ErrorSeverity } from "./PreviewState";
 import { inboundMessages, Message } from "./PreviewMessages";
 import { BuildEngine } from "../build/BuildEngine";
 import { Deferred } from "../util/deferred";
@@ -265,10 +265,7 @@ export class PreviewController {
    * @param message - The error message
    * @param severity - The error severity
    */
-  private addErrorToState(
-    message: string,
-    severity: "error" | "warning" | "info"
-  ): void {
+  private addErrorToState(message: string, severity: ErrorSeverity): void {
     const error: ErrorInfo = { message, severity };
     this.stateManager.dispatch(new AddErrorsAction([error]));
 
