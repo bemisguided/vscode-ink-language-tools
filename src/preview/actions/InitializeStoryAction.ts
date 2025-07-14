@@ -22,38 +22,64 @@
  * SOFTWARE.
  */
 
-import { PreviewReducerAction } from "../PreviewAction";
-import { PreviewState } from "../PreviewState";
+import { PreviewAction, PreviewActionContext } from "../PreviewAction";
 
 /**
- * Action to initialize the story metadata.
- * Sets the title and file name for the story being previewed.
+ * Action to initialize the story by resetting the Ink story engine state.
+ * This action performs the side effect of calling story.ResetState() to prepare
+ * the story for execution from the beginning.
  */
-export class InitializeStoryAction extends PreviewReducerAction {
-  private readonly title: string;
-  private readonly fileName: string;
-
-  constructor(title: string, fileName: string) {
-    super();
-    this.title = title;
-    this.fileName = fileName;
-  }
+export class InitializeStoryAction implements PreviewAction {
+  // Static Properties ================================================================================================
 
   /**
-   * Reduces the current state by updating the metadata.
-   * Sets the story title and file name while preserving other state.
-   *
-   * @param state - The current preview state
-   * @returns New state with updated metadata
+   * The type identifier for this action.
+   * Used for action identification, filtering, and debugging.
    */
-  reduce(state: PreviewState): PreviewState {
-    return {
-      ...state,
-      metadata: {
-        ...state.metadata,
-        title: this.title,
-        fileName: this.fileName,
-      },
-    };
+  public static readonly typeId = "INITIALIZE_STORY";
+
+  // Instance Properties ==============================================================================================
+
+  /**
+   * The type identifier for this action instance.
+   */
+  public readonly type = InitializeStoryAction.typeId;
+
+  // Constructor ======================================================================================================
+
+  /**
+   * Creates a new InitializeStoryAction.
+   * No parameters are required as this action only resets the story state.
+   */
+  constructor() {
+    // No parameters needed
+  }
+
+  // Public Methods ===================================================================================================
+
+  /**
+   * Applies this action by resetting the Ink story engine state.
+   * This prepares the story for execution from the beginning by calling
+   * story.ResetState() on the story instance.
+   *
+   * @param context - The action context providing access to the story instance
+   */
+  apply(context: PreviewActionContext): void {
+    console.debug("[InitializeStoryAction] 🔄 Resetting story state");
+
+    try {
+      // Reset the story engine state (story guaranteed to be available)
+      context.story.ResetState();
+      console.debug(
+        "[InitializeStoryAction] ✅ Story state reset successfully"
+      );
+    } catch (error) {
+      console.error(
+        "[InitializeStoryAction] ❌ Failed to reset story state:",
+        error
+      );
+      // Note: We don't throw here to prevent breaking the action chain
+      // The story will remain in its previous state if reset fails
+    }
   }
 }

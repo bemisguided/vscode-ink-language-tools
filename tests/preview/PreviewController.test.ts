@@ -106,10 +106,6 @@ describe("PreviewController", () => {
             lastChoiceIndex: 2, // Set to number of story events (welcome + question)
             storyEvents: expect.any(Array),
             currentChoices: expect.any(Array),
-            metadata: expect.objectContaining({
-              title: "story.ink",
-              fileName: "/test/story.ink",
-            }),
           }),
         })
       );
@@ -410,10 +406,6 @@ describe("PreviewController", () => {
           payload: expect.objectContaining({
             isStart: true,
             lastChoiceIndex: 2, // Set to number of story events (welcome + question)
-            metadata: expect.objectContaining({
-              title: "story2.ink",
-              fileName: "/test/story2.ink",
-            }),
           }),
         })
       );

@@ -45,6 +45,9 @@ export const inboundMessages = {
   /** Sent when player requests story restart */
   restartStory: "restartStory",
 
+  /** Sent when player requests story rewind to last choice */
+  rewindStory: "rewindStory",
+
   /** Sent for debug logging */
   log: "log",
 } as const;
@@ -56,6 +59,7 @@ export interface InboundMessagePayloads {
   [inboundMessages.ready]: void;
   [inboundMessages.selectChoice]: { choiceIndex: number };
   [inboundMessages.restartStory]: void;
+  [inboundMessages.rewindStory]: void;
   [inboundMessages.log]: { message: string };
 }
 

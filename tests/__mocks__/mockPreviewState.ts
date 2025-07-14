@@ -40,19 +40,10 @@ export function mockPreviewState(
     isEnded: false,
     isStart: false,
     lastChoiceIndex: 0,
-    metadata: {
-      title: "Untitled Story",
-      fileName: "unknown.ink",
-    },
   };
 
   return {
     ...defaultState,
     ...overrides,
-    // Ensure metadata is properly merged
-    metadata: {
-      ...defaultState.metadata,
-      ...overrides.metadata,
-    },
   };
 }

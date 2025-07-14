@@ -52,6 +52,13 @@ export class PreviewStateManager {
   private isProcessing = false;
   private maxHistorySize = 100; // Configurable history limit
 
+  // Action types that require a story instance to be available
+  private static readonly STORY_DEPENDENT_ACTIONS = new Set([
+    "INITIALIZE_STORY",
+    "CONTINUE_STORY",
+    "SELECT_CHOICE",
+  ]);
+
   // Constructor ======================================================================================================
 
   /**
@@ -72,6 +79,16 @@ export class PreviewStateManager {
    * @returns The new state after applying the action
    */
   public dispatch(action: PreviewAction): PreviewState {
+    // Check if action requires story and ensure it's available
+    if (
+      PreviewStateManager.STORY_DEPENDENT_ACTIONS.has(action.type) &&
+      !this.hasStory()
+    ) {
+      throw new Error(
+        `Cannot dispatch story-dependent action '${action.type}': No story available`
+      );
+    }
+
     if (this.isProcessing) {
       // Prevent infinite recursion during nested dispatches
       // For now, we'll allow nested dispatches but could implement queuing if needed
@@ -131,6 +148,14 @@ export class PreviewStateManager {
   }
 
   /**
+   * Checks if a story instance is available.
+   * @returns True if a story is available, false otherwise
+   */
+  public hasStory(): boolean {
+    return this.story !== undefined;
+  }
+
+  /**
    * Gets the action history.
    * @returns A copy of the action history
    */
@@ -179,6 +204,44 @@ export class PreviewStateManager {
   }
 
   /**
+   * Undoes actions back to the last occurrence of a specific action type.
+   * Replays history up to (but not including) the last occurrence of the action type.
+   * If no action of the specified type is found, replays to the beginning.
+   *
+   * @param actionType - The action type identifier to search for
+   * @returns The state after undoing to the last occurrence of the action type
+   */
+  public undoToLast(actionType: string): PreviewState {
+    // Find the last occurrence of the action type
+    let lastIndex = -1;
+    for (let i = this.actionHistory.length - 1; i >= 0; i--) {
+      if (this.actionHistory[i].action.type === actionType) {
+        lastIndex = i;
+        break;
+      }
+    }
+
+    // If no action of this type found, replay to the beginning
+    if (lastIndex === -1) {
+      return this.replay(0);
+    }
+
+    // Replay up to (but not including) the last occurrence
+    return this.replay(lastIndex);
+  }
+
+  /**
+   * Rewinds the story back to before the last choice selection.
+   * This goes back to the state before the last SelectChoiceAction was applied.
+   * If no SelectChoiceAction exists in the history, rewinds to the beginning.
+   *
+   * @returns The state after rewinding to before the last choice
+   */
+  public rewindToLastChoice(): PreviewState {
+    return this.undoToLast("SELECT_CHOICE");
+  }
+
+  /**
    * Clears the action history.
    */
   public clearHistory(): void {
@@ -191,10 +254,7 @@ export class PreviewStateManager {
    * Clears action history.
    */
   public reset(): void {
-    const preservedMetadata = this.currentState.metadata;
-    this.currentState = this.createDefaultState({
-      metadata: preservedMetadata,
-    });
+    this.currentState = this.createDefaultState();
     this.clearHistory();
   }
 
@@ -215,6 +275,8 @@ export class PreviewStateManager {
    * @returns A new action context
    */
   private createActionContext(): PreviewActionContext {
+    // At this point, story availability has already been checked in dispatch()
+    // for story-dependent actions, so story is guaranteed to be available when needed
     return {
       getState: () => ({ ...this.currentState }),
       setState: (newState: PreviewState) => {
@@ -223,7 +285,7 @@ export class PreviewStateManager {
       dispatch: (action: PreviewAction) => {
         this.applyAction(action);
       },
-      story: this.story,
+      story: this.story!, // Non-null assertion safe due to dispatch() guard
     };
   }
 
@@ -264,21 +326,12 @@ export class PreviewStateManager {
       isEnded: false,
       isStart: false,
       lastChoiceIndex: 0,
-      metadata: {
-        title: "Untitled Story",
-        fileName: "unknown.ink",
-      },
     };
 
     if (overrides) {
       return {
         ...defaultState,
         ...overrides,
-        // Ensure metadata is properly merged
-        metadata: {
-          ...defaultState.metadata,
-          ...overrides.metadata,
-        },
       };
     }
 

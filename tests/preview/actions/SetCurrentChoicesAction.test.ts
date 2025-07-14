@@ -165,10 +165,6 @@ describe("SetCurrentChoicesAction", () => {
         isEnded: true,
         isStart: false,
         lastChoiceIndex: 0,
-        metadata: {
-          title: "Test Story",
-          fileName: "/path/to/test.ink",
-        },
       });
 
       // Execute
@@ -179,7 +175,6 @@ describe("SetCurrentChoicesAction", () => {
       expect(newState.errors).toEqual(currentState.errors);
       expect(newState.isEnded).toBe(true);
       expect(newState.isStart).toBe(false);
-      expect(newState.metadata).toEqual(currentState.metadata);
     });
 
     test("should handle empty choices array", () => {

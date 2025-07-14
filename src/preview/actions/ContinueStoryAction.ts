@@ -37,11 +37,31 @@ import { parseErrorMessage } from "../parseErrorMessage";
  * extracting choices, and dispatching appropriate state mutations.
  */
 export class ContinueStoryAction implements PreviewAction {
+  // Static Properties ================================================================================================
+
+  /**
+   * The type identifier for this action.
+   * Used for action identification, filtering, and debugging.
+   */
+  public static readonly typeId = "CONTINUE_STORY";
+
+  // Instance Properties ==============================================================================================
+
+  /**
+   * The type identifier for this action instance.
+   */
+  public readonly type = ContinueStoryAction.typeId;
+
+  // Public Methods ===================================================================================================
+
+  /**
+   * Applies this action to continue the story until it reaches a choice point or ends.
+   * Collects story events, extracts choices, and dispatches appropriate state mutations.
+   *
+   * @param context - The action context providing state access and dispatch capability
+   */
   apply(context: PreviewActionContext): void {
-    const story = context.story;
-    if (!story) {
-      throw new Error("No story available in context");
-    }
+    const story = context.story; // Guaranteed to be available
 
     // Guard against continuing a finished story
     if (this.isEnded(story)) {
@@ -99,6 +119,8 @@ export class ContinueStoryAction implements PreviewAction {
     // TODO: Clear function calls for next continuation - commented out for now
     // this.currentFunctionCalls = [];
   }
+
+  // Private Methods ==================================================================================================
 
   /**
    * Checks if the story has reached an end state.

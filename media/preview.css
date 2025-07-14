@@ -44,7 +44,14 @@
   z-index: 1000;
 }
 
-#button-restart {
+.toolbar-buttons {
+  display: flex;
+  gap: 0.5em;
+  align-items: center;
+}
+
+#button-restart,
+#button-rewind {
   padding: 0.5em 1em;
   display: flex;
   align-items: center;
@@ -55,6 +62,12 @@
   background-color: var(--vscode-foreground);
   mask-image: url("./restart-icon.svg");
   -webkit-mask-image: url("./restart-icon.svg");
+}
+
+.rewind-icon {
+  background-color: var(--vscode-foreground);
+  mask-image: url("./rewind-icon.svg");
+  -webkit-mask-image: url("./rewind-icon.svg");
 }
 
 /* Add padding to story content to account for fixed toolbar */

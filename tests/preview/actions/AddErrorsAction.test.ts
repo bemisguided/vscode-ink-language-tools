@@ -134,10 +134,6 @@ describe("AddErrorsAction", () => {
         isEnded: true,
         isStart: false,
         lastChoiceIndex: 5,
-        metadata: {
-          title: "Test Story",
-          fileName: "/path/to/test.ink",
-        },
       });
 
       // Execute
@@ -149,7 +145,6 @@ describe("AddErrorsAction", () => {
       expect(newState.isEnded).toBe(true);
       expect(newState.isStart).toBe(false);
       expect(newState.lastChoiceIndex).toBe(5);
-      expect(newState.metadata).toEqual(currentState.metadata);
     });
 
     test("should handle empty errors array input", () => {

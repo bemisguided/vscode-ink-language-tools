@@ -204,10 +204,6 @@ describe("AddStoryEventsAction", () => {
         isEnded: true,
         isStart: false,
         lastChoiceIndex: 0,
-        metadata: {
-          title: "Test Story",
-          fileName: "/path/to/test.ink",
-        },
       });
 
       // Execute
@@ -219,7 +215,6 @@ describe("AddStoryEventsAction", () => {
       expect(newState.isEnded).toBe(true);
       expect(newState.isStart).toBe(false);
       expect(newState.lastChoiceIndex).toBe(0);
-      expect(newState.metadata).toEqual(currentState.metadata);
     });
 
     test("should handle empty events array", () => {

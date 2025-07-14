@@ -30,6 +30,23 @@ import { PreviewState } from "../PreviewState";
  * Resets the story state to its initial state and marks it as starting.
  */
 export class StartStoryAction extends PreviewReducerAction {
+  // Static Properties ================================================================================================
+
+  /**
+   * The type identifier for this action.
+   * Used for action identification, filtering, and debugging.
+   */
+  public static readonly typeId = "START_STORY";
+
+  // Instance Properties ==============================================================================================
+
+  /**
+   * The type identifier for this action instance.
+   */
+  public readonly type = StartStoryAction.typeId;
+
+  // Public Methods ===================================================================================================
+
   /**
    * Reduces the current state to a fresh starting state.
    * Clears all story events, choices, and errors, and marks the story as starting.
@@ -45,7 +62,6 @@ export class StartStoryAction extends PreviewReducerAction {
       isEnded: false,
       isStart: true,
       lastChoiceIndex: 0,
-      metadata: state.metadata,
     };
   }
 }

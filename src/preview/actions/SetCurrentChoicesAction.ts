@@ -31,12 +31,38 @@ import { Choice } from "../types";
  * Replaces the existing currentChoices array with the provided choices.
  */
 export class SetCurrentChoicesAction extends PreviewReducerAction {
+  // Static Properties ================================================================================================
+
+  /**
+   * The type identifier for this action.
+   * Used for action identification, filtering, and debugging.
+   */
+  public static readonly typeId = "SET_CURRENT_CHOICES";
+
+  // Instance Properties ==============================================================================================
+
+  /**
+   * The type identifier for this action instance.
+   */
+  public readonly type = SetCurrentChoicesAction.typeId;
+
+  /**
+   * The list of choices to set as current choices.
+   */
   private readonly choices: Choice[];
 
+  // Constructor ======================================================================================================
+
+  /**
+   * Creates a new SetCurrentChoicesAction.
+   * @param choices - The list of choices to set as current choices
+   */
   constructor(choices: Choice[]) {
     super();
     this.choices = choices;
   }
+
+  // Public Methods ===================================================================================================
 
   /**
    * Reduces the current state by replacing the current choices.

@@ -30,6 +30,23 @@ import { PreviewState } from "../PreviewState";
  * Marks the story as ended and no longer starting.
  */
 export class EndStoryAction extends PreviewReducerAction {
+  // Static Properties ================================================================================================
+
+  /**
+   * The type identifier for this action.
+   * Used for action identification, filtering, and debugging.
+   */
+  public static readonly typeId = "END_STORY";
+
+  // Instance Properties ==============================================================================================
+
+  /**
+   * The type identifier for this action instance.
+   */
+  public readonly type = EndStoryAction.typeId;
+
+  // Public Methods ===================================================================================================
+
   /**
    * Reduces the current state to mark the story as ended.
    * Sets isEnded to true and isStart to false.

@@ -26,6 +26,10 @@ import { PreviewStateManager } from "../../src/preview/PreviewStateManager";
 import { PreviewState } from "../../src/preview/PreviewState";
 import { StoryEvent, Choice } from "../../src/preview/types";
 import { ErrorInfo } from "../../src/preview/PreviewState";
+import {
+  PreviewAction,
+  PreviewActionContext,
+} from "../../src/preview/PreviewAction";
 
 // Import all actions
 import { StartStoryAction } from "../../src/preview/actions/StartStoryAction";
@@ -34,9 +38,68 @@ import { AddStoryEventsAction } from "../../src/preview/actions/AddStoryEventsAc
 import { SetCurrentChoicesAction } from "../../src/preview/actions/SetCurrentChoicesAction";
 import { AddErrorsAction } from "../../src/preview/actions/AddErrorsAction";
 import { ClearErrorsAction } from "../../src/preview/actions/ClearErrorsAction";
+import { InitializeStoryAction } from "../../src/preview/actions/InitializeStoryAction";
 
 // Import mock helpers
 import { mockPreviewState } from "../__mocks__/mockPreviewState";
+
+/**
+ * Mock action A for testing history functionality
+ */
+class MockActionA implements PreviewAction {
+  public static readonly typeId = "MOCK_ACTION_A";
+  public readonly type = MockActionA.typeId;
+
+  apply(context: PreviewActionContext): void {
+    const currentState = context.getState();
+    context.setState({
+      ...currentState,
+      isStart: true,
+    });
+  }
+}
+
+/**
+ * Mock action B for testing history functionality
+ */
+class MockActionB implements PreviewAction {
+  public static readonly typeId = "MOCK_ACTION_B";
+  public readonly type = MockActionB.typeId;
+
+  apply(context: PreviewActionContext): void {
+    const currentState = context.getState();
+    context.setState({
+      ...currentState,
+      isEnded: true,
+    });
+  }
+}
+
+/**
+ * Mock action that simulates SELECT_CHOICE for rewind testing
+ */
+class MockSelectChoiceAction implements PreviewAction {
+  public static readonly typeId = "SELECT_CHOICE";
+  public readonly type = MockSelectChoiceAction.typeId;
+
+  constructor(private choiceIndex: number) {}
+
+  apply(context: PreviewActionContext): void {
+    const currentState = context.getState();
+    context.setState({
+      ...currentState,
+      storyEvents: [
+        ...currentState.storyEvents,
+        {
+          type: "text",
+          text: `Selected choice ${this.choiceIndex}`,
+          tags: [],
+          isCurrent: true,
+        },
+      ],
+    });
+  }
+}
 
 describe("PreviewStateManager", () => {
   let stateManager: PreviewStateManager;
@@ -61,10 +124,6 @@ describe("PreviewStateManager", () => {
     it("should create with partial initial state", () => {
       // Set up
       const customStateManager = new PreviewStateManager({
-        metadata: {
-          title: "Custom Story",
-          fileName: "custom.ink",
-        },
         isStart: true,
       });
 
@@ -74,36 +133,7 @@ describe("PreviewStateManager", () => {
       // Assert
       expect(state).toEqual(
         mockPreviewState({
-          metadata: {
-            title: "Custom Story",
-            fileName: "custom.ink",
-          },
           isStart: true,
-        })
-      );
-
-      customStateManager.dispose();
-    });
-
-    it("should merge metadata properly with overrides", () => {
-      // Set up
-      const customStateManager = new PreviewStateManager({
-        metadata: {
-          title: "Custom Story",
-          fileName: "custom.ink",
-        },
-      });
-
-      // Execute
-      const state = customStateManager.getState();
-
-      // Assert
-      expect(state).toEqual(
-        mockPreviewState({
-          metadata: {
-            title: "Custom Story",
-            fileName: "custom.ink",
-          },
         })
       );
 
@@ -353,35 +383,6 @@ describe("PreviewStateManager", () => {
       // Assert
       expect(stateManager.getState()).toEqual(mockPreviewState());
     });
-
-    it("should preserve metadata when resetting", () => {
-      // Set up - Create state manager with custom metadata
-      const customStateManager = new PreviewStateManager({
-        metadata: {
-          title: "Custom Story",
-          fileName: "custom.ink",
-        },
-      });
-      customStateManager.dispatch(new StartStoryAction());
-      customStateManager.dispatch(
-        new AddStoryEventsAction([{ type: "text", text: "Event", tags: [] }])
-      );
-
-      // Execute
-      customStateManager.reset();
-
-      // Assert
-      expect(customStateManager.getState()).toEqual(
-        mockPreviewState({
-          metadata: {
-            title: "Custom Story",
-            fileName: "custom.ink",
-          },
-        })
-      );
-
-      customStateManager.dispose();
-    });
   });
 
   describe("Dispose Functionality", () => {
@@ -399,6 +400,307 @@ describe("PreviewStateManager", () => {
 
       // Assert
       expect(stateManager.getState()).toEqual(mockPreviewState());
+    });
+  });
+
+  describe("History Functionality", () => {
+    it("should track action history", () => {
+      // Set up
+      const initialHistory = stateManager.getHistory();
+      expect(initialHistory).toEqual([]);
+
+      // Execute
+      stateManager.dispatch(new StartStoryAction());
+      stateManager.dispatch(
+        new AddStoryEventsAction([{ type: "text", text: "Event", tags: [] }])
+      );
+
+      // Assert
+      const history = stateManager.getHistory();
+      expect(history).toHaveLength(2);
+      expect(history[0].action).toBeInstanceOf(StartStoryAction);
+      expect(history[1].action).toBeInstanceOf(AddStoryEventsAction);
+    });
+
+    it("should clear history", () => {
+      // Set up
+      stateManager.dispatch(new StartStoryAction());
+      stateManager.dispatch(new EndStoryAction());
+      expect(stateManager.getHistory()).toHaveLength(2);
+
+      // Execute
+      stateManager.clearHistory();
+
+      // Assert
+      expect(stateManager.getHistory()).toEqual([]);
+    });
+
+    it("should replay history to specific index", () => {
+      // Set up
+      stateManager.dispatch(new StartStoryAction());
+      stateManager.dispatch(
+        new AddStoryEventsAction([{ type: "text", text: "Event 1", tags: [] }])
+      );
+      stateManager.dispatch(
+        new AddStoryEventsAction([{ type: "text", text: "Event 2", tags: [] }])
+      );
+
+      // Execute - replay to index 1 (only first action)
+      const state = stateManager.replay(1);
+
+      // Assert
+      expect(state).toEqual(mockPreviewState({ isStart: true }));
+      expect(stateManager.getHistory()).toHaveLength(1);
+    });
+
+    it("should replay entire history when no index provided", () => {
+      // Set up
+      stateManager.dispatch(new StartStoryAction());
+      stateManager.dispatch(new EndStoryAction());
+      const originalHistory = stateManager.getHistory();
+
+      // Execute
+      const state = stateManager.replay();
+
+      // Assert
+      expect(state).toEqual(
+        mockPreviewState({ isStart: false, isEnded: true })
+      );
+      expect(stateManager.getHistory()).toHaveLength(originalHistory.length);
+    });
+
+    it("should undo last action", () => {
+      // Set up
+      stateManager.dispatch(new StartStoryAction());
+      stateManager.dispatch(new EndStoryAction());
+      expect(stateManager.getState()).toEqual(
+        mockPreviewState({ isStart: false, isEnded: true })
+      );
+
+      // Execute
+      const state = stateManager.undo();
+
+      // Assert
+      expect(state).toEqual(
+        mockPreviewState({ isStart: true, isEnded: false })
+      );
+      expect(stateManager.getHistory()).toHaveLength(1);
+    });
+
+    it("should return current state when undoing with no history", () => {
+      // Set up
+      const initialState = stateManager.getState();
+
+      // Execute
+      const state = stateManager.undo();
+
+      // Assert
+      expect(state).toEqual(initialState);
+      expect(stateManager.getHistory()).toHaveLength(0);
+    });
+  });
+
+  describe("Generic Undo Pattern", () => {
+    it("should undo to last occurrence of specific action type", () => {
+      // Set up
+      stateManager.dispatch(new StartStoryAction());
+      stateManager.dispatch(
+        new AddStoryEventsAction([{ type: "text", text: "Event 1", tags: [] }])
+      );
+      stateManager.dispatch(
+        new AddStoryEventsAction([{ type: "text", text: "Event 2", tags: [] }])
+      );
+      stateManager.dispatch(new EndStoryAction());
+
+      // Execute - undo to last ADD_STORY_EVENTS
+      const state = stateManager.undoToLast("ADD_STORY_EVENTS");
+
+      // Assert
+      expect(state).toEqual(
+        mockPreviewState({
+          isStart: true,
+          storyEvents: [
+            { type: "text", text: "Event 1", tags: [], isCurrent: true },
+          ],
+        })
+      );
+      expect(stateManager.getHistory()).toHaveLength(2); // StartStoryAction and first AddStoryEventsAction
+    });
+
+    it("should undo to beginning when action type not found", () => {
+      // Set up
+      stateManager.dispatch(new StartStoryAction());
+      stateManager.dispatch(new EndStoryAction());
+
+      // Execute - undo to non-existent action type
+      const state = stateManager.undoToLast("NON_EXISTENT_ACTION");
+
+      // Assert
+      expect(state).toEqual(mockPreviewState());
+      expect(stateManager.getHistory()).toHaveLength(0);
+    });
+
+    it("should handle multiple occurrences of same action type", () => {
+      // Set up
+      stateManager.dispatch(new StartStoryAction());
+      stateManager.dispatch(
+        new AddErrorsAction([{ message: "Error 1", severity: "error" }])
+      );
+      stateManager.dispatch(
+        new AddStoryEventsAction([{ type: "text", text: "Event", tags: [] }])
+      );
+      stateManager.dispatch(
+        new AddErrorsAction([{ message: "Error 2", severity: "warning" }])
+      );
+
+      // Execute - should undo to LAST AddErrorsAction
+      const state = stateManager.undoToLast("ADD_ERRORS");
+
+      // Assert
+      expect(state).toEqual(
+        mockPreviewState({
+          isStart: true,
+          errors: [{ message: "Error 1", severity: "error" }],
+          storyEvents: [
+            { type: "text", text: "Event", tags: [], isCurrent: true },
+          ],
+        })
+      );
+      expect(stateManager.getHistory()).toHaveLength(3); // StartStoryAction, first AddErrorsAction, AddStoryEventsAction
+    });
+
+    it("should work with empty history", () => {
+      // Execute
+      const state = stateManager.undoToLast("START_STORY");
+
+      // Assert
+      expect(state).toEqual(mockPreviewState());
+      expect(stateManager.getHistory()).toHaveLength(0);
+    });
+  });
+
+  describe("Rewind Functionality", () => {
+    it("should rewind to last choice selection", () => {
+      // Set up
+      const mockStory = { ResetState: jest.fn() };
+      stateManager.setStory(mockStory as any);
+      stateManager.dispatch(new InitializeStoryAction());
+      stateManager.dispatch(new StartStoryAction());
+      stateManager.dispatch(
+        new AddStoryEventsAction([
+          { type: "text", text: "Event before choice", tags: [] },
+        ])
+      );
+      stateManager.dispatch(
+        new SetCurrentChoicesAction([
+          { index: 0, text: "Choice 1", tags: [] },
+          { index: 1, text: "Choice 2", tags: [] },
+        ])
+      );
+      stateManager.dispatch(new MockSelectChoiceAction(0));
+      stateManager.dispatch(
+        new AddStoryEventsAction([
+          { type: "text", text: "Event after choice", tags: [] },
+        ])
+      );
+
+      // Execute
+      const state = stateManager.rewindToLastChoice();
+
+      // Assert
+      expect(state).toEqual(
+        mockPreviewState({
+          isStart: true,
+          storyEvents: [
+            {
+              type: "text",
+              text: "Event before choice",
+              tags: [],
+              isCurrent: true,
+            },
+          ],
+          currentChoices: [
+            { index: 0, text: "Choice 1", tags: [] },
+            { index: 1, text: "Choice 2", tags: [] },
+          ],
+          lastChoiceIndex: 1,
+        })
+      );
+    });
+
+    it("should rewind to beginning when no choice selections exist", () => {
+      // Set up
+      stateManager.dispatch(new StartStoryAction());
+      stateManager.dispatch(
+        new AddStoryEventsAction([{ type: "text", text: "Event", tags: [] }])
+      );
+      stateManager.dispatch(new EndStoryAction());
+
+      // Execute
+      const state = stateManager.rewindToLastChoice();
+
+      // Assert
+      expect(state).toEqual(mockPreviewState());
+      expect(stateManager.getHistory()).toHaveLength(0);
+    });
+
+    it("should handle multiple choice selections", () => {
+      // Set up
+      const mockStory = { ResetState: jest.fn() };
+      stateManager.setStory(mockStory as any);
+      stateManager.dispatch(new StartStoryAction());
+      stateManager.dispatch(
+        new AddStoryEventsAction([{ type: "text", text: "Event 1", tags: [] }])
+      );
+      stateManager.dispatch(
+        new SetCurrentChoicesAction([
+          { index: 0, text: "First Choice", tags: [] },
+        ])
+      );
+      stateManager.dispatch(new MockSelectChoiceAction(0));
+      stateManager.dispatch(
+        new AddStoryEventsAction([{ type: "text", text: "Event 2", tags: [] }])
+      );
+      stateManager.dispatch(
+        new SetCurrentChoicesAction([
+          { index: 0, text: "Second Choice", tags: [] },
+        ])
+      );
+      stateManager.dispatch(new MockSelectChoiceAction(0));
+      stateManager.dispatch(
+        new AddStoryEventsAction([{ type: "text", text: "Event 3", tags: [] }])
+      );
+
+      // Execute - should rewind to LAST SelectChoiceAction
+      const state = stateManager.rewindToLastChoice();
+
+      // Assert
+      expect(state).toEqual(
+        mockPreviewState({
+          isStart: true,
+          storyEvents: [
+            { type: "text", text: "Event 1", tags: [], isCurrent: false },
+            {
+              type: "text",
+              text: "Selected choice 0",
+              tags: [],
+              isCurrent: true,
+            },
+            { type: "text", text: "Event 2", tags: [], isCurrent: true },
+          ],
+          currentChoices: [{ index: 0, text: "Second Choice", tags: [] }],
+          lastChoiceIndex: 3,
+        })
+      );
+    });
+
+    it("should work with empty history", () => {
+      // Execute
+      const state = stateManager.rewindToLastChoice();
+
+      // Assert
+      expect(state).toEqual(mockPreviewState());
+      expect(stateManager.getHistory()).toHaveLength(0);
     });
   });
 });

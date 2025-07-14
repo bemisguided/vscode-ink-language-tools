@@ -86,10 +86,6 @@ describe("ClearErrorsAction", () => {
         isEnded: true,
         isStart: false,
         lastChoiceIndex: 3,
-        metadata: {
-          title: "Test Story",
-          fileName: "/path/to/test.ink",
-        },
       });
 
       // Execute
@@ -101,7 +97,6 @@ describe("ClearErrorsAction", () => {
       expect(newState.isEnded).toBe(true);
       expect(newState.isStart).toBe(false);
       expect(newState.lastChoiceIndex).toBe(3);
-      expect(newState.metadata).toEqual(currentState.metadata);
     });
 
     test("should work when errors array is already empty", () => {

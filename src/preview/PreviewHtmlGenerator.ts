@@ -54,6 +54,10 @@ export class PreviewHtmlGenerator {
       webview,
       "restart-icon.svg"
     );
+    const rewindIconUrl = extensionService.getWebviewMediaUri(
+      webview,
+      "rewind-icon.svg"
+    );
 
     return `<!DOCTYPE html>
       <html lang="en">
@@ -65,10 +69,16 @@ export class PreviewHtmlGenerator {
       </head>
       <body>
         <div id="toolbar-container">
-          <button id="button-restart" class="btn btn-toolbar" title="Restart story">
-            <span class="restart-icon icon"></span>
-            Restart
-          </button>
+          <div class="toolbar-buttons">
+            <button id="button-restart" class="btn btn-toolbar" title="Restart story">
+              <span class="restart-icon icon"></span>
+              Restart
+            </button>
+            <button id="button-rewind" class="btn btn-toolbar" title="Rewind to last choice">
+              <span class="rewind-icon icon"></span>
+              Rewind
+            </button>
+          </div>
           <div id="error-indicators" class="error-indicators">
             <button id="button-errors-error" class="btn btn-toolbar error-indicator" style="display: none;">
               <span class="error-indicator-icon icon error-icon-error"></span>
@@ -105,7 +115,8 @@ export class PreviewHtmlGenerator {
             error: "${errorIconUrl}",
             warning: "${warningIconUrl}",
             info: "${infoIconUrl}",
-            restart: "${restartIconUrl}"
+            restart: "${restartIconUrl}",
+            rewind: "${rewindIconUrl}"
           };
         </script>
         <script src="${jsUrl}"></script>

@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-import { PreviewActionContext } from "../PreviewAction";
+import { PreviewAction, PreviewActionContext } from "../PreviewAction";
 import { ContinueStoryAction } from "./ContinueStoryAction";
 import { AddErrorsAction } from "./AddErrorsAction";
 import { EndStoryAction } from "./EndStoryAction";
@@ -32,28 +32,62 @@ import { parseErrorMessage } from "../parseErrorMessage";
 
 /**
  * Action to select a choice in the story and then continue until the next choice point or end.
- * This action extends ContinueStoryAction to reuse the continue logic after choice selection.
+ * This action uses composition to reuse the continue logic after choice selection.
  */
-export class SelectChoiceAction extends ContinueStoryAction {
+export class SelectChoiceAction implements PreviewAction {
+  // Static Properties ================================================================================================
+
+  /**
+   * The type identifier for this action.
+   * Used for action identification, filtering, and debugging.
+   */
+  public static readonly typeId = "SELECT_CHOICE";
+
+  // Instance Properties ==============================================================================================
+
+  /**
+   * The type identifier for this action instance.
+   */
+  public readonly type = SelectChoiceAction.typeId;
+
+  /**
+   * The index of the choice to select.
+   */
   private readonly choiceIndex: number;
 
+  /**
+   * The continue action used for story progression after choice selection.
+   */
+  private readonly continueAction: ContinueStoryAction;
+
+  // Constructor ======================================================================================================
+
+  /**
+   * Creates a new SelectChoiceAction.
+   * @param choiceIndex - The index of the choice to select
+   */
   constructor(choiceIndex: number) {
-    super();
     this.choiceIndex = choiceIndex;
+    this.continueAction = new ContinueStoryAction();
   }
 
+  // Public Methods ===================================================================================================
+
+  /**
+   * Applies this action to select a choice and continue the story.
+   * Selects the specified choice index and then continues story progression.
+   *
+   * @param context - The action context providing state access and dispatch capability
+   */
   apply(context: PreviewActionContext): void {
-    const story = context.story;
-    if (!story) {
-      throw new Error("No story available in context");
-    }
+    const story = context.story; // Guaranteed to be available
 
     try {
       // 1. Select the choice
       story.ChooseChoiceIndex(this.choiceIndex);
 
-      // 2. Continue story using inherited logic
-      super.apply(context);
+      // 2. Continue story using composition
+      this.continueAction.apply(context);
     } catch (error) {
       // Handle synchronous errors during choice selection
       this.handleChoiceError(error, "Error selecting choice", context);
@@ -63,6 +97,8 @@ export class SelectChoiceAction extends ContinueStoryAction {
       context.dispatch(new EndStoryAction());
     }
   }
+
+  // Private Methods ==================================================================================================
 
   /**
    * Handles errors that occur during choice selection.

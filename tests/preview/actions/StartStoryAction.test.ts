@@ -60,10 +60,6 @@ describe("StartStoryAction", () => {
         isEnded: true,
         isStart: false,
         lastChoiceIndex: 0,
-        metadata: {
-          title: "Test Story",
-          fileName: "/path/to/test.ink",
-        },
       });
 
       // Execute
@@ -77,23 +73,20 @@ describe("StartStoryAction", () => {
       expect(newState.isStart).toBe(true);
     });
 
-    test("should preserve existing metadata unchanged", () => {
+    test("should preserve existing state unchanged", () => {
       // Set up
-      const currentState: PreviewState = mockPreviewState({
-        metadata: {
-          title: "Test Story",
-          fileName: "/path/to/test.ink",
-        },
-      });
+      const currentState: PreviewState = mockPreviewState();
 
       // Execute
       const newState = action.reduce(currentState);
 
       // Assert
-      expect(newState.metadata).toEqual({
-        title: "Test Story",
-        fileName: "/path/to/test.ink",
-      });
+      expect(newState.storyEvents).toEqual([]);
+      expect(newState.currentChoices).toEqual([]);
+      expect(newState.errors).toEqual([]);
+      expect(newState.isEnded).toBe(false);
+      expect(newState.isStart).toBe(true);
+      expect(newState.lastChoiceIndex).toBe(0);
     });
 
     test("should reset lastChoiceIndex to 0", () => {

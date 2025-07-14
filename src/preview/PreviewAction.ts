@@ -53,8 +53,9 @@ export interface PreviewActionContext {
   /**
    * The Ink story instance for performing side effects.
    * This is provided for actions that need to interact with the story engine.
+   * Guaranteed to be available for story-dependent actions.
    */
-  story?: Story;
+  story: Story;
 }
 
 /**
@@ -69,6 +70,12 @@ export interface PreviewActionContext {
  * dispatch other actions.
  */
 export interface PreviewAction {
+  /**
+   * The type identifier for this action.
+   * Used for action identification, filtering, and debugging.
+   */
+  readonly type: string;
+
   /**
    * Applies this action within the given context.
    *
@@ -92,6 +99,11 @@ export interface PreviewAction {
  * which will be called automatically from apply().
  */
 export abstract class PreviewReducerAction implements PreviewAction {
+  /**
+   * The type identifier for this action.
+   * Must be implemented by concrete action classes.
+   */
+  abstract readonly type: string;
   /**
    * Applies this action to the current state and returns a new state.
    *

@@ -32,12 +32,38 @@ import { StoryEvent } from "../types";
  * This allows for flexible addition of single events or multiple events at once.
  */
 export class AddStoryEventsAction extends PreviewReducerAction {
+  // Static Properties ================================================================================================
+
+  /**
+   * The type identifier for this action.
+   * Used for action identification, filtering, and debugging.
+   */
+  public static readonly typeId = "ADD_STORY_EVENTS";
+
+  // Instance Properties ==============================================================================================
+
+  /**
+   * The type identifier for this action instance.
+   */
+  public readonly type = AddStoryEventsAction.typeId;
+
+  /**
+   * The list of story events to add to the state.
+   */
   private readonly events: StoryEvent[];
 
+  // Constructor ======================================================================================================
+
+  /**
+   * Creates a new AddStoryEventsAction.
+   * @param events - The list of story events to add to the state
+   */
   constructor(events: StoryEvent[]) {
     super();
     this.events = events;
   }
+
+  // Public Methods ===================================================================================================
 
   /**
    * Reduces the current state by appending new story events.

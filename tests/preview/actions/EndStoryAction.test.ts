@@ -73,10 +73,6 @@ describe("EndStoryAction", () => {
         isEnded: false,
         isStart: true,
         lastChoiceIndex: 5,
-        metadata: {
-          title: "Test Story",
-          fileName: "/path/to/test.ink",
-        },
       });
 
       // Execute
@@ -88,7 +84,6 @@ describe("EndStoryAction", () => {
       expect(newState.errors).toEqual(currentState.errors);
       expect(newState.isStart).toBe(false);
       expect(newState.lastChoiceIndex).toBe(5);
-      expect(newState.metadata).toEqual(currentState.metadata);
     });
 
     test("should return a new state object", () => {

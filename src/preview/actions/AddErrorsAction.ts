@@ -32,12 +32,38 @@ import { ErrorInfo } from "../PreviewState";
  * This allows for flexible addition of single errors or multiple errors at once.
  */
 export class AddErrorsAction extends PreviewReducerAction {
+  // Static Properties ================================================================================================
+
+  /**
+   * The type identifier for this action.
+   * Used for action identification, filtering, and debugging.
+   */
+  public static readonly typeId = "ADD_ERRORS";
+
+  // Instance Properties ==============================================================================================
+
+  /**
+   * The type identifier for this action instance.
+   */
+  public readonly type = AddErrorsAction.typeId;
+
+  /**
+   * The list of errors to add to the state.
+   */
   private readonly errors: ErrorInfo[];
 
+  // Constructor ======================================================================================================
+
+  /**
+   * Creates a new AddErrorsAction.
+   * @param errors - The list of errors to add to the state
+   */
   constructor(errors: ErrorInfo[]) {
     super();
     this.errors = errors;
   }
+
+  // Public Methods ===================================================================================================
 
   /**
    * Reduces the current state by appending new errors.

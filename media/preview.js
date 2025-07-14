@@ -43,6 +43,9 @@ const outboundMessages = {
   /** Sent when player requests story restart */
   restartStory: "restartStory",
 
+  /** Sent when player requests story rewind to last choice */
+  rewindStory: "rewindStory",
+
   /** Sent for debug logging */
   log: "log",
 };
@@ -246,6 +249,7 @@ const storyView = {
    */
   initializeElements() {
     this.elements.restartButton = document.getElementById("button-restart");
+    this.elements.rewindButton = document.getElementById("button-rewind");
     this.elements.storyContent = document.getElementById("story-content");
     this.elements.choicesContainer =
       document.getElementById("choices-container");
@@ -278,6 +282,7 @@ const storyView = {
    */
   setupEventListeners() {
     this.setupRestartButton();
+    this.setupRewindButton();
     this.setupKeyboardShortcuts();
     this.setupErrorHandlers();
   },
@@ -292,6 +297,15 @@ const storyView = {
   },
 
   /**
+   * Sets up the rewind button click handler.
+   */
+  setupRewindButton() {
+    this.elements.rewindButton.addEventListener("click", () => {
+      storyController.actionRewindStory();
+    });
+  },
+
+  /**
    * Sets up keyboard shortcuts for story navigation.
    */
   setupKeyboardShortcuts() {
@@ -300,6 +314,12 @@ const storyView = {
       if ((e.key === "r" || e.key === "R") && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         storyController.actionRestartStory();
+      }
+
+      // Rewind story: Ctrl/Cmd + Z
+      if ((e.key === "z" || e.key === "Z") && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        storyController.actionRewindStory();
       }
 
       // Close error modal with Escape
@@ -810,6 +830,11 @@ const storyController = {
     storyView.updateErrorButton();
     storyView.hideErrorModal();
     messageHandler.postMessage(outboundMessages.restartStory, {});
+  },
+
+  actionRewindStory() {
+    logLocal("Action: Requesting story rewind");
+    messageHandler.postMessage(outboundMessages.rewindStory, {});
   },
 
   /**

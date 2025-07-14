@@ -99,23 +99,4 @@ export interface PreviewState {
    * Updated by SetCurrentChoicesAction when new choices are presented.
    */
   lastChoiceIndex: number;
-
-  /**
-   * Metadata about the current story file and presentation.
-   * Used for display purposes in the webview title and UI elements.
-   * Can be extended with additional properties for action-specific metadata.
-   */
-  metadata: {
-    /**
-     * Display name for the story, typically the base filename.
-     * Used in the webview panel title and story header.
-     */
-    title: string;
-
-    /**
-     * Full file path of the story file being previewed.
-     * Used for debugging and file identification purposes.
-     */
-    fileName: string;
-  };
 }

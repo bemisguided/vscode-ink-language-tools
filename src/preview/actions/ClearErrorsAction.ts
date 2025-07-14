@@ -30,6 +30,23 @@ import { PreviewState } from "../PreviewState";
  * Removes all errors from the errors array.
  */
 export class ClearErrorsAction extends PreviewReducerAction {
+  // Static Properties ================================================================================================
+
+  /**
+   * The type identifier for this action.
+   * Used for action identification, filtering, and debugging.
+   */
+  public static readonly typeId = "CLEAR_ERRORS";
+
+  // Instance Properties ==============================================================================================
+
+  /**
+   * The type identifier for this action instance.
+   */
+  public readonly type = ClearErrorsAction.typeId;
+
+  // Public Methods ===================================================================================================
+
   /**
    * Reduces the current state by clearing all errors.
    * Resets the errors array to an empty array.

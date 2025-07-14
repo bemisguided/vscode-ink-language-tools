@@ -63,12 +63,7 @@ export class PreviewController {
   constructor(webviewPanel: vscode.WebviewPanel) {
     this.webviewPanel = webviewPanel;
     this.htmlGenerator = new PreviewHtmlGenerator();
-    this.stateManager = new PreviewStateManager({
-      metadata: {
-        title: "",
-        fileName: "",
-      },
-    });
+    this.stateManager = new PreviewStateManager();
     this.setupWebview();
     this.setupMessageHandlers();
   }
@@ -148,12 +143,17 @@ export class PreviewController {
 
     // Handle restart request
     this.registerMessageHandler(inboundMessages.restartStory, () => {
-      // Reset the story engine state before restarting
-      const story = this.stateManager.getStory();
-      if (story) {
-        story.ResetState();
-      }
+      // Story reset is now handled by InitializeStoryAction
       this.startStory();
+    });
+
+    // Handle rewind request
+    this.registerMessageHandler(inboundMessages.rewindStory, () => {
+      console.debug("[PreviewController] 📖 Rewinding story to last choice");
+
+      // Rewind to last choice and send updated state
+      this.stateManager.rewindToLastChoice();
+      this.sendStateToWebview(this.stateManager.getState());
     });
   }
 
@@ -225,11 +225,8 @@ export class PreviewController {
     // Bind external functions directly - no model needed
     this.bindAllExternalFunctions(compiledStory);
 
-    // Initialize story state
-    const fileName = path.basename(document.uri.fsPath);
-    this.stateManager.dispatch(
-      new InitializeStoryAction(fileName, document.uri.fsPath)
-    );
+    // Initialize story state (reset story)
+    this.stateManager.dispatch(new InitializeStoryAction());
 
     // Set up story error handler
     compiledStory.story.onError = (error) => {
@@ -278,13 +275,8 @@ export class PreviewController {
    * @param message - The compilation error message
    */
   private handleCompilationError(message: string): void {
-    const document = this.ensureDocument();
-    const fileName = path.basename(document.uri.fsPath);
-
-    // Reset state manager with error metadata
-    this.stateManager.dispatch(
-      new InitializeStoryAction(fileName, document.uri.fsPath)
-    );
+    // Reset state manager for error handling (no story available)
+    this.stateManager.reset();
 
     // Add compilation error to state
     this.addErrorToState(message, "error");

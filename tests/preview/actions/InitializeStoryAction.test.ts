@@ -23,173 +23,118 @@
  */
 
 import { InitializeStoryAction } from "../../../src/preview/actions/InitializeStoryAction";
-import { PreviewState } from "../../../src/preview/PreviewState";
+import { PreviewActionContext } from "../../../src/preview/PreviewAction";
 import { mockPreviewState } from "../../__mocks__/mockPreviewState";
 
 describe("InitializeStoryAction", () => {
-  describe("reduce", () => {
-    test("should initialize story with provided metadata", () => {
+  let mockContext: PreviewActionContext;
+  let mockStory: any;
+
+  beforeEach(() => {
+    // Set up
+    mockStory = {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      ResetState: jest.fn(),
+    };
+
+    mockContext = {
+      getState: jest.fn().mockReturnValue(mockPreviewState()),
+      setState: jest.fn(),
+      dispatch: jest.fn(),
+      story: mockStory,
+    };
+  });
+
+  describe("apply", () => {
+    test("should reset the story state when story is available", () => {
       // Set up
-      const title = "Adventure Story";
-      const fileName = "/path/to/adventure.ink";
-      const action = new InitializeStoryAction(title, fileName);
-      const currentState: PreviewState = mockPreviewState();
+      const action = new InitializeStoryAction();
 
       // Execute
-      const newState = action.reduce(currentState);
+      action.apply(mockContext);
 
       // Assert
-      expect(newState.metadata).toEqual({
-        title: title,
-        fileName: fileName,
-      });
-      expect(newState.storyEvents).toEqual([]);
-      expect(newState.currentChoices).toEqual([]);
-      expect(newState.errors).toEqual([]);
-      expect(newState.isEnded).toBe(false);
-      expect(newState.isStart).toBe(false);
-      expect(newState.lastChoiceIndex).toBe(0);
+      expect(mockStory.ResetState).toHaveBeenCalledTimes(1);
     });
 
-    test("should replace existing metadata", () => {
+    test("should not crash when ResetState throws an error", () => {
       // Set up
-      const newTitle = "New Story";
-      const newFileName = "/new/path/story.ink";
-      const action = new InitializeStoryAction(newTitle, newFileName);
-      const currentState: PreviewState = mockPreviewState({
-        metadata: {
-          title: "Old Story",
-          fileName: "/old/path/story.ink",
-        },
+      const action = new InitializeStoryAction();
+      mockStory.ResetState.mockImplementation(() => {
+        throw new Error("Reset failed");
       });
 
       // Execute
-      const newState = action.reduce(currentState);
+      expect(() => action.apply(mockContext)).not.toThrow();
 
       // Assert
-      expect(newState.metadata).toEqual({
-        title: newTitle,
-        fileName: newFileName,
-      });
+      expect(mockStory.ResetState).toHaveBeenCalledTimes(1);
     });
 
-    test("should preserve existing state data", () => {
+    test("should not dispatch any actions", () => {
       // Set up
-      const title = "Test Story";
-      const fileName = "/test/story.ink";
-      const action = new InitializeStoryAction(title, fileName);
-      const currentState: PreviewState = mockPreviewState({
-        storyEvents: [
-          {
-            type: "text" as const,
-            text: "Existing event",
-            tags: ["existing"],
-            isCurrent: true,
-          },
-        ],
-        currentChoices: [
-          {
-            index: 0,
-            text: "Existing choice",
-            tags: ["choice"],
-          },
-        ],
-        errors: [
-          {
-            message: "Existing error",
-            severity: "error",
-          },
-        ],
-        isEnded: true,
-        isStart: true,
-        lastChoiceIndex: 5,
-      });
+      const action = new InitializeStoryAction();
 
       // Execute
-      const newState = action.reduce(currentState);
+      action.apply(mockContext);
 
       // Assert
-      expect(newState.storyEvents).toEqual(currentState.storyEvents);
-      expect(newState.currentChoices).toEqual(currentState.currentChoices);
-      expect(newState.errors).toEqual(currentState.errors);
-      expect(newState.isEnded).toBe(true);
-      expect(newState.isStart).toBe(true);
-      expect(newState.lastChoiceIndex).toBe(5);
+      expect(mockContext.dispatch).not.toHaveBeenCalled();
     });
 
-    test("should return a new state object", () => {
+    test("should not mutate state", () => {
       // Set up
-      const title = "Test Story";
-      const fileName = "/test/story.ink";
-      const action = new InitializeStoryAction(title, fileName);
-      const currentState: PreviewState = mockPreviewState();
+      const action = new InitializeStoryAction();
 
       // Execute
-      const newState = action.reduce(currentState);
+      action.apply(mockContext);
 
       // Assert
-      expect(newState).not.toBe(currentState);
-      expect(newState).toEqual(
-        mockPreviewState({
-          metadata: {
-            title: title,
-            fileName: fileName,
-          },
-        })
-      );
+      expect(mockContext.setState).not.toHaveBeenCalled();
     });
   });
 
-  describe("Edge cases", () => {
-    test("should handle metadata with special characters", () => {
-      // Set up
-      const title = "Story with special chars: àáâãäåæçèéêë 🔥💥";
-      const fileName = "/path/with spaces/àáâãäåæçèéêë.ink";
-      const action = new InitializeStoryAction(title, fileName);
-      const currentState: PreviewState = mockPreviewState();
-
-      // Execute
-      const newState = action.reduce(currentState);
-
+  describe("type identification", () => {
+    test("should have correct static type identifier", () => {
       // Assert
-      expect(newState.metadata).toEqual({
-        title: title,
-        fileName: fileName,
-      });
+      expect(InitializeStoryAction.typeId).toBe("INITIALIZE_STORY");
     });
 
-    test("should handle empty strings in metadata", () => {
+    test("should have correct instance type identifier", () => {
       // Set up
-      const title = "";
-      const fileName = "";
-      const action = new InitializeStoryAction(title, fileName);
-      const currentState: PreviewState = mockPreviewState();
-
-      // Execute
-      const newState = action.reduce(currentState);
+      const action = new InitializeStoryAction();
 
       // Assert
-      expect(newState.metadata).toEqual({
-        title: title,
-        fileName: fileName,
-      });
+      expect(action.type).toBe("INITIALIZE_STORY");
+      expect(action.type).toBe(InitializeStoryAction.typeId);
     });
+  });
 
-    test("should handle long metadata values", () => {
-      // Set up
-      const title = "A".repeat(1000);
-      const fileName = "/very/long/path/to/file/" + "B".repeat(500) + ".ink";
-      const action = new InitializeStoryAction(title, fileName);
-      const currentState: PreviewState = mockPreviewState();
-
+  describe("constructor", () => {
+    test("should create action without parameters", () => {
       // Execute
-      const newState = action.reduce(currentState);
+      const action = new InitializeStoryAction();
 
       // Assert
-      expect(newState.metadata).toEqual({
-        title: title,
-        fileName: fileName,
+      expect(action).toBeInstanceOf(InitializeStoryAction);
+      expect(action.type).toBe("INITIALIZE_STORY");
+    });
+  });
+
+  describe("error handling", () => {
+    test("should continue execution after ResetState error", () => {
+      // Set up
+      const action = new InitializeStoryAction();
+      mockStory.ResetState.mockImplementation(() => {
+        throw new Error("Story reset failed");
       });
+
+      // Execute
+      action.apply(mockContext);
+
+      // Assert
+      expect(mockStory.ResetState).toHaveBeenCalledTimes(1);
+      // Action should complete without throwing
     });
   });
 });
