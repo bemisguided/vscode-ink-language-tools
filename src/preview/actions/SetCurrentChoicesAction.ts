@@ -77,6 +77,7 @@ export class SetCurrentChoicesAction extends PreviewReducerAction {
       ...state,
       currentChoices: [...this.choices],
       lastChoiceIndex: state.storyEvents.length,
+      uiState: { ...state.uiState },
     };
   }
 }

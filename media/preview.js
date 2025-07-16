@@ -395,6 +395,9 @@ const storyView = {
     // Reset UI
     this.elements.storyContent.innerHTML = "";
     this.elements.choicesContainer.innerHTML = "";
+
+    // Reset rewind button to disabled state
+    this.updateRewindButton(false);
   },
 
   /**
@@ -739,6 +742,19 @@ const storyView = {
   },
 
   /**
+   * Updates the rewind button enabled/disabled state.
+   * @param {boolean} canRewind - Whether the rewind functionality should be available
+   */
+  updateRewindButton(canRewind) {
+    this.elements.rewindButton.disabled = !canRewind;
+    logLocal(
+      `[preview.js] 🔄 Rewind button state: ${
+        canRewind ? "enabled" : "disabled"
+      }`
+    );
+  },
+
+  /**
    * Escapes HTML special characters in a string.
    * @param {string} text - The text to escape
    * @returns {string} The escaped text
@@ -854,6 +870,11 @@ const storyController = {
     // Update errors - replace completely
     storyView.errors = state.errors || [];
     storyView.updateErrorButton();
+
+    // Update UI state
+    if (state.uiState) {
+      storyView.updateRewindButton(state.uiState.rewind);
+    }
 
     // Update story content by directly rendering to maintain proper styling
     this.renderCompleteStoryState(state);

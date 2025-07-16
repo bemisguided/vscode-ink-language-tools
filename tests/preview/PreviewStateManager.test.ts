@@ -690,6 +690,7 @@ describe("PreviewStateManager", () => {
           ],
           currentChoices: [{ index: 0, text: "Second Choice", tags: [] }],
           lastChoiceIndex: 3,
+          uiState: { rewind: true },
         })
       );
     });

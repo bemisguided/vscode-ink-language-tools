@@ -51,6 +51,19 @@ export interface ErrorInfo {
 }
 
 /**
+ * Represents the UI state for the preview webview.
+ * Controls the visual state and availability of UI elements.
+ */
+export interface UIState {
+  /**
+   * Whether the rewind functionality should be available to the user.
+   * True when there are historical (non-current) story events that can be rewound to.
+   * False when the story has just started or restarted with no historical events.
+   */
+  rewind: boolean;
+}
+
+/**
  * Represents the complete state of the preview webview.
  * This is the single source of truth for all preview data and is designed
  * to be sent as a complete snapshot to the webview for state replacement.
@@ -99,4 +112,10 @@ export interface PreviewState {
    * Updated by SetCurrentChoicesAction when new choices are presented.
    */
   lastChoiceIndex: number;
+
+  /**
+   * UI state controlling the availability and visual state of webview elements.
+   * Contains flags for enabling/disabling functionality based on current story state.
+   */
+  uiState: UIState;
 }

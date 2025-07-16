@@ -87,6 +87,10 @@ export class AddStoryEventsAction extends PreviewReducerAction {
     return {
       ...state,
       storyEvents: eventsWithCurrentFlags,
+      uiState: {
+        ...state.uiState,
+        rewind: state.lastChoiceIndex > 0,
+      },
     };
   }
 }

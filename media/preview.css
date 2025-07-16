@@ -242,6 +242,14 @@
   background-color: var(--vscode-list-activeSelectionBackground);
 }
 
+.btn:disabled,
+.btn:disabled:hover,
+.btn:disabled:focus {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: transparent;
+}
+
 /* Base Icon Classes ============================================================================================== */
 
 .icon {

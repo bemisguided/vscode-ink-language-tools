@@ -48,17 +48,19 @@ export class EndStoryAction extends PreviewReducerAction {
   // Public Methods ===================================================================================================
 
   /**
-   * Reduces the current state to mark the story as ended.
-   * Sets isEnded to true and isStart to false.
+   * Reduces the current state by marking the story as ended.
+   * This sets the isEnded flag to true, indicating that the story
+   * has reached a conclusion and no further progression is possible.
    *
    * @param state - The current preview state
-   * @returns New state with story marked as ended
+   * @returns New state with isEnded flag set to true
    */
   reduce(state: PreviewState): PreviewState {
     return {
       ...state,
       isEnded: true,
       isStart: false,
+      uiState: { ...state.uiState },
     };
   }
 }

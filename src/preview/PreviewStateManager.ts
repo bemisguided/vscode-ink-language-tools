@@ -326,6 +326,9 @@ export class PreviewStateManager {
       isEnded: false,
       isStart: false,
       lastChoiceIndex: 0,
+      uiState: {
+        rewind: false,
+      },
     };
 
     if (overrides) {

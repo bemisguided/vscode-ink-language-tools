@@ -40,6 +40,9 @@ export function mockPreviewState(
     isEnded: false,
     isStart: false,
     lastChoiceIndex: 0,
+    uiState: {
+      rewind: false,
+    },
   };
 
   return {

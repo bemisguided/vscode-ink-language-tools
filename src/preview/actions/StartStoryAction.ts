@@ -62,6 +62,9 @@ export class StartStoryAction extends PreviewReducerAction {
       isEnded: false,
       isStart: true,
       lastChoiceIndex: 0,
+      uiState: {
+        rewind: false,
+      },
     };
   }
 }

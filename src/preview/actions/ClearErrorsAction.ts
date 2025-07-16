@@ -49,15 +49,17 @@ export class ClearErrorsAction extends PreviewReducerAction {
 
   /**
    * Reduces the current state by clearing all errors.
-   * Resets the errors array to an empty array.
+   * This removes all accumulated errors from the state, effectively resetting
+   * the error list to an empty array.
    *
    * @param state - The current preview state
-   * @returns New state with errors cleared
+   * @returns New state with cleared errors array
    */
   reduce(state: PreviewState): PreviewState {
     return {
       ...state,
       errors: [],
+      uiState: { ...state.uiState },
     };
   }
 }

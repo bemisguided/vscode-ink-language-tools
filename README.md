@@ -109,7 +109,23 @@ The preview opens in a new panel alongside your editor, displaying your story's 
 
 #### Navigation Controls
 
-The preview supports both mouse and keyboard navigation for ease of use. You can click on choice buttons or the restart button in the toolbar using your mouse. For keyboard navigation, use the number keys (`1-9`) to select choices, or press `Ctrl+R` (`Cmd+R` on macOS) to restart the story. When the story is restarted, the extension will automatically recompile any changes that have occurred since the preview was last started.
+The preview supports both mouse and keyboard navigation for ease of use:
+
+**Mouse Navigation:**
+- Click on choice buttons to make selections
+- Click the restart button in the toolbar to restart the story
+- Click the rewind button in the toolbar to return to the last choice point
+
+**Keyboard Navigation:**
+- Use number keys (`1-9`) to select choices
+- Press `Ctrl+R` (`Cmd+R` on macOS) to restart the story
+- Press `Ctrl+Z` (`Cmd+Z` on macOS) to rewind to the last choice point
+
+**Story Restart vs. Rewind:**
+- **Restart**: Begins the story from the very beginning, clearing all history
+- **Rewind**: Returns to the most recent choice point, preserving the story history up to that point
+
+When the story is restarted, the extension will automatically recompile any changes that have occurred since the preview was last started.
 
 ### Linking External JavaScript Files
 
@@ -217,6 +233,9 @@ The extension provides the following keyboard shortcuts for quick access to comm
 | ------------- | ------------- | ---------------- |
 | Compile File  | `Shift+Alt+K` | `Shift+Option+K` |
 | Preview Story | `Ctrl+R`      | `Cmd+R`          |
+| Restart Story (in preview) | `Ctrl+R` | `Cmd+R` |
+| Rewind Story (in preview)  | `Ctrl+Z` | `Cmd+Z` |
+| Select Choice (in preview) | `1-9` | `1-9` |
   
 ### Ink & Inkle Studios Documentation
 

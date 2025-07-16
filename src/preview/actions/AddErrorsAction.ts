@@ -67,15 +67,17 @@ export class AddErrorsAction extends PreviewReducerAction {
 
   /**
    * Reduces the current state by appending new errors.
-   * Maintains all existing errors and adds the new ones.
+   * This adds the provided errors to the existing errors array,
+   * preserving all previously recorded errors.
    *
    * @param state - The current preview state
-   * @returns New state with additional errors appended
+   * @returns New state with errors appended to the existing errors array
    */
   reduce(state: PreviewState): PreviewState {
     return {
       ...state,
       errors: [...state.errors, ...this.errors],
+      uiState: { ...state.uiState },
     };
   }
 }
