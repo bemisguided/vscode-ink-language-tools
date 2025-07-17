@@ -26,13 +26,16 @@ import * as vscode from "vscode";
 import path from "path";
 import { PreviewHtmlGenerator } from "./PreviewHtmlGenerator";
 import { PreviewStateManager } from "./PreviewStateManager";
-import { PreviewState } from "./PreviewState";
-import { ErrorInfo, ErrorSeverity } from "./PreviewState";
+import {
+  PreviewState,
+  ErrorInfo,
+  ErrorSeverity,
+  FunctionStoryEvent,
+} from "./PreviewState";
 import { inboundMessages, Message } from "./PreviewMessages";
 import { BuildEngine } from "../build/BuildEngine";
 import { Deferred } from "../util/deferred";
 import { ISuccessfulBuildResult } from "../build/IBuildResult";
-import { FunctionStoryEvent } from "./types";
 // Import all actions
 import { StartStoryAction } from "./actions/StartStoryAction";
 import { AddErrorsAction } from "./actions/AddErrorsAction";

@@ -41,6 +41,14 @@ describe("InitializeStoryAction", () => {
       getState: jest.fn().mockReturnValue(mockPreviewState()),
       setState: jest.fn(),
       dispatch: jest.fn(),
+      storyManager: {
+        reset: jest.fn(),
+        continue: jest.fn(),
+        selectChoice: jest.fn(),
+        isEnded: jest.fn(),
+        canContinue: jest.fn(),
+        getCurrentChoices: jest.fn(),
+      } as any,
       story: mockStory,
     };
   });
@@ -54,21 +62,18 @@ describe("InitializeStoryAction", () => {
       action.apply(mockContext);
 
       // Assert
-      expect(mockStory.ResetState).toHaveBeenCalledTimes(1);
+      expect(mockContext.storyManager.reset).toHaveBeenCalledTimes(1);
     });
 
-    test("should not crash when ResetState throws an error", () => {
+    test("should call storyManager.reset() once", () => {
       // Set up
       const action = new InitializeStoryAction();
-      mockStory.ResetState.mockImplementation(() => {
-        throw new Error("Reset failed");
-      });
 
       // Execute
-      expect(() => action.apply(mockContext)).not.toThrow();
+      action.apply(mockContext);
 
       // Assert
-      expect(mockStory.ResetState).toHaveBeenCalledTimes(1);
+      expect(mockContext.storyManager.reset).toHaveBeenCalledTimes(1);
     });
 
     test("should not dispatch any actions", () => {
@@ -121,20 +126,17 @@ describe("InitializeStoryAction", () => {
     });
   });
 
-  describe("error handling", () => {
-    test("should continue execution after ResetState error", () => {
+  describe("integration", () => {
+    test("should delegate reset operation to story manager", () => {
       // Set up
       const action = new InitializeStoryAction();
-      mockStory.ResetState.mockImplementation(() => {
-        throw new Error("Story reset failed");
-      });
 
       // Execute
       action.apply(mockContext);
 
       // Assert
-      expect(mockStory.ResetState).toHaveBeenCalledTimes(1);
-      // Action should complete without throwing
+      expect(mockContext.storyManager.reset).toHaveBeenCalledTimes(1);
+      // Error handling is now encapsulated in PreviewStoryManager
     });
   });
 });

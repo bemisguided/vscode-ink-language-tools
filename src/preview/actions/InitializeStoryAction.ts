@@ -58,28 +58,18 @@ export class InitializeStoryAction implements PreviewAction {
   // Public Methods ===================================================================================================
 
   /**
-   * Applies this action by resetting the Ink story engine state.
+   * Applies this action by resetting the story engine state.
    * This prepares the story for execution from the beginning by calling
-   * story.ResetState() on the story instance.
+   * the story manager's reset method.
    *
-   * @param context - The action context providing access to the story instance
+   * @param context - The action context providing access to the story manager
    */
   apply(context: PreviewActionContext): void {
     console.debug("[InitializeStoryAction] 🔄 Resetting story state");
 
-    try {
-      // Reset the story engine state (story guaranteed to be available)
-      context.story.ResetState();
-      console.debug(
-        "[InitializeStoryAction] ✅ Story state reset successfully"
-      );
-    } catch (error) {
-      console.error(
-        "[InitializeStoryAction] ❌ Failed to reset story state:",
-        error
-      );
-      // Note: We don't throw here to prevent breaking the action chain
-      // The story will remain in its previous state if reset fails
-    }
+    // Reset the story engine state using the story manager
+    context.storyManager.reset();
+
+    console.debug("[InitializeStoryAction] ✅ Story reset completed");
   }
 }

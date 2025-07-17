@@ -24,7 +24,7 @@
 
 import { PreviewStateManager } from "../../src/preview/PreviewStateManager";
 import { PreviewState } from "../../src/preview/PreviewState";
-import { StoryEvent, Choice } from "../../src/preview/types";
+import { StoryEvent, Choice } from "../../src/preview/PreviewState";
 import { ErrorInfo } from "../../src/preview/PreviewState";
 import {
   PreviewAction,

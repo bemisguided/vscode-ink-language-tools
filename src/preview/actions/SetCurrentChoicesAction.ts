@@ -24,7 +24,7 @@
 
 import { PreviewReducerAction } from "../PreviewAction";
 import { PreviewState } from "../PreviewState";
-import { Choice } from "../types";
+import { Choice } from "../PreviewState";
 
 /**
  * Action to set the current choices available in the story.

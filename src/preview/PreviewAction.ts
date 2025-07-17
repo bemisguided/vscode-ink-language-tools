@@ -24,6 +24,7 @@
 
 import { Story } from "inkjs";
 import { PreviewState } from "./PreviewState";
+import { PreviewStoryManager } from "./PreviewStoryManager";
 
 /**
  * Context object passed to PreviewAction.apply() method.
@@ -51,8 +52,15 @@ export interface PreviewActionContext {
   dispatch(action: PreviewAction): void;
 
   /**
-   * The Ink story instance for performing side effects.
-   * This is provided for actions that need to interact with the story engine.
+   * The story manager for performing story operations.
+   * This provides a high-level interface for story interactions (reset, continue, selectChoice).
+   * Guaranteed to be available for story-dependent actions.
+   */
+  storyManager: PreviewStoryManager;
+
+  /**
+   * @deprecated Use storyManager instead. The raw Ink story instance for legacy compatibility.
+   * This is provided for actions that need direct access to the story engine.
    * Guaranteed to be available for story-dependent actions.
    */
   story: Story;

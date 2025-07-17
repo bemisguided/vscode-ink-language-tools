@@ -23,12 +23,10 @@
  */
 
 import { PreviewAction, PreviewActionContext } from "../PreviewAction";
-import { ContinueStoryAction } from "./ContinueStoryAction";
-import { AddErrorsAction } from "./AddErrorsAction";
+import { AddStoryEventsAction } from "./AddStoryEventsAction";
 import { EndStoryAction } from "./EndStoryAction";
 import { SetCurrentChoicesAction } from "./SetCurrentChoicesAction";
-import { ErrorInfo } from "../PreviewState";
-import { parseErrorMessage } from "../parseErrorMessage";
+import { AddErrorsAction } from "./AddErrorsAction";
 
 /**
  * Action to select a choice in the story and then continue until the next choice point or end.
@@ -55,11 +53,6 @@ export class SelectChoiceAction implements PreviewAction {
    */
   private readonly choiceIndex: number;
 
-  /**
-   * The continue action used for story progression after choice selection.
-   */
-  private readonly continueAction: ContinueStoryAction;
-
   // Constructor ======================================================================================================
 
   /**
@@ -68,57 +61,42 @@ export class SelectChoiceAction implements PreviewAction {
    */
   constructor(choiceIndex: number) {
     this.choiceIndex = choiceIndex;
-    this.continueAction = new ContinueStoryAction();
   }
 
   // Public Methods ===================================================================================================
 
   /**
    * Applies this action to select a choice and continue the story.
-   * Selects the specified choice index and then continues story progression.
+   * Uses the story manager to select the choice and continue in one operation.
    *
    * @param context - The action context providing state access and dispatch capability
    */
   apply(context: PreviewActionContext): void {
-    const story = context.story; // Guaranteed to be available
+    console.debug(
+      `[SelectChoiceAction] 🎯 Selecting choice ${this.choiceIndex}`
+    );
 
-    try {
-      // 1. Select the choice
-      story.ChooseChoiceIndex(this.choiceIndex);
+    // Use story manager to select choice and continue the story
+    const result = context.storyManager.selectChoice(this.choiceIndex);
 
-      // 2. Continue story using composition
-      this.continueAction.apply(context);
-    } catch (error) {
-      // Handle synchronous errors during choice selection
-      this.handleChoiceError(error, "Error selecting choice", context);
+    // Dispatch error actions if errors occurred
+    if (result.errors.length > 0) {
+      context.dispatch(new AddErrorsAction(result.errors));
+    }
 
-      // Set safe default state after error
-      context.dispatch(new SetCurrentChoicesAction([]));
+    // Dispatch state mutations based on the result
+    if (result.events.length > 0) {
+      context.dispatch(new AddStoryEventsAction(result.events));
+    }
+
+    context.dispatch(new SetCurrentChoicesAction(result.choices));
+
+    if (result.isEnded) {
       context.dispatch(new EndStoryAction());
     }
-  }
 
-  // Private Methods ==================================================================================================
-
-  /**
-   * Handles errors that occur during choice selection.
-   * @param error - The error that occurred
-   * @param fallbackMessage - Message to use if error message cannot be extracted
-   * @param context - The action context for dispatching errors
-   */
-  private handleChoiceError(
-    error: unknown,
-    fallbackMessage: string,
-    context: PreviewActionContext
-  ): void {
-    const rawMessage = error instanceof Error ? error.message : fallbackMessage;
-    const { message, severity } = parseErrorMessage(rawMessage);
-
-    const errorInfo: ErrorInfo = {
-      message,
-      severity: severity || "error",
-    };
-
-    context.dispatch(new AddErrorsAction([errorInfo]));
+    console.debug(
+      `[SelectChoiceAction] ✅ Choice selection completed: ${result.events.length} events, ${result.choices.length} choices, ended: ${result.isEnded}`
+    );
   }
 }

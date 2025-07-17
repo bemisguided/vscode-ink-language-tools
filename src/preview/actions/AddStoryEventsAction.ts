@@ -24,7 +24,7 @@
 
 import { PreviewReducerAction } from "../PreviewAction";
 import { PreviewState } from "../PreviewState";
-import { StoryEvent } from "../types";
+import { StoryEvent } from "../PreviewState";
 
 /**
  * Action to add story events to the state.

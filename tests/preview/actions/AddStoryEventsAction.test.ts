@@ -24,7 +24,7 @@
 
 import { AddStoryEventsAction } from "../../../src/preview/actions/AddStoryEventsAction";
 import { PreviewState } from "../../../src/preview/PreviewState";
-import { StoryEvent } from "../../../src/preview/types";
+import { StoryEvent } from "../../../src/preview/PreviewState";
 import { mockPreviewState } from "../../__mocks__/mockPreviewState";
 
 describe("AddStoryEventsAction", () => {

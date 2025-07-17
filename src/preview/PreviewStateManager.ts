@@ -25,6 +25,7 @@
 import { Story } from "inkjs";
 import { PreviewState } from "./PreviewState";
 import { PreviewAction, PreviewActionContext } from "./PreviewAction";
+import { PreviewStoryManager } from "./PreviewStoryManager";
 
 /**
  * Represents a single entry in the action history.
@@ -49,11 +50,12 @@ export class PreviewStateManager {
   private currentState: PreviewState;
   private actionHistory: HistoryEntry[] = [];
   private story?: Story;
+  private storyManager?: PreviewStoryManager;
   private isProcessing = false;
   private maxHistorySize = 100; // Configurable history limit
 
   // Action types that require a story instance to be available
-  private static readonly STORY_DEPENDENT_ACTIONS = new Set([
+  private static readonly storyDependentActions = new Set([
     "INITIALIZE_STORY",
     "CONTINUE_STORY",
     "SELECT_CHOICE",
@@ -81,7 +83,7 @@ export class PreviewStateManager {
   public dispatch(action: PreviewAction): PreviewState {
     // Check if action requires story and ensure it's available
     if (
-      PreviewStateManager.STORY_DEPENDENT_ACTIONS.has(action.type) &&
+      PreviewStateManager.storyDependentActions.has(action.type) &&
       !this.hasStory()
     ) {
       throw new Error(
@@ -137,6 +139,7 @@ export class PreviewStateManager {
    */
   public setStory(story: Story): void {
     this.story = story;
+    this.storyManager = new PreviewStoryManager(story);
   }
 
   /**
@@ -152,7 +155,7 @@ export class PreviewStateManager {
    * @returns True if a story is available, false otherwise
    */
   public hasStory(): boolean {
-    return this.story !== undefined;
+    return this.story !== undefined && this.storyManager !== undefined;
   }
 
   /**
@@ -285,6 +288,7 @@ export class PreviewStateManager {
       dispatch: (action: PreviewAction) => {
         this.applyAction(action);
       },
+      storyManager: this.storyManager!, // Non-null assertion safe due to dispatch() guard
       story: this.story!, // Non-null assertion safe due to dispatch() guard
     };
   }

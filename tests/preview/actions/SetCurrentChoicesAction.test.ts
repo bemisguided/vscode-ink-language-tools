@@ -24,7 +24,7 @@
 
 import { SetCurrentChoicesAction } from "../../../src/preview/actions/SetCurrentChoicesAction";
 import { PreviewState } from "../../../src/preview/PreviewState";
-import { Choice } from "../../../src/preview/types";
+import { Choice } from "../../../src/preview/PreviewState";
 import { mockPreviewState } from "../../__mocks__/mockPreviewState";
 
 describe("SetCurrentChoicesAction", () => {

@@ -23,13 +23,10 @@
  */
 
 import { PreviewAction, PreviewActionContext } from "../PreviewAction";
-import { StoryEvent, TextStoryEvent } from "../types";
 import { AddStoryEventsAction } from "./AddStoryEventsAction";
 import { SetCurrentChoicesAction } from "./SetCurrentChoicesAction";
 import { EndStoryAction } from "./EndStoryAction";
 import { AddErrorsAction } from "./AddErrorsAction";
-import { ErrorInfo, ErrorSeverity } from "../PreviewState";
-import { parseErrorMessage } from "../parseErrorMessage";
 
 /**
  * Action to continue the story until it reaches a choice point or ends.
@@ -56,150 +53,34 @@ export class ContinueStoryAction implements PreviewAction {
 
   /**
    * Applies this action to continue the story until it reaches a choice point or ends.
-   * Collects story events, extracts choices, and dispatches appropriate state mutations.
+   * Uses the story manager to perform the continuation and dispatches appropriate state mutations.
    *
    * @param context - The action context providing state access and dispatch capability
    */
   apply(context: PreviewActionContext): void {
-    const story = context.story; // Guaranteed to be available
+    console.debug("[ContinueStoryAction] ⏭️ Continuing story");
 
-    // Guard against continuing a finished story
-    if (this.isEnded(story)) {
-      // Dispatch end action and empty choices
-      context.dispatch(new SetCurrentChoicesAction([]));
-      context.dispatch(new EndStoryAction());
-      return;
+    // Use story manager to continue the story
+    const result = context.storyManager.continue();
+
+    // Dispatch error actions if errors occurred
+    if (result.errors.length > 0) {
+      context.dispatch(new AddErrorsAction(result.errors));
     }
 
-    const events: StoryEvent[] = [];
-    let allTags: string[] = [];
-
-    // Continue until we hit a choice point or the end
-    while (story.canContinue) {
-      // If doContinue() returns false, either an error occurred or no text was produced - stop execution
-      if (!this.doContinue(story, events, allTags, context)) {
-        break;
-      }
+    // Dispatch state mutations based on the result
+    if (result.events.length > 0) {
+      context.dispatch(new AddStoryEventsAction(result.events));
     }
 
-    // TODO: Function call handling - commented out for now during refactoring
-    // if (this.currentFunctionCalls.length > 0) {
-    //   events.push(
-    //     ...this.currentFunctionCalls.map((call) => {
-    //       const functionEvent: FunctionStoryEvent = {
-    //         type: "function",
-    //         functionName: call.functionName,
-    //         args: call.args,
-    //         result: call.result,
-    //         isCurrent: false, // Set to false here as it will be set properly by AddStoryEventsAction
-    //       };
-    //       return functionEvent;
-    //     })
-    //   );
-    // }
+    context.dispatch(new SetCurrentChoicesAction(result.choices));
 
-    // Get current choices
-    const choices = story.currentChoices.map((choice: any, index: number) => ({
-      index,
-      text: choice.text,
-      tags: choice.tags || [],
-    }));
-
-    // Dispatch state mutations
-    if (events.length > 0) {
-      context.dispatch(new AddStoryEventsAction(events));
-    }
-
-    context.dispatch(new SetCurrentChoicesAction(choices));
-
-    if (this.isEnded(story)) {
+    if (result.isEnded) {
       context.dispatch(new EndStoryAction());
     }
 
-    // TODO: Clear function calls for next continuation - commented out for now
-    // this.currentFunctionCalls = [];
-  }
-
-  // Private Methods ==================================================================================================
-
-  /**
-   * Checks if the story has reached an end state.
-   * @param story - The Ink story instance
-   * @returns True if the story has ended
-   */
-  private isEnded(story: any): boolean {
-    return !story.canContinue && story.currentChoices.length === 0;
-  }
-
-  /**
-   * Continues the story execution with error handling.
-   * Handles the complete continue block including text extraction, tag processing, event creation, and accumulation.
-   * @param story - The Ink story instance
-   * @param events - Array to add the text event to
-   * @param allTags - Array to accumulate tags to
-   * @param context - The action context for error handling
-   * @returns true if continue was successful and should continue, false if should stop (error or no text)
-   */
-  private doContinue(
-    story: any,
-    events: StoryEvent[],
-    allTags: string[],
-    context: PreviewActionContext
-  ): boolean {
-    try {
-      const lineText = story.Continue();
-
-      // If no text was produced, return false to stop (normal case, not an error)
-      if (!lineText) {
-        return false;
-      }
-
-      // Get current tags after the continue call
-      const lineTags = story.currentTags || [];
-
-      // Create the text event
-      const textEvent: TextStoryEvent = {
-        type: "text",
-        text: lineText,
-        tags: lineTags,
-        isCurrent: false, // Set to false here as it will be set properly by AddStoryEventsAction
-      };
-
-      // Add the event to the events array
-      events.push(textEvent);
-
-      // Track all tags for potential future use
-      allTags.push(...lineTags);
-
-      return true; // Continue processing
-    } catch (error) {
-      // Handle synchronous errors (validation, missing external functions, etc.)
-      this.handleError(error, "Unknown story execution error", context);
-      return false; // Stop processing due to error
-    }
-  }
-
-  /**
-   * Handles errors by extracting the message and dispatching error actions.
-   * @param error - The error that occurred
-   * @param fallbackMessage - Message to use if error message cannot be extracted
-   * @param context - The action context for dispatching errors
-   * @param severity - The severity level of the error (can be overridden by parsing)
-   */
-  private handleError(
-    error: unknown,
-    fallbackMessage: string = "Unknown error occurred",
-    context: PreviewActionContext,
-    severity: ErrorSeverity = "error"
-  ): void {
-    const rawMessage = error instanceof Error ? error.message : fallbackMessage;
-    const { message, severity: parsedSeverity } = parseErrorMessage(rawMessage);
-
-    const errorInfo: ErrorInfo = {
-      message,
-      severity: parsedSeverity || severity,
-    };
-
-    context.dispatch(new AddErrorsAction([errorInfo]));
+    console.debug(
+      `[ContinueStoryAction] ✅ Continue completed: ${result.events.length} events, ${result.choices.length} choices, ${result.errors.length} errors, ended: ${result.isEnded}`
+    );
   }
 }

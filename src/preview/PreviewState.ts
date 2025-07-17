@@ -22,7 +22,40 @@
  * SOFTWARE.
  */
 
-import { StoryEvent, Choice } from "./types";
+/**
+ * Represents a choice available to the player.
+ */
+export interface Choice {
+  index: number;
+  text: string;
+  tags: string[];
+}
+
+/**
+ * Represents a text event from story continuation.
+ */
+export interface TextStoryEvent {
+  type: "text";
+  text: string;
+  tags: string[];
+  isCurrent?: boolean;
+}
+
+/**
+ * Represents a function call event from external function execution.
+ */
+export interface FunctionStoryEvent {
+  type: "function";
+  functionName: string;
+  args: any[];
+  result: any;
+  isCurrent?: boolean;
+}
+
+/**
+ * Union type for all story events.
+ */
+export type StoryEvent = TextStoryEvent | FunctionStoryEvent;
 
 /**
  * Represents the severity level of an error.
