@@ -39,28 +39,18 @@ export const inboundMessages = {
   /** Sent when Webview is ready to receive messages */
   ready: "ready",
 
-  /** Sent when player selects a choice */
-  selectChoice: "selectChoice",
-
-  /** Sent when player requests story restart */
-  restartStory: "restartStory",
-
-  /** Sent when player requests story rewind to last choice */
-  rewindStory: "rewindStory",
-
-  /** Sent for debug logging */
-  log: "log",
+  /** Sent when player performs any action */
+  action: "action",
 } as const;
+
+import { UIAction } from "./actions/UIAction";
 
 /**
  * Type for inbound message payloads
  */
 export interface InboundMessagePayloads {
   [inboundMessages.ready]: void;
-  [inboundMessages.selectChoice]: { choiceIndex: number };
-  [inboundMessages.restartStory]: void;
-  [inboundMessages.rewindStory]: void;
-  [inboundMessages.log]: { message: string };
+  [inboundMessages.action]: UIAction;
 }
 
 /**

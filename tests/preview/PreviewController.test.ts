@@ -267,8 +267,8 @@ describe("PreviewController", () => {
     test("should handle choice selection", () => {
       // Execute
       mockWebviewPanel.webview.simulateMessage({
-        command: inboundMessages.selectChoice,
-        payload: { choiceIndex: 1 },
+        command: inboundMessages.action,
+        payload: { type: "SELECT_CHOICE", payload: { choiceIndex: 1 } },
       });
 
       // Assert
@@ -287,8 +287,8 @@ describe("PreviewController", () => {
     test("should handle story restart", async () => {
       // Execute
       mockWebviewPanel.webview.simulateMessage({
-        command: inboundMessages.restartStory,
-        payload: {},
+        command: inboundMessages.action,
+        payload: { type: "RESTART_STORY" },
       });
 
       // Wait for any async operations
@@ -307,18 +307,6 @@ describe("PreviewController", () => {
           }),
         })
       );
-    });
-
-    test("should handle log messages", () => {
-      // Execute
-      mockWebviewPanel.webview.simulateMessage({
-        command: inboundMessages.log,
-        payload: { message: "Test log message" },
-      });
-
-      // Assert - log messages should be handled without errors
-      // This test ensures the log handler is properly registered
-      expect(mockWebviewPanel.webview.getHandlerCount()).toBeGreaterThan(0);
     });
   });
 

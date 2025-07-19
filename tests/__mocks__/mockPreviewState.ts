@@ -22,31 +22,30 @@
  * SOFTWARE.
  */
 
-import { PreviewState } from "../../src/preview/PreviewState";
+import { PreviewState, StoryState, UIState } from "../../src/preview/PreviewState";
+import { mockStoryState } from "./mockStoryState";
+import { mockUIState } from "./mockUIState";
+
+/**
+ * Interface for partial nested state overrides
+ */
+interface PartialPreviewState {
+  story?: Partial<StoryState>;
+  ui?: Partial<UIState>;
+}
 
 /**
  * Creates a mock PreviewState with default values merged with provided overrides.
  * This allows tests to only specify properties relevant to the test case.
- * @param overrides - Partial PreviewState to override defaults
+ * Uses the new dual state structure with separate story and UI domains.
+ * @param overrides - Partial nested state to override defaults
  * @returns Complete PreviewState with defaults
  */
 export function mockPreviewState(
-  overrides: Partial<PreviewState> = {}
+  overrides: PartialPreviewState = {}
 ): PreviewState {
-  const defaultState: PreviewState = {
-    storyEvents: [],
-    currentChoices: [],
-    errors: [],
-    isEnded: false,
-    isStart: false,
-    lastChoiceIndex: 0,
-    uiState: {
-      rewind: false,
-    },
-  };
-
   return {
-    ...defaultState,
-    ...overrides,
+    story: mockStoryState(overrides.story),
+    ui: mockUIState(overrides.ui),
   };
 }

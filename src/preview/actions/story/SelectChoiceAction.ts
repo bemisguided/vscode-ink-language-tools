@@ -22,7 +22,8 @@
  * SOFTWARE.
  */
 
-import { PreviewAction, PreviewActionContext } from "../PreviewAction";
+import { StoryAction } from "../../StoryAction";
+import { StoryActionContext } from "../../StoryActionContext";
 import { AddStoryEventsAction } from "./AddStoryEventsAction";
 import { EndStoryAction } from "./EndStoryAction";
 import { SetCurrentChoicesAction } from "./SetCurrentChoicesAction";
@@ -32,7 +33,7 @@ import { AddErrorsAction } from "./AddErrorsAction";
  * Action to select a choice in the story and then continue until the next choice point or end.
  * This action uses composition to reuse the continue logic after choice selection.
  */
-export class SelectChoiceAction implements PreviewAction {
+export class SelectChoiceAction implements StoryAction {
   // Static Properties ================================================================================================
 
   /**
@@ -41,7 +42,7 @@ export class SelectChoiceAction implements PreviewAction {
    */
   public static readonly typeId = "SELECT_CHOICE";
 
-  // Instance Properties ==============================================================================================
+  // Public Properties ==============================================================================================
 
   /**
    * The type identifier for this action instance.
@@ -71,7 +72,7 @@ export class SelectChoiceAction implements PreviewAction {
    *
    * @param context - The action context providing state access and dispatch capability
    */
-  apply(context: PreviewActionContext): void {
+  apply(context: StoryActionContext): void {
     console.debug(
       `[SelectChoiceAction] 🎯 Selecting choice ${this.choiceIndex}`
     );

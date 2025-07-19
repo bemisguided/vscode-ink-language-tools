@@ -22,10 +22,9 @@
  * SOFTWARE.
  */
 
-import { SetCurrentChoicesAction } from "../../../src/preview/actions/SetCurrentChoicesAction";
-import { PreviewState } from "../../../src/preview/PreviewState";
-import { Choice } from "../../../src/preview/PreviewState";
-import { mockPreviewState } from "../../__mocks__/mockPreviewState";
+import { SetCurrentChoicesAction } from "../../../../src/preview/actions/story/SetCurrentChoicesAction";
+import { StoryState, Choice } from "../../../../src/preview/StoryState";
+import { mockStoryState } from "../../../__mocks__/mockStoryState";
 
 describe("SetCurrentChoicesAction", () => {
   describe("reduce", () => {
@@ -44,7 +43,7 @@ describe("SetCurrentChoicesAction", () => {
         },
       ];
       const action = new SetCurrentChoicesAction(newChoices);
-      const currentState: PreviewState = mockPreviewState({
+      const currentState: StoryState = mockStoryState({
         currentChoices: [],
         storyEvents: [],
       });
@@ -79,7 +78,7 @@ describe("SetCurrentChoicesAction", () => {
         },
       ];
       const action = new SetCurrentChoicesAction(newChoices);
-      const currentState: PreviewState = mockPreviewState({
+      const currentState: StoryState = mockStoryState({
         currentChoices: existingChoices,
         storyEvents: [
           {
@@ -108,7 +107,7 @@ describe("SetCurrentChoicesAction", () => {
         },
       ];
       const action = new SetCurrentChoicesAction(newChoices);
-      const currentState: PreviewState = mockPreviewState({
+      const currentState: StoryState = mockStoryState({
         storyEvents: [
           {
             type: "text" as const,
@@ -147,7 +146,7 @@ describe("SetCurrentChoicesAction", () => {
         },
       ];
       const action = new SetCurrentChoicesAction(newChoices);
-      const currentState: PreviewState = mockPreviewState({
+      const currentState: StoryState = mockStoryState({
         storyEvents: [
           {
             type: "text" as const,
@@ -180,7 +179,7 @@ describe("SetCurrentChoicesAction", () => {
     test("should handle empty choices array", () => {
       // Set up
       const action = new SetCurrentChoicesAction([]);
-      const currentState: PreviewState = mockPreviewState({
+      const currentState: StoryState = mockStoryState({
         currentChoices: [
           {
             index: 0,
@@ -215,7 +214,7 @@ describe("SetCurrentChoicesAction", () => {
         },
       ];
       const action = new SetCurrentChoicesAction(newChoices);
-      const currentState: PreviewState = mockPreviewState();
+      const currentState: StoryState = mockStoryState();
 
       // Execute
       const newState = action.reduce(currentState);
@@ -223,7 +222,7 @@ describe("SetCurrentChoicesAction", () => {
       // Assert
       expect(newState).not.toBe(currentState);
       expect(newState).toEqual(
-        mockPreviewState({
+        mockStoryState({
           currentChoices: newChoices,
           lastChoiceIndex: 0,
         })
@@ -247,7 +246,7 @@ describe("SetCurrentChoicesAction", () => {
         },
       ];
       const action = new SetCurrentChoicesAction(choicesWithEmptyText);
-      const currentState: PreviewState = mockPreviewState();
+      const currentState: StoryState = mockStoryState();
 
       // Execute
       const newState = action.reduce(currentState);
@@ -266,7 +265,7 @@ describe("SetCurrentChoicesAction", () => {
         },
       ];
       const action = new SetCurrentChoicesAction(specialChoices);
-      const currentState: PreviewState = mockPreviewState();
+      const currentState: StoryState = mockStoryState();
 
       // Execute
       const newState = action.reduce(currentState);
@@ -285,7 +284,7 @@ describe("SetCurrentChoicesAction", () => {
         },
       ];
       const action = new SetCurrentChoicesAction(choicesWithManyTags);
-      const currentState: PreviewState = mockPreviewState();
+      const currentState: StoryState = mockStoryState();
 
       // Execute
       const newState = action.reduce(currentState);
@@ -309,7 +308,7 @@ describe("SetCurrentChoicesAction", () => {
         },
       ];
       const action = new SetCurrentChoicesAction(duplicateIndexChoices);
-      const currentState: PreviewState = mockPreviewState();
+      const currentState: StoryState = mockStoryState();
 
       // Execute
       const newState = action.reduce(currentState);

@@ -22,62 +22,70 @@
  * SOFTWARE.
  */
 
-import { PreviewReducerAction } from "../PreviewAction";
-import { PreviewState } from "../PreviewState";
-import { ErrorInfo } from "../PreviewState";
+import { StoryReducerAction } from "../StoryReducerAction";
+import { StoryState, StoryEvent } from "../../StoryState";
 
 /**
- * Action to add errors to the state.
- * Appends a list of new errors to the existing errors array.
- * This allows for flexible addition of single errors or multiple errors at once.
+ * Action to add story events to the state.
+ * Appends a list of new story events to the existing storyEvents array.
+ * This allows for flexible addition of single events or multiple events at once.
  */
-export class AddErrorsAction extends PreviewReducerAction {
+export class AddStoryEventsAction extends StoryReducerAction {
   // Static Properties ================================================================================================
 
   /**
    * The type identifier for this action.
    * Used for action identification, filtering, and debugging.
    */
-  public static readonly typeId = "ADD_ERRORS";
+  public static readonly typeId = "ADD_STORY_EVENTS";
 
-  // Instance Properties ==============================================================================================
+  // Public Properties ==============================================================================================
 
   /**
    * The type identifier for this action instance.
    */
-  public readonly type = AddErrorsAction.typeId;
+  public readonly type = AddStoryEventsAction.typeId;
 
   /**
-   * The list of errors to add to the state.
+   * The list of story events to add to the state.
    */
-  private readonly errors: ErrorInfo[];
+  private readonly events: StoryEvent[];
 
   // Constructor ======================================================================================================
 
   /**
-   * Creates a new AddErrorsAction.
-   * @param errors - The list of errors to add to the state
+   * Creates a new AddStoryEventsAction.
+   * @param events - The list of story events to add to the state
    */
-  constructor(errors: ErrorInfo[]) {
+  constructor(events: StoryEvent[]) {
     super();
-    this.errors = errors;
+    this.events = events;
   }
 
   // Public Methods ===================================================================================================
 
   /**
-   * Reduces the current state by appending new errors.
-   * This adds the provided errors to the existing errors array,
-   * preserving all previously recorded errors.
+   * Reduces the current state by appending new story events.
+   * Uses lastChoiceIndex to determine which events should be marked as current.
+   * Events with index >= lastChoiceIndex are marked as current (from the current turn).
+   * Events with index < lastChoiceIndex are marked as historical (from previous turns).
    *
-   * @param state - The current preview state
-   * @returns New state with errors appended to the existing errors array
+   * @param state - The current story state
+   * @returns New state with events appended and isCurrent flags set based on lastChoiceIndex
    */
-  reduce(state: PreviewState): PreviewState {
+  reduce(state: StoryState): StoryState {
+    // Combine existing events with new events
+    const allEvents = [...state.storyEvents, ...this.events];
+
+    // Set isCurrent based on lastChoiceIndex
+    const eventsWithCurrentFlags = allEvents.map((event, index) => ({
+      ...event,
+      isCurrent: index >= state.lastChoiceIndex,
+    }));
+
     return {
       ...state,
-      errors: [...state.errors, ...this.errors],
-      uiState: { ...state.uiState },
+      storyEvents: eventsWithCurrentFlags,
     };
   }
 }

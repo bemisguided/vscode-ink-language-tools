@@ -22,54 +22,46 @@
  * SOFTWARE.
  */
 
-import { PreviewAction, PreviewActionContext } from "../PreviewAction";
+import { StoryReducerAction } from "../StoryReducerAction";
+import { StoryState } from "../../StoryState";
 
 /**
- * Action to initialize the story by resetting the Ink story engine state.
- * This action performs the side effect of calling story.ResetState() to prepare
- * the story for execution from the beginning.
+ * Action to start/restart the story.
+ * Resets the story state to its initial state and marks it as starting.
  */
-export class InitializeStoryAction implements PreviewAction {
+export class StartStoryAction extends StoryReducerAction {
   // Static Properties ================================================================================================
 
   /**
    * The type identifier for this action.
    * Used for action identification, filtering, and debugging.
    */
-  public static readonly typeId = "INITIALIZE_STORY";
+  public static readonly typeId = "START_STORY";
 
-  // Instance Properties ==============================================================================================
+  // Public Properties ==============================================================================================
 
   /**
    * The type identifier for this action instance.
    */
-  public readonly type = InitializeStoryAction.typeId;
-
-  // Constructor ======================================================================================================
-
-  /**
-   * Creates a new InitializeStoryAction.
-   * No parameters are required as this action only resets the story state.
-   */
-  constructor() {
-    // No parameters needed
-  }
+  public readonly type = StartStoryAction.typeId;
 
   // Public Methods ===================================================================================================
 
   /**
-   * Applies this action by resetting the story engine state.
-   * This prepares the story for execution from the beginning by calling
-   * the story manager's reset method.
+   * Reduces the current state to a fresh starting state.
+   * Clears all story events, choices, and errors, and marks the story as starting.
    *
-   * @param context - The action context providing access to the story manager
+   * @param state - The current story state
+   * @returns New state with cleared story data and isStart flag set
    */
-  apply(context: PreviewActionContext): void {
-    console.debug("[InitializeStoryAction] 🔄 Resetting story state");
-
-    // Reset the story engine state using the story manager
-    context.storyManager.reset();
-
-    console.debug("[InitializeStoryAction] ✅ Story reset completed");
+  reduce(state: StoryState): StoryState {
+    return {
+      storyEvents: [],
+      currentChoices: [],
+      errors: [],
+      isEnded: false,
+      isStart: true,
+      lastChoiceIndex: 0,
+    };
   }
 }

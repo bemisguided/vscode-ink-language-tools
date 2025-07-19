@@ -22,9 +22,9 @@
  * SOFTWARE.
  */
 
-import { StartStoryAction } from "../../../src/preview/actions/StartStoryAction";
-import { PreviewState } from "../../../src/preview/PreviewState";
-import { mockPreviewState } from "../../__mocks__/mockPreviewState";
+import { StartStoryAction } from "../../../../src/preview/actions/story/StartStoryAction";
+import { StoryState } from "../../../../src/preview/StoryState";
+import { mockStoryState } from "../../../__mocks__/mockStoryState";
 
 describe("StartStoryAction", () => {
   let action: StartStoryAction;
@@ -36,7 +36,7 @@ describe("StartStoryAction", () => {
   describe("reduce", () => {
     test("should reset state to initial starting state", () => {
       // Set up
-      const currentState: PreviewState = mockPreviewState({
+      const currentState: StoryState = mockStoryState({
         storyEvents: [
           {
             type: "text" as const,
@@ -75,7 +75,7 @@ describe("StartStoryAction", () => {
 
     test("should preserve existing state unchanged", () => {
       // Set up
-      const currentState: PreviewState = mockPreviewState();
+      const currentState: StoryState = mockStoryState();
 
       // Execute
       const newState = action.reduce(currentState);
@@ -91,7 +91,7 @@ describe("StartStoryAction", () => {
 
     test("should reset lastChoiceIndex to 0", () => {
       // Set up
-      const currentState: PreviewState = mockPreviewState({
+      const currentState: StoryState = mockStoryState({
         lastChoiceIndex: 5,
       });
 
@@ -104,14 +104,14 @@ describe("StartStoryAction", () => {
 
     test("should return a new state object", () => {
       // Set up
-      const currentState: PreviewState = mockPreviewState();
+      const currentState: StoryState = mockStoryState();
 
       // Execute
       const newState = action.reduce(currentState);
 
       // Assert
       expect(newState).not.toBe(currentState);
-      expect(newState).toEqual(mockPreviewState({ isStart: true }));
+      expect(newState).toEqual(mockStoryState({ isStart: true }));
     });
   });
 });

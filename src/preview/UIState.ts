@@ -23,17 +23,15 @@
  */
 
 /**
- * Base interface for all actions in the preview system.
- * Implements the Command pattern where each action encapsulates both data and behavior.
- *
- * This is a pure base interface containing common properties.
- * Domain-specific actions (StoryAction, UIAction) define their own apply() methods
- * with appropriate context types for type safety and clear separation of concerns.
+ * Represents the UI domain state for the preview system.
+ * Controls the visual state and availability of UI elements in the webview.
+ * This is separate from story state and focuses purely on user interface concerns.
  */
-export interface PreviewAction {
+export interface UIState {
   /**
-   * The type identifier for this action.
-   * Used for action identification, filtering, debugging, and dispatch routing.
+   * Whether the rewind functionality should be available to the user.
+   * True when there are historical (non-current) story events that can be rewound to.
+   * False when the story has just started or restarted with no historical events.
    */
-  readonly type: string;
+  rewind: boolean;
 }

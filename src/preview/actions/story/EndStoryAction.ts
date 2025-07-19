@@ -22,49 +22,44 @@
  * SOFTWARE.
  */
 
-import { PreviewReducerAction } from "../PreviewAction";
-import { PreviewState } from "../PreviewState";
+import { StoryReducerAction } from "../StoryReducerAction";
+import { StoryState } from "../../StoryState";
 
 /**
- * Action to start/restart the story.
- * Resets the story state to its initial state and marks it as starting.
+ * Action to end the story.
+ * Marks the story as ended and no longer starting.
  */
-export class StartStoryAction extends PreviewReducerAction {
+export class EndStoryAction extends StoryReducerAction {
   // Static Properties ================================================================================================
 
   /**
    * The type identifier for this action.
    * Used for action identification, filtering, and debugging.
    */
-  public static readonly typeId = "START_STORY";
+  public static readonly typeId = "END_STORY";
 
-  // Instance Properties ==============================================================================================
+  // Public Properties ==============================================================================================
 
   /**
    * The type identifier for this action instance.
    */
-  public readonly type = StartStoryAction.typeId;
+  public readonly type = EndStoryAction.typeId;
 
   // Public Methods ===================================================================================================
 
   /**
-   * Reduces the current state to a fresh starting state.
-   * Clears all story events, choices, and errors, and marks the story as starting.
+   * Reduces the current state by marking the story as ended.
+   * This sets the isEnded flag to true, indicating that the story
+   * has reached a conclusion and no further progression is possible.
    *
-   * @param state - The current preview state
-   * @returns New state with cleared story data and isStart flag set
+   * @param state - The current story state
+   * @returns New state with isEnded flag set to true
    */
-  reduce(state: PreviewState): PreviewState {
+  reduce(state: StoryState): StoryState {
     return {
-      storyEvents: [],
-      currentChoices: [],
-      errors: [],
-      isEnded: false,
-      isStart: true,
-      lastChoiceIndex: 0,
-      uiState: {
-        rewind: false,
-      },
+      ...state,
+      isEnded: true,
+      isStart: false,
     };
   }
 }

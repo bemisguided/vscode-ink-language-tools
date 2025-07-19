@@ -22,44 +22,60 @@
  * SOFTWARE.
  */
 
-import { PreviewReducerAction } from "../PreviewAction";
-import { PreviewState } from "../PreviewState";
+import { StoryReducerAction } from "../StoryReducerAction";
+import { StoryState, ErrorInfo } from "../../StoryState";
 
 /**
- * Action to clear all errors from the state.
- * Removes all errors from the errors array.
+ * Action to add errors to the state.
+ * Appends a list of new errors to the existing errors array.
+ * This allows for flexible addition of single errors or multiple errors at once.
  */
-export class ClearErrorsAction extends PreviewReducerAction {
+export class AddErrorsAction extends StoryReducerAction {
   // Static Properties ================================================================================================
 
   /**
    * The type identifier for this action.
    * Used for action identification, filtering, and debugging.
    */
-  public static readonly typeId = "CLEAR_ERRORS";
+  public static readonly typeId = "ADD_ERRORS";
 
-  // Instance Properties ==============================================================================================
+  // Public Properties ==============================================================================================
 
   /**
    * The type identifier for this action instance.
    */
-  public readonly type = ClearErrorsAction.typeId;
+  public readonly type = AddErrorsAction.typeId;
+
+  /**
+   * The list of errors to add to the state.
+   */
+  private readonly errors: ErrorInfo[];
+
+  // Constructor ======================================================================================================
+
+  /**
+   * Creates a new AddErrorsAction.
+   * @param errors - The list of errors to add to the state
+   */
+  constructor(errors: ErrorInfo[]) {
+    super();
+    this.errors = errors;
+  }
 
   // Public Methods ===================================================================================================
 
   /**
-   * Reduces the current state by clearing all errors.
-   * This removes all accumulated errors from the state, effectively resetting
-   * the error list to an empty array.
+   * Reduces the current state by appending new errors.
+   * This adds the provided errors to the existing errors array,
+   * preserving all previously recorded errors.
    *
-   * @param state - The current preview state
-   * @returns New state with cleared errors array
+   * @param state - The current story state
+   * @returns New state with errors appended to the existing errors array
    */
-  reduce(state: PreviewState): PreviewState {
+  reduce(state: StoryState): StoryState {
     return {
       ...state,
-      errors: [],
-      uiState: { ...state.uiState },
+      errors: [...state.errors, ...this.errors],
     };
   }
 }

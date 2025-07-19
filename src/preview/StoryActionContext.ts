@@ -22,18 +22,44 @@
  * SOFTWARE.
  */
 
+import { StoryState } from "./StoryState";
+import { PreviewAction } from "./PreviewAction";
+import { PreviewStoryManager } from "./PreviewStoryManager";
+
 /**
- * Base interface for all actions in the preview system.
- * Implements the Command pattern where each action encapsulates both data and behavior.
- *
- * This is a pure base interface containing common properties.
- * Domain-specific actions (StoryAction, UIAction) define their own apply() methods
- * with appropriate context types for type safety and clear separation of concerns.
+ * Context interface for story domain actions.
+ * Provides access to story state and story management operations.
+ * Actions operating on story data use this context exclusively.
  */
-export interface PreviewAction {
+export interface StoryActionContext {
   /**
-   * The type identifier for this action.
-   * Used for action identification, filtering, debugging, and dispatch routing.
+   * Gets the current story state.
+   * @returns Copy of current story state
    */
-  readonly type: string;
+  getState(): StoryState;
+
+  /**
+   * Updates the story state.
+   * @param state - New story state to set
+   */
+  setState(state: StoryState): void;
+
+  /**
+   * Dispatches an action back through the unified dispatcher.
+   * Allows story actions to trigger other actions when needed.
+   * @param action - Action to dispatch
+   */
+  dispatch(action: PreviewAction): void;
+
+  /**
+   * Story manager for interacting with the Ink story engine.
+   * Provides methods for continuing story, selecting choices, etc.
+   */
+  storyManager: PreviewStoryManager;
+
+  /**
+   * Sends the current story state to the webview.
+   * Used to notify the UI when story state has changed.
+   */
+  sendStoryState(): void;
 }

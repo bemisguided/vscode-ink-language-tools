@@ -22,18 +22,43 @@
  * SOFTWARE.
  */
 
+import { UIState } from "./UIState";
+import { PreviewAction } from "./PreviewAction";
+
 /**
- * Base interface for all actions in the preview system.
- * Implements the Command pattern where each action encapsulates both data and behavior.
- *
- * This is a pure base interface containing common properties.
- * Domain-specific actions (StoryAction, UIAction) define their own apply() methods
- * with appropriate context types for type safety and clear separation of concerns.
+ * Context interface for UI domain actions.
+ * Provides access to UI state and coordination capabilities.
+ * UI actions often serve as the coordination layer between domains.
  */
-export interface PreviewAction {
+export interface UIActionContext {
   /**
-   * The type identifier for this action.
-   * Used for action identification, filtering, debugging, and dispatch routing.
+   * Gets the current UI state.
+   * @returns Copy of current UI state
    */
-  readonly type: string;
+  getState(): UIState;
+
+  /**
+   * Updates the UI state.
+   * @param state - New UI state to set
+   */
+  setState(state: UIState): void;
+
+  /**
+   * Dispatches an action back through the unified dispatcher.
+   * Allows UI actions to trigger story actions or other UI actions.
+   * @param action - Action to dispatch
+   */
+  dispatch(action: PreviewAction): void;
+
+  /**
+   * Sends the current story state to the webview.
+   * UI actions often coordinate story updates and need to trigger story state communication.
+   */
+  sendStoryState(): void;
+
+  /**
+   * Sends the current UI state to the webview.
+   * Used to notify the UI when UI state has changed.
+   */
+  sendUIState(): void;
 }

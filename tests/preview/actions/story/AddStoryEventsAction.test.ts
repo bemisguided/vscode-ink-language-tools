@@ -22,10 +22,9 @@
  * SOFTWARE.
  */
 
-import { AddStoryEventsAction } from "../../../src/preview/actions/AddStoryEventsAction";
-import { PreviewState } from "../../../src/preview/PreviewState";
-import { StoryEvent } from "../../../src/preview/PreviewState";
-import { mockPreviewState } from "../../__mocks__/mockPreviewState";
+import { AddStoryEventsAction } from "../../../../src/preview/actions/story/AddStoryEventsAction";
+import { StoryState, StoryEvent } from "../../../../src/preview/StoryState";
+import { mockStoryState } from "../../../__mocks__/mockStoryState";
 
 describe("AddStoryEventsAction", () => {
   describe("reduce", () => {
@@ -38,7 +37,7 @@ describe("AddStoryEventsAction", () => {
         isCurrent: false, // This will be overridden based on lastChoiceIndex
       };
       const action = new AddStoryEventsAction([newEvent]);
-      const currentState: PreviewState = mockPreviewState({
+      const currentState: StoryState = mockStoryState({
         storyEvents: [],
         lastChoiceIndex: 0,
       });
@@ -72,7 +71,7 @@ describe("AddStoryEventsAction", () => {
         },
       ];
       const action = new AddStoryEventsAction(newEvents);
-      const currentState: PreviewState = mockPreviewState({
+      const currentState: StoryState = mockStoryState({
         storyEvents: [],
         lastChoiceIndex: 0,
       });
@@ -115,7 +114,7 @@ describe("AddStoryEventsAction", () => {
         },
       ];
       const action = new AddStoryEventsAction(newEvents);
-      const currentState: PreviewState = mockPreviewState({
+      const currentState: StoryState = mockStoryState({
         storyEvents: existingEvents,
         lastChoiceIndex: 1,
       });
@@ -163,7 +162,7 @@ describe("AddStoryEventsAction", () => {
         },
       ];
       const action = new AddStoryEventsAction(newEvents);
-      const currentState: PreviewState = mockPreviewState({
+      const currentState: StoryState = mockStoryState({
         storyEvents: existingEvents,
         lastChoiceIndex: 1, // Second event onwards should be current
       });
@@ -186,7 +185,7 @@ describe("AddStoryEventsAction", () => {
         tags: ["test"],
       };
       const action = new AddStoryEventsAction([newEvent]);
-      const currentState: PreviewState = mockPreviewState({
+      const currentState: StoryState = mockStoryState({
         storyEvents: [],
         currentChoices: [
           {
@@ -220,7 +219,7 @@ describe("AddStoryEventsAction", () => {
     test("should handle empty events array", () => {
       // Set up
       const action = new AddStoryEventsAction([]);
-      const currentState: PreviewState = mockPreviewState({
+      const currentState: StoryState = mockStoryState({
         storyEvents: [
           {
             type: "text" as const,
@@ -253,7 +252,7 @@ describe("AddStoryEventsAction", () => {
         tags: [],
       };
       const action = new AddStoryEventsAction([newEvent]);
-      const currentState: PreviewState = mockPreviewState();
+      const currentState: StoryState = mockStoryState();
 
       // Execute
       const newState = action.reduce(currentState);
@@ -261,7 +260,7 @@ describe("AddStoryEventsAction", () => {
       // Assert
       expect(newState).not.toBe(currentState);
       expect(newState).toEqual(
-        mockPreviewState({
+        mockStoryState({
           storyEvents: [
             {
               type: "text",
@@ -284,7 +283,7 @@ describe("AddStoryEventsAction", () => {
         tags: ["special", "unicode"],
       };
       const action = new AddStoryEventsAction([specialEvent]);
-      const currentState: PreviewState = mockPreviewState();
+      const currentState: StoryState = mockStoryState();
 
       // Execute
       const newState = action.reduce(currentState);
@@ -314,7 +313,7 @@ describe("AddStoryEventsAction", () => {
         result: { success: true, value: 100 },
       };
       const action = new AddStoryEventsAction([complexFunctionEvent]);
-      const currentState: PreviewState = mockPreviewState();
+      const currentState: StoryState = mockStoryState();
 
       // Execute
       const newState = action.reduce(currentState);
@@ -357,7 +356,7 @@ describe("AddStoryEventsAction", () => {
         },
       ];
       const action = new AddStoryEventsAction(mixedEvents);
-      const currentState: PreviewState = mockPreviewState();
+      const currentState: StoryState = mockStoryState();
 
       // Execute
       const newState = action.reduce(currentState);

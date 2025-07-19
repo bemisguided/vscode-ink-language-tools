@@ -24,17 +24,24 @@
 
 import { Story } from "inkjs";
 import { PreviewState } from "./PreviewState";
-import { PreviewAction, PreviewActionContext } from "./PreviewAction";
+import { StoryState } from "./StoryState";
+import { UIState } from "./UIState";
+import { PreviewAction } from "./PreviewAction";
+import { StoryAction } from "./StoryAction";
+import { UIAction } from "./actions/UIAction";
+import { StoryActionContext } from "./StoryActionContext";
+import { UIActionContext } from "./UIActionContext";
 import { PreviewStoryManager } from "./PreviewStoryManager";
 
 /**
  * Represents a single entry in the action history.
+ * Generic to support both story and UI state tracking.
  */
-export interface HistoryEntry {
+export interface HistoryEntry<T = PreviewState> {
   action: PreviewAction;
   timestamp: number;
-  stateBefore: PreviewState;
-  stateAfter: PreviewState;
+  stateBefore: T;
+  stateAfter: T;
 }
 
 /**
@@ -47,12 +54,17 @@ export interface HistoryEntry {
 export class PreviewStateManager {
   // Private Properties ===============================================================================================
 
-  private currentState: PreviewState;
-  private actionHistory: HistoryEntry[] = [];
+  private storyState!: StoryState; // Assigned in constructor via initializeDualState()
+  private uiState!: UIState; // Assigned in constructor via initializeDualState()
+  private storyHistory: HistoryEntry<StoryState>[] = [];
+  private uiHistory: HistoryEntry<UIState>[] = [];
   private story?: Story;
   private storyManager?: PreviewStoryManager;
-  private isProcessing = false;
   private maxHistorySize = 100; // Configurable history limit
+
+  // State change callbacks
+  private onStoryStateChange?: (state: StoryState) => void;
+  private onUIStateChange?: (state: UIState) => void;
 
   // Action types that require a story instance to be available
   private static readonly storyDependentActions = new Set([
@@ -68,17 +80,19 @@ export class PreviewStateManager {
    * @param initialState - Partial initial state to merge with defaults
    */
   constructor(initialState?: Partial<PreviewState>) {
-    this.currentState = this.createDefaultState(initialState);
+    // Initialize dual state from default state structure
+    const defaultState = this.createDefaultState(initialState);
+    this.initializeDualState(defaultState);
   }
 
   // Public Methods ===================================================================================================
 
   /**
    * Dispatches an action to update the state and/or perform side effects.
-   * Creates a context for the action and calls its apply() method.
+   * Routes actions to domain-specific handlers based on type guards.
    *
-   * @param action - The action to dispatch
-   * @returns The new state after applying the action
+   * @param action - The action to dispatch (StoryAction or UIAction)
+   * @returns The new unified state after applying the action
    */
   public dispatch(action: PreviewAction): PreviewState {
     // Check if action requires story and ensure it's available
@@ -91,46 +105,43 @@ export class PreviewStateManager {
       );
     }
 
-    if (this.isProcessing) {
-      // Prevent infinite recursion during nested dispatches
-      // For now, we'll allow nested dispatches but could implement queuing if needed
-      this.applyAction(action);
-      return this.currentState;
+    // Route to domain-specific handlers based on action type
+    if (this.isStoryAction(action)) {
+      this.dispatchStoryAction(action);
+    } else if (this.isUIAction(action)) {
+      this.dispatchUIAction(action);
+    } else {
+      console.warn(`[PreviewStateManager] Unknown action type: ${action.type}`);
     }
 
-    this.isProcessing = true;
-
-    try {
-      const stateBefore = { ...this.currentState };
-
-      // Create context for the action
-      const context = this.createActionContext();
-
-      // Apply the action
-      action.apply(context);
-
-      // Record in history if state changed
-      if (this.currentState !== stateBefore) {
-        this.addToHistory({
-          action,
-          timestamp: Date.now(),
-          stateBefore,
-          stateAfter: { ...this.currentState },
-        });
-      }
-    } finally {
-      this.isProcessing = false;
-    }
-
-    return this.currentState;
+    return this.getState();
   }
 
   /**
-   * Gets the current state.
-   * @returns A copy of the current state
+   * Gets the current story state.
+   * @returns A copy of the current story state
+   */
+  public getStoryState(): StoryState {
+    return { ...this.storyState };
+  }
+
+  /**
+   * Gets the current UI state.
+   * @returns A copy of the current UI state
+   */
+  public getUIState(): UIState {
+    return { ...this.uiState };
+  }
+
+  /**
+   * Gets the complete current state.
+   * @returns A copy of the current state with dual structure
    */
   public getState(): PreviewState {
-    return { ...this.currentState };
+    return {
+      story: this.getStoryState(),
+      ui: this.getUIState(),
+    };
   }
 
   /**
@@ -159,66 +170,75 @@ export class PreviewStateManager {
   }
 
   /**
-   * Gets the action history.
-   * @returns A copy of the action history
+   * Gets the story history.
+   * @returns A copy of the story history
    */
-  public getHistory(): HistoryEntry[] {
-    return [...this.actionHistory];
+  public getStoryHistory(): HistoryEntry<StoryState>[] {
+    return [...this.storyHistory];
   }
 
   /**
-   * Replays the action history up to a specific point.
-   * This is useful for undo operations.
+   * Gets the UI history.
+   * @returns A copy of the UI history
+   */
+  public getUIHistory(): HistoryEntry<UIState>[] {
+    return [...this.uiHistory];
+  }
+
+  /**
+   * Replays the story history up to a specific point.
+   * This is useful for story undo operations.
    *
-   * @param toIndex - The index to replay to (exclusive). If not provided, replays all history
-   * @returns The state after replay
+   * @param toIndex - The index to replay to (exclusive). If not provided, replays all story history
+   * @returns The state after story replay
    */
-  public replay(toIndex?: number): PreviewState {
-    const endIndex = toIndex ?? this.actionHistory.length;
+  public replayStoryState(toIndex?: number): PreviewState {
+    const endIndex = toIndex ?? this.storyHistory.length;
 
-    if (endIndex < 0 || endIndex > this.actionHistory.length) {
-      throw new Error(`Invalid replay index: ${endIndex}`);
+    if (endIndex < 0 || endIndex > this.storyHistory.length) {
+      throw new Error(`Invalid story replay index: ${endIndex}`);
     }
 
-    // Clear current state and history beyond the target point
-    this.currentState = this.createDefaultState();
-    const originalHistory = [...this.actionHistory];
-    this.actionHistory = [];
+    // Reset story state to initial, preserve UI state
+    const defaultState = this.createDefaultState();
+    this.storyState = defaultState.story;
+    const originalStoryHistory = [...this.storyHistory];
+    this.storyHistory = [];
 
-    // Replay actions up to the target index
+    // Replay story actions up to the target index
     for (let i = 0; i < endIndex; i++) {
-      const entry = originalHistory[i];
-      this.dispatch(entry.action);
+      const entry = originalStoryHistory[i];
+      this.dispatchStoryAction(entry.action as StoryAction);
     }
 
-    return this.currentState;
+    return this.getState();
   }
 
   /**
-   * Undoes the last action by replaying history without the last entry.
-   * @returns The state after undo, or current state if no history
+   * Undoes the last story action by replaying story history without the last entry.
+   * @returns The state after story undo, or current state if no story history
    */
-  public undo(): PreviewState {
-    if (this.actionHistory.length === 0) {
-      return this.currentState;
+  public undoStoryState(): PreviewState {
+    if (this.storyHistory.length === 0) {
+      return this.getState();
     }
 
-    return this.replay(this.actionHistory.length - 1);
+    return this.replayStoryState(this.storyHistory.length - 1);
   }
 
   /**
-   * Undoes actions back to the last occurrence of a specific action type.
-   * Replays history up to (but not including) the last occurrence of the action type.
+   * Undoes story actions back to the last occurrence of a specific action type.
+   * Replays story history up to (but not including) the last occurrence of the action type.
    * If no action of the specified type is found, replays to the beginning.
    *
    * @param actionType - The action type identifier to search for
    * @returns The state after undoing to the last occurrence of the action type
    */
-  public undoToLast(actionType: string): PreviewState {
-    // Find the last occurrence of the action type
+  public undoStoryStateToLast(actionType: string): PreviewState {
+    // Find the last occurrence of the action type in story history
     let lastIndex = -1;
-    for (let i = this.actionHistory.length - 1; i >= 0; i--) {
-      if (this.actionHistory[i].action.type === actionType) {
+    for (let i = this.storyHistory.length - 1; i >= 0; i--) {
+      if (this.storyHistory[i].action.type === actionType) {
         lastIndex = i;
         break;
       }
@@ -226,39 +246,72 @@ export class PreviewStateManager {
 
     // If no action of this type found, replay to the beginning
     if (lastIndex === -1) {
-      return this.replay(0);
+      return this.replayStoryState(0);
     }
 
     // Replay up to (but not including) the last occurrence
-    return this.replay(lastIndex);
+    return this.replayStoryState(lastIndex);
   }
 
   /**
    * Rewinds the story back to before the last choice selection.
    * This goes back to the state before the last SelectChoiceAction was applied.
-   * If no SelectChoiceAction exists in the history, rewinds to the beginning.
+   * If no SelectChoiceAction exists in the story history, rewinds to the beginning.
    *
    * @returns The state after rewinding to before the last choice
    */
-  public rewindToLastChoice(): PreviewState {
-    return this.undoToLast("SELECT_CHOICE");
-  }
-
-  /**
-   * Clears the action history.
-   */
-  public clearHistory(): void {
-    this.actionHistory = [];
+  public rewindStoryStateToLastChoice(): PreviewState {
+    return this.undoStoryStateToLast("SELECT_CHOICE");
   }
 
   /**
    * Resets the state to the initial default state.
    * Preserves metadata if it was set during construction.
-   * Clears action history.
+   * Clears all histories.
    */
   public reset(): void {
-    this.currentState = this.createDefaultState();
-    this.clearHistory();
+    const defaultState = this.createDefaultState();
+    this.initializeDualState(defaultState);
+    this.storyHistory = [];
+    this.uiHistory = [];
+  }
+
+  /**
+   * Sets the callback function for story state changes.
+   * @param callback - Function to call when story state changes
+   */
+  public setOnStoryStateChange(callback: (state: StoryState) => void): void {
+    this.onStoryStateChange = callback;
+  }
+
+  /**
+   * Sets the callback function for UI state changes.
+   * @param callback - Function to call when UI state changes
+   */
+  public setOnUIStateChange(callback: (state: UIState) => void): void {
+    this.onUIStateChange = callback;
+  }
+
+  /**
+   * Sends the current story state to registered listeners.
+   * Triggers the story state change callback if set.
+   */
+  public sendStoryState(): void {
+    if (this.onStoryStateChange) {
+      this.onStoryStateChange(this.getStoryState());
+    }
+  }
+
+  /**
+   * Sends the current UI state to registered listeners.
+   * Currently stubbed - UI state communication protocol not yet implemented.
+   */
+  public sendUIState(): void {
+    // TODO: Implement UI state communication protocol
+    // For now, just trigger the callback if set
+    if (this.onUIStateChange) {
+      this.onUIStateChange(this.getUIState());
+    }
   }
 
   /**
@@ -266,55 +319,171 @@ export class PreviewStateManager {
    */
   public dispose(): void {
     // Clear state for garbage collection
-    this.currentState = this.createDefaultState();
-    this.actionHistory = [];
+    const defaultState = this.createDefaultState();
+    this.initializeDualState(defaultState);
+    this.storyHistory = [];
+    this.uiHistory = [];
     this.story = undefined;
   }
 
   // Private Methods ==================================================================================================
 
   /**
-   * Creates an action context for the current dispatch.
-   * @returns A new action context
+   * Adds an entry to the story history.
+   * Maintains the maximum history size by removing old entries.
+   * @param entry - The story history entry to add
    */
-  private createActionContext(): PreviewActionContext {
-    // At this point, story availability has already been checked in dispatch()
-    // for story-dependent actions, so story is guaranteed to be available when needed
+  private addToStoryHistory(entry: HistoryEntry<StoryState>): void {
+    this.storyHistory.push(entry);
+
+    // Maintain maximum history size
+    if (this.storyHistory.length > this.maxHistorySize) {
+      this.storyHistory.shift();
+    }
+  }
+
+  /**
+   * Adds an entry to the UI history.
+   * Maintains the maximum history size by removing old entries.
+   * @param entry - The UI history entry to add
+   */
+  private addToUIHistory(entry: HistoryEntry<UIState>): void {
+    this.uiHistory.push(entry);
+
+    // Maintain maximum history size
+    if (this.uiHistory.length > this.maxHistorySize) {
+      this.uiHistory.shift();
+    }
+  }
+
+  /**
+   * Type guard to check if an action is a StoryAction.
+   * @param action - The action to check
+   * @returns True if the action is a StoryAction
+   */
+  private isStoryAction(action: PreviewAction): action is StoryAction {
+    // Check if the action has an apply method that takes StoryActionContext
+    return "apply" in action && typeof (action as any).apply === "function";
+  }
+
+  /**
+   * Type guard to check if an action is a UIAction.
+   * @param action - The action to check
+   * @returns True if the action is a UIAction
+   */
+  private isUIAction(action: PreviewAction): action is UIAction {
+    // For now, assume any action with apply method that's not a story action is a UI action
+    // This can be refined with more specific checks if needed
+    return "apply" in action && typeof (action as any).apply === "function";
+  }
+
+  /**
+   * Dispatches a story action using story domain context and tracking.
+   * @param action - The story action to dispatch
+   */
+  private dispatchStoryAction(action: StoryAction): void {
+    console.debug(
+      `[PreviewStateManager] 📖 Dispatching story action: ${action.type}`
+    );
+
+    const stateBefore = { ...this.storyState };
+    const context = this.createStoryContext();
+
+    // Apply the action
+    action.apply(context);
+
+    // Record in story history if state changed
+    if (this.storyState !== stateBefore) {
+      this.addToStoryHistory({
+        action,
+        timestamp: Date.now(),
+        stateBefore,
+        stateAfter: { ...this.storyState },
+      });
+    }
+  }
+
+  /**
+   * Dispatches a UI action using UI domain context and tracking.
+   * @param action - The UI action to dispatch
+   */
+  private dispatchUIAction(action: UIAction): void {
+    console.debug(
+      `[PreviewStateManager] 🎨 Dispatching UI action: ${action.type}`
+    );
+
+    const stateBefore = { ...this.uiState };
+    const context = this.createUIContext();
+
+    // Apply the action
+    action.apply(context);
+
+    // Record in UI history if state changed
+    if (this.uiState !== stateBefore) {
+      this.addToUIHistory({
+        action,
+        timestamp: Date.now(),
+        stateBefore,
+        stateAfter: { ...this.uiState },
+      });
+    }
+  }
+
+  /**
+   * Creates a story action context for story domain actions.
+   * @returns StoryActionContext with story state access and operations
+   */
+  private createStoryContext(): StoryActionContext {
     return {
-      getState: () => ({ ...this.currentState }),
-      setState: (newState: PreviewState) => {
-        this.currentState = newState;
+      getState: () => this.getStoryState(),
+      setState: (newState: StoryState) => {
+        this.storyState = newState;
       },
       dispatch: (action: PreviewAction) => {
-        this.applyAction(action);
+        this.dispatch(action);
       },
-      storyManager: this.storyManager!, // Non-null assertion safe due to dispatch() guard
-      story: this.story!, // Non-null assertion safe due to dispatch() guard
+      storyManager: this.storyManager!,
+      sendStoryState: () => {
+        if (this.onStoryStateChange) {
+          this.onStoryStateChange(this.getStoryState());
+        }
+      },
     };
   }
 
   /**
-   * Applies an action directly without history tracking.
-   * Used for nested dispatches.
-   * @param action - The action to apply
+   * Creates a UI action context for UI domain actions.
+   * @returns UIActionContext with UI state access and coordination capabilities
    */
-  private applyAction(action: PreviewAction): void {
-    const context = this.createActionContext();
-    action.apply(context);
+  private createUIContext(): UIActionContext {
+    return {
+      getState: () => this.getUIState(),
+      setState: (newState: UIState) => {
+        this.uiState = newState;
+      },
+      dispatch: (action: PreviewAction) => {
+        this.dispatch(action);
+      },
+      sendStoryState: () => {
+        if (this.onStoryStateChange) {
+          this.onStoryStateChange(this.getStoryState());
+        }
+      },
+      sendUIState: () => {
+        if (this.onUIStateChange) {
+          this.onUIStateChange(this.getUIState());
+        }
+      },
+    };
   }
 
   /**
-   * Adds an entry to the action history.
-   * Maintains the maximum history size by removing old entries.
-   * @param entry - The history entry to add
+   * Initializes the dual state properties from a PreviewState structure.
+   * @param state - PreviewState containing story and ui state
    */
-  private addToHistory(entry: HistoryEntry): void {
-    this.actionHistory.push(entry);
-
-    // Maintain maximum history size
-    if (this.actionHistory.length > this.maxHistorySize) {
-      this.actionHistory.shift();
-    }
+  private initializeDualState(state: PreviewState): void {
+    this.storyState = state.story;
+    this.uiState = state.ui;
   }
 
   /**
@@ -324,13 +493,15 @@ export class PreviewStateManager {
    */
   private createDefaultState(overrides?: Partial<PreviewState>): PreviewState {
     const defaultState: PreviewState = {
-      storyEvents: [],
-      currentChoices: [],
-      errors: [],
-      isEnded: false,
-      isStart: false,
-      lastChoiceIndex: 0,
-      uiState: {
+      story: {
+        storyEvents: [],
+        currentChoices: [],
+        errors: [],
+        isEnded: false,
+        isStart: true,
+        lastChoiceIndex: 0,
+      },
+      ui: {
         rewind: false,
       },
     };
@@ -338,7 +509,14 @@ export class PreviewStateManager {
     if (overrides) {
       return {
         ...defaultState,
-        ...overrides,
+        story: {
+          ...defaultState.story,
+          ...overrides.story,
+        },
+        ui: {
+          ...defaultState.ui,
+          ...overrides.ui,
+        },
       };
     }
 

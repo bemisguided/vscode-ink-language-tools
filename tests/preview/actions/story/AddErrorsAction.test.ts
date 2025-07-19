@@ -22,10 +22,9 @@
  * SOFTWARE.
  */
 
-import { AddErrorsAction } from "../../../src/preview/actions/AddErrorsAction";
-import { PreviewState } from "../../../src/preview/PreviewState";
-import { ErrorInfo } from "../../../src/preview/PreviewState";
-import { mockPreviewState } from "../../__mocks__/mockPreviewState";
+import { AddErrorsAction } from "../../../../src/preview/actions/story/AddErrorsAction";
+import { StoryState, ErrorInfo } from "../../../../src/preview/StoryState";
+import { mockStoryState } from "../../../__mocks__/mockStoryState";
 
 describe("AddErrorsAction", () => {
   describe("reduce", () => {
@@ -36,7 +35,7 @@ describe("AddErrorsAction", () => {
         severity: "error",
       };
       const action = new AddErrorsAction([newError]);
-      const currentState: PreviewState = mockPreviewState({
+      const currentState: StoryState = mockStoryState({
         errors: [],
       });
 
@@ -65,7 +64,7 @@ describe("AddErrorsAction", () => {
         },
       ];
       const action = new AddErrorsAction(newErrors);
-      const currentState: PreviewState = mockPreviewState({
+      const currentState: StoryState = mockStoryState({
         errors: [],
       });
 
@@ -96,7 +95,7 @@ describe("AddErrorsAction", () => {
         },
       ];
       const action = new AddErrorsAction(newErrors);
-      const currentState: PreviewState = mockPreviewState({
+      const currentState: StoryState = mockStoryState({
         errors: existingErrors,
       });
 
@@ -115,7 +114,7 @@ describe("AddErrorsAction", () => {
         severity: "error",
       };
       const action = new AddErrorsAction([newError]);
-      const currentState: PreviewState = mockPreviewState({
+      const currentState: StoryState = mockStoryState({
         storyEvents: [
           {
             type: "text" as const,
@@ -150,7 +149,7 @@ describe("AddErrorsAction", () => {
     test("should handle empty errors array input", () => {
       // Set up
       const action = new AddErrorsAction([]);
-      const currentState: PreviewState = mockPreviewState({
+      const currentState: StoryState = mockStoryState({
         errors: [
           {
             message: "Existing error",
@@ -177,14 +176,14 @@ describe("AddErrorsAction", () => {
         severity: "error",
       };
       const action = new AddErrorsAction([newError]);
-      const currentState: PreviewState = mockPreviewState();
+      const currentState: StoryState = mockStoryState();
 
       // Execute
       const newState = action.reduce(currentState);
 
       // Assert
       expect(newState).not.toBe(currentState);
-      expect(newState).toEqual(mockPreviewState({ errors: [newError] }));
+      expect(newState).toEqual(mockStoryState({ errors: [newError] }));
     });
   });
 
@@ -196,7 +195,7 @@ describe("AddErrorsAction", () => {
         severity: "error",
       };
       const action = new AddErrorsAction([duplicateError, duplicateError]);
-      const currentState: PreviewState = mockPreviewState({
+      const currentState: StoryState = mockStoryState({
         errors: [duplicateError],
       });
 
@@ -220,7 +219,7 @@ describe("AddErrorsAction", () => {
         severity: "error",
       };
       const action = new AddErrorsAction([longError]);
-      const currentState: PreviewState = mockPreviewState();
+      const currentState: StoryState = mockStoryState();
 
       // Execute
       const newState = action.reduce(currentState);
@@ -237,7 +236,7 @@ describe("AddErrorsAction", () => {
         severity: "error",
       };
       const action = new AddErrorsAction([specialError]);
-      const currentState: PreviewState = mockPreviewState();
+      const currentState: StoryState = mockStoryState();
 
       // Execute
       const newState = action.reduce(currentState);
@@ -264,7 +263,7 @@ describe("AddErrorsAction", () => {
         },
       ];
       const action = new AddErrorsAction(mixedErrors);
-      const currentState: PreviewState = mockPreviewState();
+      const currentState: StoryState = mockStoryState();
 
       // Execute
       const newState = action.reduce(currentState);

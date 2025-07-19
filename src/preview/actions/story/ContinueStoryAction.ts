@@ -22,7 +22,8 @@
  * SOFTWARE.
  */
 
-import { PreviewAction, PreviewActionContext } from "../PreviewAction";
+import { StoryAction } from "../../StoryAction";
+import { StoryActionContext } from "../../StoryActionContext";
 import { AddStoryEventsAction } from "./AddStoryEventsAction";
 import { SetCurrentChoicesAction } from "./SetCurrentChoicesAction";
 import { EndStoryAction } from "./EndStoryAction";
@@ -33,7 +34,7 @@ import { AddErrorsAction } from "./AddErrorsAction";
  * This action handles the main story progression loop, collecting events,
  * extracting choices, and dispatching appropriate state mutations.
  */
-export class ContinueStoryAction implements PreviewAction {
+export class ContinueStoryAction implements StoryAction {
   // Static Properties ================================================================================================
 
   /**
@@ -42,7 +43,7 @@ export class ContinueStoryAction implements PreviewAction {
    */
   public static readonly typeId = "CONTINUE_STORY";
 
-  // Instance Properties ==============================================================================================
+  // Public Properties ==============================================================================================
 
   /**
    * The type identifier for this action instance.
@@ -57,7 +58,7 @@ export class ContinueStoryAction implements PreviewAction {
    *
    * @param context - The action context providing state access and dispatch capability
    */
-  apply(context: PreviewActionContext): void {
+  apply(context: StoryActionContext): void {
     console.debug("[ContinueStoryAction] ⏭️ Continuing story");
 
     // Use story manager to continue the story

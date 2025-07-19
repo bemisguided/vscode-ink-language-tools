@@ -22,15 +22,14 @@
  * SOFTWARE.
  */
 
-import { PreviewReducerAction } from "../PreviewAction";
-import { PreviewState } from "../PreviewState";
-import { Choice } from "../PreviewState";
+import { StoryReducerAction } from "../StoryReducerAction";
+import { StoryState, Choice } from "../../StoryState";
 
 /**
  * Action to set the current choices available in the story.
  * Replaces the existing currentChoices array with the provided choices.
  */
-export class SetCurrentChoicesAction extends PreviewReducerAction {
+export class SetCurrentChoicesAction extends StoryReducerAction {
   // Static Properties ================================================================================================
 
   /**
@@ -39,7 +38,7 @@ export class SetCurrentChoicesAction extends PreviewReducerAction {
    */
   public static readonly typeId = "SET_CURRENT_CHOICES";
 
-  // Instance Properties ==============================================================================================
+  // Public Properties ==============================================================================================
 
   /**
    * The type identifier for this action instance.
@@ -69,15 +68,14 @@ export class SetCurrentChoicesAction extends PreviewReducerAction {
    * This updates the available choices that the user can select from.
    * Also sets lastChoiceIndex to the current length of storyEvents to mark the turn boundary.
    *
-   * @param state - The current preview state
+   * @param state - The current story state
    * @returns New state with updated current choices and turn boundary
    */
-  reduce(state: PreviewState): PreviewState {
+  reduce(state: StoryState): StoryState {
     return {
       ...state,
       currentChoices: [...this.choices],
       lastChoiceIndex: state.storyEvents.length,
-      uiState: { ...state.uiState },
     };
   }
 }

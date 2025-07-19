@@ -22,9 +22,9 @@
  * SOFTWARE.
  */
 
-import { ClearErrorsAction } from "../../../src/preview/actions/ClearErrorsAction";
-import { PreviewState } from "../../../src/preview/PreviewState";
-import { mockPreviewState } from "../../__mocks__/mockPreviewState";
+import { ClearErrorsAction } from "../../../../src/preview/actions/story/ClearErrorsAction";
+import { StoryState } from "../../../../src/preview/StoryState";
+import { mockStoryState } from "../../../__mocks__/mockStoryState";
 
 describe("ClearErrorsAction", () => {
   let action: ClearErrorsAction;
@@ -36,7 +36,7 @@ describe("ClearErrorsAction", () => {
   describe("reduce", () => {
     test("should clear all errors", () => {
       // Set up
-      const currentState: PreviewState = mockPreviewState({
+      const currentState: StoryState = mockStoryState({
         errors: [
           {
             message: "Error 1",
@@ -62,7 +62,7 @@ describe("ClearErrorsAction", () => {
 
     test("should preserve all other state properties", () => {
       // Set up
-      const currentState: PreviewState = mockPreviewState({
+      const currentState: StoryState = mockStoryState({
         storyEvents: [
           {
             type: "text" as const,
@@ -101,7 +101,7 @@ describe("ClearErrorsAction", () => {
 
     test("should work when errors array is already empty", () => {
       // Set up
-      const currentState: PreviewState = mockPreviewState({
+      const currentState: StoryState = mockStoryState({
         errors: [],
       });
 
@@ -114,7 +114,7 @@ describe("ClearErrorsAction", () => {
 
     test("should return a new state object", () => {
       // Set up
-      const currentState: PreviewState = mockPreviewState({
+      const currentState: StoryState = mockStoryState({
         errors: [
           {
             message: "Error to clear",
@@ -128,7 +128,7 @@ describe("ClearErrorsAction", () => {
 
       // Assert
       expect(newState).not.toBe(currentState);
-      expect(newState).toEqual(mockPreviewState({ errors: [] }));
+      expect(newState).toEqual(mockStoryState({ errors: [] }));
     });
   });
 });

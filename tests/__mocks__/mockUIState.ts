@@ -22,18 +22,16 @@
  * SOFTWARE.
  */
 
+import { UIState } from "../../src/preview/UIState";
+
 /**
- * Base interface for all actions in the preview system.
- * Implements the Command pattern where each action encapsulates both data and behavior.
- *
- * This is a pure base interface containing common properties.
- * Domain-specific actions (StoryAction, UIAction) define their own apply() methods
- * with appropriate context types for type safety and clear separation of concerns.
+ * Creates a mock UIState with sensible defaults for testing.
+ * @param overrides - Partial UIState to override defaults
+ * @returns Complete UIState for testing
  */
-export interface PreviewAction {
-  /**
-   * The type identifier for this action.
-   * Used for action identification, filtering, debugging, and dispatch routing.
-   */
-  readonly type: string;
+export function mockUIState(overrides: Partial<UIState> = {}): UIState {
+  return {
+    rewind: false,
+    ...overrides,
+  };
 }

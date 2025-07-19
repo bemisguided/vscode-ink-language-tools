@@ -22,9 +22,9 @@
  * SOFTWARE.
  */
 
-import { EndStoryAction } from "../../../src/preview/actions/EndStoryAction";
-import { PreviewState } from "../../../src/preview/PreviewState";
-import { mockPreviewState } from "../../__mocks__/mockPreviewState";
+import { EndStoryAction } from "../../../../src/preview/actions/story/EndStoryAction";
+import { StoryState } from "../../../../src/preview/StoryState";
+import { mockStoryState } from "../../../__mocks__/mockStoryState";
 
 describe("EndStoryAction", () => {
   let action: EndStoryAction;
@@ -36,7 +36,7 @@ describe("EndStoryAction", () => {
   describe("reduce", () => {
     test("should set isEnded to true", () => {
       // Set up
-      const currentState: PreviewState = mockPreviewState({
+      const currentState: StoryState = mockStoryState({
         isEnded: false,
       });
 
@@ -49,7 +49,7 @@ describe("EndStoryAction", () => {
 
     test("should preserve all other state properties", () => {
       // Set up
-      const currentState: PreviewState = mockPreviewState({
+      const currentState: StoryState = mockStoryState({
         storyEvents: [
           {
             type: "text" as const,
@@ -88,19 +88,21 @@ describe("EndStoryAction", () => {
 
     test("should return a new state object", () => {
       // Set up
-      const currentState: PreviewState = mockPreviewState();
+      const currentState: StoryState = mockStoryState();
 
       // Execute
       const newState = action.reduce(currentState);
 
       // Assert
       expect(newState).not.toBe(currentState);
-      expect(newState).toEqual(mockPreviewState({ isEnded: true }));
+      expect(newState).toEqual(
+        mockStoryState({ isEnded: true, isStart: false })
+      );
     });
 
     test("should work when isEnded is already true", () => {
       // Set up
-      const currentState: PreviewState = mockPreviewState({
+      const currentState: StoryState = mockStoryState({
         isEnded: true,
       });
 

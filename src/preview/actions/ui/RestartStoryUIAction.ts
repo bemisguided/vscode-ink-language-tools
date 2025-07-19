@@ -22,18 +22,22 @@
  * SOFTWARE.
  */
 
-/**
- * Base interface for all actions in the preview system.
- * Implements the Command pattern where each action encapsulates both data and behavior.
- *
- * This is a pure base interface containing common properties.
- * Domain-specific actions (StoryAction, UIAction) define their own apply() methods
- * with appropriate context types for type safety and clear separation of concerns.
- */
-export interface PreviewAction {
-  /**
-   * The type identifier for this action.
-   * Used for action identification, filtering, debugging, and dispatch routing.
-   */
-  readonly type: string;
+import { UIAction } from "../UIAction";
+import { InitializeStoryAction } from "../story/InitializeStoryAction";
+import { StartStoryAction } from "../story/StartStoryAction";
+import { ContinueStoryAction } from "../story/ContinueStoryAction";
+import { UIActionContext } from "../../UIActionContext";
+
+export class RestartStoryUIAction implements UIAction {
+  readonly type = "RESTART_STORY";
+
+  apply(context: UIActionContext): void {
+    console.debug("[RestartStoryUIAction] Restarting story");
+    // Initialize, start, and continue story - these actions handle state updates
+    context.dispatch(new InitializeStoryAction());
+    context.dispatch(new StartStoryAction());
+    context.dispatch(new ContinueStoryAction());
+    // Send updated state to webview
+    context.sendStoryState();
+  }
 }

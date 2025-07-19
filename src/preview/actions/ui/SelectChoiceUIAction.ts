@@ -22,18 +22,23 @@
  * SOFTWARE.
  */
 
-/**
- * Base interface for all actions in the preview system.
- * Implements the Command pattern where each action encapsulates both data and behavior.
- *
- * This is a pure base interface containing common properties.
- * Domain-specific actions (StoryAction, UIAction) define their own apply() methods
- * with appropriate context types for type safety and clear separation of concerns.
- */
-export interface PreviewAction {
-  /**
-   * The type identifier for this action.
-   * Used for action identification, filtering, debugging, and dispatch routing.
-   */
-  readonly type: string;
+import { UIAction } from "../UIAction";
+import { UIActionContext } from "../../UIActionContext";
+import { SelectChoiceAction } from "../story/SelectChoiceAction";
+
+export class SelectChoiceUIAction implements UIAction {
+  readonly type = "SELECT_CHOICE";
+
+  constructor(public readonly payload: { choiceIndex: number }) {}
+
+  apply(context: UIActionContext): void {
+    console.debug(
+      "[SelectChoiceUIAction] Selecting choice",
+      this.payload.choiceIndex
+    );
+    // Dispatch the story action and let it handle state updates
+    context.dispatch(new SelectChoiceAction(this.payload.choiceIndex));
+    // Send updated state to webview
+    context.sendStoryState();
+  }
 }

@@ -22,133 +22,28 @@
  * SOFTWARE.
  */
 
-/**
- * Represents a choice available to the player.
- */
-export interface Choice {
-  index: number;
-  text: string;
-  tags: string[];
-}
-
-/**
- * Represents a text event from story continuation.
- */
-export interface TextStoryEvent {
-  type: "text";
-  text: string;
-  tags: string[];
-  isCurrent?: boolean;
-}
-
-/**
- * Represents a function call event from external function execution.
- */
-export interface FunctionStoryEvent {
-  type: "function";
-  functionName: string;
-  args: any[];
-  result: any;
-  isCurrent?: boolean;
-}
-
-/**
- * Union type for all story events.
- */
-export type StoryEvent = TextStoryEvent | FunctionStoryEvent;
-
-/**
- * Represents the severity level of an error.
- * - 'error': Critical issues that prevent story execution
- * - 'warning': Non-critical issues that may affect story behavior
- * - 'info': Informational messages or suggestions
- */
-export type ErrorSeverity = "error" | "warning" | "info";
-
-/**
- * Represents an error that occurred during story execution.
- * Used to track compilation errors, runtime errors, and warnings
- * that should be displayed to the user in the preview interface.
- */
-export interface ErrorInfo {
-  /**
-   * The human-readable error message to display to the user.
-   * This should be clear and actionable when possible.
-   */
-  message: string;
-
-  /**
-   * The severity level of this error.
-   */
-  severity: ErrorSeverity;
-}
-
-/**
- * Represents the UI state for the preview webview.
- * Controls the visual state and availability of UI elements.
- */
-export interface UIState {
-  /**
-   * Whether the rewind functionality should be available to the user.
-   * True when there are historical (non-current) story events that can be rewound to.
-   * False when the story has just started or restarted with no historical events.
-   */
-  rewind: boolean;
-}
+import { StoryState } from "./StoryState";
+import { UIState } from "./UIState";
 
 /**
  * Represents the complete state of the preview webview.
- * This is the single source of truth for all preview data and is designed
- * to be sent as a complete snapshot to the webview for state replacement.
+ * This combines both story domain state and UI domain state into a unified structure.
+ * Designed to be sent as a complete snapshot to the webview for state replacement.
  */
 export interface PreviewState {
   /**
-   * All story events in chronological order since the story began.
-   * This includes text events from story continuation and function call events.
-   * Events are appended as the story progresses and are never removed until restart.
+   * Story domain state containing events, choices, errors, and story flow.
+   * All data related to story execution and progression.
    */
-  storyEvents: StoryEvent[];
+  story: StoryState;
 
   /**
-   * Choices currently available to the player.
-   * This array is replaced each time the story continues and new choices become available.
-   * Empty when the story has ended or when no choices are available.
-   */
-  currentChoices: Choice[];
-
-  /**
-   * All errors that have occurred during story execution.
-   * Includes compilation errors, runtime errors, and warnings.
-   * Errors accumulate over time and persist until explicitly cleared or story restarts.
-   */
-  errors: ErrorInfo[];
-
-  /**
-   * Whether the story has reached an end state.
-   * True when the story can no longer continue and has no available choices.
-   * Used by the webview to display end-of-story UI elements.
-   */
-  isEnded: boolean;
-
-  /**
-   * Whether the next update should clear/restart the UI.
-   * True when starting a new story or restarting an existing story.
-   * The webview should clear all content and reset to initial state when this is true.
-   * Automatically set to false after the first story continuation.
-   */
-  isStart: boolean;
-
-  /**
-   * Index in storyEvents array where the current turn started.
-   * Events with index >= lastChoiceIndex are considered current (from the current turn).
-   * Events with index < lastChoiceIndex are considered historical (from previous turns).
-   * Updated by SetCurrentChoicesAction when new choices are presented.
-   */
-  lastChoiceIndex: number;
-
-  /**
-   * UI state controlling the availability and visual state of webview elements.
+   * UI domain state controlling the availability and visual state of webview elements.
    * Contains flags for enabling/disabling functionality based on current story state.
    */
-  uiState: UIState;
+  ui: UIState;
 }
+
+// TODO: Remove this once refactor complete
+export * from "./StoryState";
+export * from "./UIState";

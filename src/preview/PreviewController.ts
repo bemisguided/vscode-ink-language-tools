@@ -27,7 +27,6 @@ import path from "path";
 import { PreviewHtmlGenerator } from "./PreviewHtmlGenerator";
 import { PreviewStateManager } from "./PreviewStateManager";
 import {
-  PreviewState,
   ErrorInfo,
   ErrorSeverity,
   FunctionStoryEvent,
@@ -37,13 +36,14 @@ import { BuildEngine } from "../build/BuildEngine";
 import { Deferred } from "../util/deferred";
 import { ISuccessfulBuildResult } from "../build/IBuildResult";
 // Import all actions
-import { StartStoryAction } from "./actions/StartStoryAction";
-import { AddErrorsAction } from "./actions/AddErrorsAction";
-import { AddStoryEventsAction } from "./actions/AddStoryEventsAction";
-import { InitializeStoryAction } from "./actions/InitializeStoryAction";
-import { ContinueStoryAction } from "./actions/ContinueStoryAction";
-import { SelectChoiceAction } from "./actions/SelectChoiceAction";
+import { StartStoryAction } from "./actions/story/StartStoryAction";
+import { AddErrorsAction } from "./actions/story/AddErrorsAction";
+import { AddStoryEventsAction } from "./actions/story/AddStoryEventsAction";
+import { InitializeStoryAction } from "./actions/story/InitializeStoryAction";
+import { ContinueStoryAction } from "./actions/story/ContinueStoryAction";
+import { SelectChoiceAction } from "./actions/story/SelectChoiceAction";
 import { parseErrorMessage } from "./parseErrorMessage";
+import { createUIAction } from "./actions/UIAction";
 
 /**
  * Coordinates the story preview, managing the webview, state manager, and user interactions.
@@ -125,11 +125,6 @@ export class PreviewController {
    * Sets up message handlers for webview communication.
    */
   private setupMessageHandlers(): void {
-    // Register log handler
-    this.registerMessageHandler(inboundMessages.log, (payload) => {
-      console.debug(`[PreviewController] [Webview] ${payload.message}`);
-    });
-
     // Handle webview ready
     this.registerMessageHandler(inboundMessages.ready, () => {
       console.debug("[PreviewController] 📖 Webview ready");
@@ -139,25 +134,24 @@ export class PreviewController {
       }
     });
 
-    // Handle choice selection
-    this.registerMessageHandler(inboundMessages.selectChoice, (payload) => {
-      this.handleChoice(payload.choiceIndex);
+    // Handle all actions
+    this.registerMessageHandler(inboundMessages.action, (actionData: any) => {
+      this.executeAction(actionData);
     });
+  }
 
-    // Handle restart request
-    this.registerMessageHandler(inboundMessages.restartStory, () => {
-      // Story reset is now handled by InitializeStoryAction
-      this.startStory();
-    });
-
-    // Handle rewind request
-    this.registerMessageHandler(inboundMessages.rewindStory, () => {
-      console.debug("[PreviewController] 📖 Rewinding story to last choice");
-
-      // Rewind to last choice and send updated state
-      this.stateManager.rewindToLastChoice();
-      this.sendStateToWebview(this.stateManager.getState());
-    });
+  /**
+   * Executes a UI action by creating the action instance and applying it.
+   * @param actionData - Raw action data from webview
+   */
+  private executeAction(actionData: any): void {
+    try {
+      const action = createUIAction(actionData);
+      console.debug(`[PreviewController] 🎬 Executing action: ${action.type}`);
+      this.stateManager.dispatch(action);
+    } catch (error) {
+      console.error(`[PreviewController] Failed to execute action:`, error);
+    }
   }
 
   /**
@@ -182,10 +176,11 @@ export class PreviewController {
   }
 
   /**
-   * Sends the complete state to the webview.
+   * Sends the current story state to the webview.
    * This replaces individual message sending with full state replacement.
    */
-  private sendStateToWebview(state: PreviewState): void {
+  private sendStoryState(): void {
+    const state = this.stateManager.getState();
     this.webviewPanel.webview.postMessage({
       command: "updateState",
       payload: state,
@@ -237,13 +232,13 @@ export class PreviewController {
       this.stateManager.dispatch(
         new AddErrorsAction([{ message, severity: severity || "error" }])
       );
-      this.sendStateToWebview(this.stateManager.getState());
+      this.sendStoryState();
     };
 
     // Start story workflow
     this.stateManager.dispatch(new StartStoryAction());
     this.stateManager.dispatch(new ContinueStoryAction());
-    this.sendStateToWebview(this.stateManager.getState());
+    this.sendStoryState();
   }
 
   /**
@@ -257,7 +252,7 @@ export class PreviewController {
     this.stateManager.dispatch(new SelectChoiceAction(index));
 
     // Send updated state to webview
-    this.sendStateToWebview(this.stateManager.getState());
+    this.sendStoryState();
   }
 
   /**
@@ -270,7 +265,7 @@ export class PreviewController {
     this.stateManager.dispatch(new AddErrorsAction([error]));
 
     // Send updated state to webview
-    this.sendStateToWebview(this.stateManager.getState());
+    this.sendStoryState();
   }
 
   /**

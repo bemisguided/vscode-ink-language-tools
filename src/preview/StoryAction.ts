@@ -22,18 +22,27 @@
  * SOFTWARE.
  */
 
+import { PreviewAction } from "./PreviewAction";
+import { StoryActionContext } from "./StoryActionContext";
+
 /**
- * Base interface for all actions in the preview system.
- * Implements the Command pattern where each action encapsulates both data and behavior.
- *
- * This is a pure base interface containing common properties.
- * Domain-specific actions (StoryAction, UIAction) define their own apply() methods
- * with appropriate context types for type safety and clear separation of concerns.
+ * Actions that operate on story domain state and perform story-related operations.
+ * These actions have access to story state, story manager, and can dispatch other actions.
+ * They use StoryActionContext for type-safe access to story domain concerns only.
  */
-export interface PreviewAction {
+export interface StoryAction extends PreviewAction {
   /**
-   * The type identifier for this action.
-   * Used for action identification, filtering, debugging, and dispatch routing.
+   * Applies this story action within the given story context.
+   *
+   * This method can:
+   * - Update story state via context.setState()
+   * - Interact with the story engine via context.storyManager
+   * - Dispatch other actions via context.dispatch()
+   * - Send story state updates via context.sendStoryState()
+   *
+   * The method should be idempotent when possible to support replay functionality.
+   *
+   * @param context - The story action context providing story domain access
    */
-  readonly type: string;
+  apply(context: StoryActionContext): void;
 }

@@ -22,12 +22,12 @@
  * SOFTWARE.
  */
 
-import { InitializeStoryAction } from "../../../src/preview/actions/InitializeStoryAction";
-import { PreviewActionContext } from "../../../src/preview/PreviewAction";
-import { mockPreviewState } from "../../__mocks__/mockPreviewState";
+import { InitializeStoryAction } from "../../../../src/preview/actions/story/InitializeStoryAction";
+import { StoryActionContext } from "../../../../src/preview/StoryActionContext";
+import { mockStoryActionContext } from "../../../__mocks__/mockStoryActionContext";
 
 describe("InitializeStoryAction", () => {
-  let mockContext: PreviewActionContext;
+  let mockContext: StoryActionContext;
   let mockStory: any;
 
   beforeEach(() => {
@@ -37,20 +37,7 @@ describe("InitializeStoryAction", () => {
       ResetState: jest.fn(),
     };
 
-    mockContext = {
-      getState: jest.fn().mockReturnValue(mockPreviewState()),
-      setState: jest.fn(),
-      dispatch: jest.fn(),
-      storyManager: {
-        reset: jest.fn(),
-        continue: jest.fn(),
-        selectChoice: jest.fn(),
-        isEnded: jest.fn(),
-        canContinue: jest.fn(),
-        getCurrentChoices: jest.fn(),
-      } as any,
-      story: mockStory,
-    };
+    mockContext = mockStoryActionContext();
   });
 
   describe("apply", () => {

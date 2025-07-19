@@ -22,18 +22,23 @@
  * SOFTWARE.
  */
 
+import { UIActionContext } from "../../src/preview/UIActionContext";
+import { mockUIState } from "./mockUIState";
+
 /**
- * Base interface for all actions in the preview system.
- * Implements the Command pattern where each action encapsulates both data and behavior.
- *
- * This is a pure base interface containing common properties.
- * Domain-specific actions (StoryAction, UIAction) define their own apply() methods
- * with appropriate context types for type safety and clear separation of concerns.
+ * Creates a mock UIActionContext for testing.
+ * @param overrides - Partial UIActionContext to override defaults
+ * @returns Mock UIActionContext with jest functions
  */
-export interface PreviewAction {
-  /**
-   * The type identifier for this action.
-   * Used for action identification, filtering, debugging, and dispatch routing.
-   */
-  readonly type: string;
+export function mockUIActionContext(
+  overrides: Partial<UIActionContext> = {}
+): UIActionContext {
+  return {
+    getState: jest.fn().mockReturnValue(mockUIState()),
+    setState: jest.fn(),
+    dispatch: jest.fn(),
+    sendStoryState: jest.fn(),
+    sendUIState: jest.fn(),
+    ...overrides,
+  };
 }

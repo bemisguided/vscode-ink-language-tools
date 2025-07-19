@@ -22,18 +22,23 @@
  * SOFTWARE.
  */
 
+import { StoryState } from "../../src/preview/StoryState";
+
 /**
- * Base interface for all actions in the preview system.
- * Implements the Command pattern where each action encapsulates both data and behavior.
- *
- * This is a pure base interface containing common properties.
- * Domain-specific actions (StoryAction, UIAction) define their own apply() methods
- * with appropriate context types for type safety and clear separation of concerns.
+ * Creates a mock StoryState with sensible defaults for testing.
+ * @param overrides - Partial StoryState to override defaults
+ * @returns Complete StoryState for testing
  */
-export interface PreviewAction {
-  /**
-   * The type identifier for this action.
-   * Used for action identification, filtering, debugging, and dispatch routing.
-   */
-  readonly type: string;
+export function mockStoryState(
+  overrides: Partial<StoryState> = {}
+): StoryState {
+  return {
+    storyEvents: [],
+    currentChoices: [],
+    errors: [],
+    isEnded: false,
+    isStart: true,
+    lastChoiceIndex: 0,
+    ...overrides,
+  };
 }
