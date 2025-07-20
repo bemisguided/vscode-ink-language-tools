@@ -24,6 +24,7 @@
 
 import { UIActionContext } from "../../src/preview/UIActionContext";
 import { mockUIState } from "./mockUIState";
+import { mockStoryState } from "./mockStoryState";
 
 /**
  * Creates a mock UIActionContext for testing.
@@ -35,6 +36,7 @@ export function mockUIActionContext(
 ): UIActionContext {
   return {
     getState: jest.fn().mockReturnValue(mockUIState()),
+    getStoryState: jest.fn().mockReturnValue(mockStoryState()),
     setState: jest.fn(),
     dispatch: jest.fn(),
     rewindStoryToLastChoice: jest.fn(),

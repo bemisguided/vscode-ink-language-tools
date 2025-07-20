@@ -40,7 +40,7 @@ describe("RestartStoryUIAction", () => {
 
   describe("constructor", () => {
     test("should create instance with correct properties", () => {
-      // Set up
+      // Setup
       // (Done in beforeEach)
 
       // Execute
@@ -55,7 +55,7 @@ describe("RestartStoryUIAction", () => {
 
   describe("apply", () => {
     test("should dispatch InitializeStoryAction", () => {
-      // Set up
+      // Setup
       const mockDispatch = jest.fn();
       mockContext.dispatch = mockDispatch;
 
@@ -69,7 +69,7 @@ describe("RestartStoryUIAction", () => {
     });
 
     test("should dispatch StartStoryAction", () => {
-      // Set up
+      // Setup
       const mockDispatch = jest.fn();
       mockContext.dispatch = mockDispatch;
 
@@ -81,7 +81,7 @@ describe("RestartStoryUIAction", () => {
     });
 
     test("should dispatch ContinueStoryAction", () => {
-      // Set up
+      // Setup
       const mockDispatch = jest.fn();
       mockContext.dispatch = mockDispatch;
 
@@ -95,7 +95,7 @@ describe("RestartStoryUIAction", () => {
     });
 
     test("should dispatch actions in correct order", () => {
-      // Set up
+      // Setup
       const mockDispatch = jest.fn();
       mockContext.dispatch = mockDispatch;
 
@@ -103,7 +103,7 @@ describe("RestartStoryUIAction", () => {
       action.apply(mockContext);
 
       // Assert
-      expect(mockDispatch).toHaveBeenCalledTimes(3);
+      expect(mockDispatch).toHaveBeenCalledTimes(4); // 3 story actions + 1 UI action
       expect(mockDispatch).toHaveBeenNthCalledWith(
         1,
         expect.any(InitializeStoryAction)
@@ -116,10 +116,51 @@ describe("RestartStoryUIAction", () => {
         3,
         expect.any(ContinueStoryAction)
       );
+      expect(mockDispatch).toHaveBeenNthCalledWith(
+        4,
+        expect.objectContaining({
+          type: "SET_REWIND_ENABLED",
+        })
+      );
+    });
+
+    test("should dispatch SetRewindEnabledUIAction with false", () => {
+      // Setup
+      const mockDispatch = jest.fn();
+      mockContext.dispatch = mockDispatch;
+
+      // Execute
+      action.apply(mockContext);
+
+      // Assert
+      expect(mockDispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "SET_REWIND_ENABLED",
+        })
+      );
+    });
+
+    test("should dispatch rewind action after story restart actions", () => {
+      // Setup
+      const callOrder: string[] = [];
+      const mockDispatch = jest.fn((dispatchedAction) => {
+        if (dispatchedAction.category === "story") {
+          callOrder.push("story");
+        } else if (dispatchedAction.category === "ui") {
+          callOrder.push("ui");
+        }
+      });
+      mockContext.dispatch = mockDispatch;
+
+      // Execute
+      action.apply(mockContext);
+
+      // Assert
+      expect(callOrder).toEqual(["story", "story", "story", "ui"]);
     });
 
     test("should send story state to webview", () => {
-      // Set up
+      // Setup
       const mockSendStoryState = jest.fn();
       mockContext.sendStoryState = mockSendStoryState;
 
@@ -131,7 +172,7 @@ describe("RestartStoryUIAction", () => {
     });
 
     test("should send story state after dispatching actions", () => {
-      // Set up
+      // Setup
       const callOrder: string[] = [];
       const mockDispatch = jest.fn(() => callOrder.push("dispatch"));
       const mockSendStoryState = jest.fn(() =>
@@ -148,12 +189,13 @@ describe("RestartStoryUIAction", () => {
         "dispatch", // InitializeStoryAction
         "dispatch", // StartStoryAction
         "dispatch", // ContinueStoryAction
+        "dispatch", // SetRewindEnabledUIAction
         "sendStoryState",
       ]);
     });
 
     test("should handle context with all required methods", () => {
-      // Set up
+      // Setup
       // (mockContext has all required methods)
 
       // Execute & Assert

@@ -22,73 +22,59 @@
  * SOFTWARE.
  */
 
-import { UIAction } from "../UIAction";
-import { UIActionContext } from "../../UIActionContext";
-import { SelectChoiceAction } from "../story/SelectChoiceAction";
-import { SetRewindEnabledUIAction } from "./SetRewindEnabledUIAction";
+import { UIReducerAction } from "../UIReducerAction";
+import { UIState } from "../../UIState";
 
 /**
- * UI Action to select a choice in the story.
- * This action handles user choice selection by dispatching the appropriate
- * story action and ensuring the webview receives the updated state.
+ * UI Action to enable or disable the rewind functionality.
+ * This action updates the rewind property in the UI state to control
+ * whether the rewind button should be enabled in the webview.
  */
-export class SelectChoiceUIAction implements UIAction {
+export class SetRewindEnabledUIAction extends UIReducerAction {
   // Static Properties ================================================================================================
 
   /**
    * The type identifier for this action.
    * Used for action identification, filtering, and debugging.
    */
-  public static readonly typeId = "SELECT_CHOICE";
+  public static readonly typeId = "SET_REWIND_ENABLED";
 
   // Public Properties ==============================================================================================
 
   /**
-   * @inheritdoc
+   * The type identifier for this action instance.
    */
-  readonly category = "ui" as const;
+  public readonly type = SetRewindEnabledUIAction.typeId;
 
   /**
-   * @inheritdoc
+   * Whether the rewind functionality should be enabled.
    */
-  readonly type = SelectChoiceUIAction.typeId;
-
-  /**
-   * The payload containing the choice index to select.
-   */
-  public readonly payload: { choiceIndex: number };
+  private readonly enabled: boolean;
 
   // Constructor ======================================================================================================
 
   /**
-   * Creates a new SelectChoiceUIAction.
-   * @param payload - The payload containing the choice index to select
+   * Creates a new SetRewindEnabledUIAction.
+   * @param enabled - True to enable rewind functionality, false to disable it
    */
-  constructor(payload: { choiceIndex: number }) {
-    this.payload = payload;
+  constructor(enabled: boolean) {
+    super();
+    this.enabled = enabled;
   }
 
   // Public Methods ===================================================================================================
 
   /**
-   * @inheritdoc
+   * Reduces the current UI state by updating the rewind property.
+   * This sets the rewind availability based on the enabled parameter.
+   *
+   * @param state - The current UI state
+   * @returns New UI state with updated rewind property
    */
-  apply(context: UIActionContext): void {
-    console.debug(
-      "[SelectChoiceUIAction] Selecting choice",
-      this.payload.choiceIndex
-    );
-    // Dispatch the story action and let it handle state updates
-    context.dispatch(new SelectChoiceAction(this.payload.choiceIndex));
-
-    // Update UI state based on story state
-    const storyState = context.getStoryState();
-    const shouldEnableRewind = storyState.lastChoiceIndex > 0;
-
-    // Update rewind state
-    context.dispatch(new SetRewindEnabledUIAction(shouldEnableRewind));
-
-    // Send updated state to webview
-    context.sendStoryState();
+  reduce(state: UIState): UIState {
+    return {
+      ...state,
+      rewind: this.enabled,
+    };
   }
-}
+} 

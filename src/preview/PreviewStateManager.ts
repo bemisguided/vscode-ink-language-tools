@@ -449,6 +449,7 @@ export class PreviewStateManager {
   private createUIContext(): UIActionContext {
     return {
       getState: () => this.getUIState(),
+      getStoryState: () => this.getStoryState(),
       setState: (newState: UIState) => {
         this.uiState = newState;
       },

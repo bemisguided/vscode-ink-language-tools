@@ -36,7 +36,7 @@ describe("SelectChoiceUIAction", () => {
 
   describe("constructor", () => {
     test("should create instance with correct properties and payload", () => {
-      // Set up
+      // Setup
       const payload = { choiceIndex: 2 };
 
       // Execute
@@ -50,7 +50,7 @@ describe("SelectChoiceUIAction", () => {
     });
 
     test("should store payload reference correctly", () => {
-      // Set up
+      // Setup
       const payload = { choiceIndex: 5 };
 
       // Execute
@@ -61,7 +61,7 @@ describe("SelectChoiceUIAction", () => {
     });
 
     test("should handle zero choice index", () => {
-      // Set up
+      // Setup
       const payload = { choiceIndex: 0 };
 
       // Execute
@@ -72,7 +72,7 @@ describe("SelectChoiceUIAction", () => {
     });
 
     test("should handle large choice index", () => {
-      // Set up
+      // Setup
       const payload = { choiceIndex: 999 };
 
       // Execute
@@ -85,7 +85,7 @@ describe("SelectChoiceUIAction", () => {
 
   describe("apply", () => {
     test("should dispatch SelectChoiceAction with correct choice index", () => {
-      // Set up
+      // Setup
       const payload = { choiceIndex: 3 };
       const action = new SelectChoiceUIAction(payload);
       const mockDispatch = jest.fn();
@@ -95,12 +95,15 @@ describe("SelectChoiceUIAction", () => {
       action.apply(mockContext);
 
       // Assert
-      expect(mockDispatch).toHaveBeenCalledTimes(1);
-      expect(mockDispatch).toHaveBeenCalledWith(expect.any(SelectChoiceAction));
+      expect(mockDispatch).toHaveBeenCalledTimes(2); // Story action + UI action
+      expect(mockDispatch).toHaveBeenNthCalledWith(
+        1,
+        expect.any(SelectChoiceAction)
+      );
     });
 
     test("should send story state to webview", () => {
-      // Set up
+      // Setup
       const payload = { choiceIndex: 1 };
       const action = new SelectChoiceUIAction(payload);
       const mockSendStoryState = jest.fn();
@@ -114,7 +117,7 @@ describe("SelectChoiceUIAction", () => {
     });
 
     test("should send story state after dispatching action", () => {
-      // Set up
+      // Setup
       const payload = { choiceIndex: 2 };
       const action = new SelectChoiceUIAction(payload);
       const callOrder: string[] = [];
@@ -129,11 +132,11 @@ describe("SelectChoiceUIAction", () => {
       action.apply(mockContext);
 
       // Assert
-      expect(callOrder).toEqual(["dispatch", "sendStoryState"]);
+      expect(callOrder).toEqual(["dispatch", "dispatch", "sendStoryState"]);
     });
 
     test("should handle choice index zero", () => {
-      // Set up
+      // Setup
       const payload = { choiceIndex: 0 };
       const action = new SelectChoiceUIAction(payload);
       const mockDispatch = jest.fn();
@@ -143,12 +146,15 @@ describe("SelectChoiceUIAction", () => {
       action.apply(mockContext);
 
       // Assert
-      expect(mockDispatch).toHaveBeenCalledTimes(1);
-      expect(mockDispatch).toHaveBeenCalledWith(expect.any(SelectChoiceAction));
+      expect(mockDispatch).toHaveBeenCalledTimes(2); // Story action + UI action
+      expect(mockDispatch).toHaveBeenNthCalledWith(
+        1,
+        expect.any(SelectChoiceAction)
+      );
     });
 
     test("should handle large choice index", () => {
-      // Set up
+      // Setup
       const payload = { choiceIndex: 100 };
       const action = new SelectChoiceUIAction(payload);
       const mockDispatch = jest.fn();
@@ -158,12 +164,111 @@ describe("SelectChoiceUIAction", () => {
       action.apply(mockContext);
 
       // Assert
-      expect(mockDispatch).toHaveBeenCalledTimes(1);
-      expect(mockDispatch).toHaveBeenCalledWith(expect.any(SelectChoiceAction));
+      expect(mockDispatch).toHaveBeenCalledTimes(2); // Story action + UI action
+      expect(mockDispatch).toHaveBeenNthCalledWith(
+        1,
+        expect.any(SelectChoiceAction)
+      );
+    });
+
+    test("should dispatch SetRewindEnabledUIAction with true when lastChoiceIndex > 0", () => {
+      // Setup
+      const payload = { choiceIndex: 2 };
+      const action = new SelectChoiceUIAction(payload);
+      const mockStoryState = {
+        lastChoiceIndex: 5,
+        storyEvents: [],
+        currentChoices: [],
+        errors: [],
+        isEnded: false,
+        isStart: false,
+      };
+      const mockDispatch = jest.fn();
+      mockContext.dispatch = mockDispatch;
+      mockContext.getStoryState = jest.fn().mockReturnValue(mockStoryState);
+
+      // Execute
+      action.apply(mockContext);
+
+      // Assert
+      expect(mockDispatch).toHaveBeenCalledTimes(2); // Story action + UI action
+      expect(mockDispatch).toHaveBeenNthCalledWith(
+        1,
+        expect.any(SelectChoiceAction)
+      );
+      expect(mockDispatch).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          type: "SET_REWIND_ENABLED",
+        })
+      );
+    });
+
+    test("should dispatch SetRewindEnabledUIAction with false when lastChoiceIndex = 0", () => {
+      // Setup
+      const payload = { choiceIndex: 0 };
+      const action = new SelectChoiceUIAction(payload);
+      const mockStoryState = {
+        lastChoiceIndex: 0,
+        storyEvents: [],
+        currentChoices: [],
+        errors: [],
+        isEnded: false,
+        isStart: true,
+      };
+      const mockDispatch = jest.fn();
+      mockContext.dispatch = mockDispatch;
+      mockContext.getStoryState = jest.fn().mockReturnValue(mockStoryState);
+
+      // Execute
+      action.apply(mockContext);
+
+      // Assert
+      expect(mockDispatch).toHaveBeenCalledTimes(2); // Story action + UI action
+      expect(mockDispatch).toHaveBeenNthCalledWith(
+        1,
+        expect.any(SelectChoiceAction)
+      );
+      expect(mockDispatch).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          type: "SET_REWIND_ENABLED",
+        })
+      );
+    });
+
+    test("should dispatch story action before UI action", () => {
+      // Setup
+      const payload = { choiceIndex: 1 };
+      const action = new SelectChoiceUIAction(payload);
+      const mockStoryState = {
+        lastChoiceIndex: 3,
+        storyEvents: [],
+        currentChoices: [],
+        errors: [],
+        isEnded: false,
+        isStart: false,
+      };
+      const callOrder: string[] = [];
+      const mockDispatch = jest.fn((dispatchedAction) => {
+        if (dispatchedAction.category === "story") {
+          callOrder.push("story");
+        } else if (dispatchedAction.category === "ui") {
+          callOrder.push("ui");
+        }
+      });
+      mockContext.dispatch = mockDispatch;
+      mockContext.getStoryState = jest.fn().mockReturnValue(mockStoryState);
+
+      // Execute
+      action.apply(mockContext);
+
+      // Assert
+      expect(callOrder).toEqual(["story", "ui"]);
     });
 
     test("should handle context with all required methods", () => {
-      // Set up
+      // Setup
       const payload = { choiceIndex: 1 };
       const action = new SelectChoiceUIAction(payload);
 

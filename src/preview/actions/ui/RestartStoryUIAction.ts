@@ -26,6 +26,7 @@ import { UIAction } from "../UIAction";
 import { InitializeStoryAction } from "../story/InitializeStoryAction";
 import { StartStoryAction } from "../story/StartStoryAction";
 import { ContinueStoryAction } from "../story/ContinueStoryAction";
+import { SetRewindEnabledUIAction } from "./SetRewindEnabledUIAction";
 import { UIActionContext } from "../../UIActionContext";
 
 /**
@@ -65,6 +66,10 @@ export class RestartStoryUIAction implements UIAction {
     context.dispatch(new InitializeStoryAction());
     context.dispatch(new StartStoryAction());
     context.dispatch(new ContinueStoryAction());
+
+    // Reset rewind state when restarting (no choices made yet)
+    context.dispatch(new SetRewindEnabledUIAction(false));
+
     // Send updated state to webview
     context.sendStoryState();
   }

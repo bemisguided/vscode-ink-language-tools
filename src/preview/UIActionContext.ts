@@ -23,6 +23,7 @@
  */
 
 import { UIState } from "./UIState";
+import { StoryState } from "./StoryState";
 import { PreviewAction } from "./PreviewAction";
 
 /**
@@ -36,6 +37,13 @@ export interface UIActionContext {
    * @returns Copy of current UI state
    */
   getState(): UIState;
+
+  /**
+   * Gets the current story state.
+   * Used by UI actions to make decisions based on story state for coordination.
+   * @returns Copy of current story state
+   */
+  getStoryState(): StoryState;
 
   /**
    * Updates the UI state.
