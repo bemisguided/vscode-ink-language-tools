@@ -45,6 +45,11 @@ export class SelectChoiceAction implements StoryAction {
   // Public Properties ==============================================================================================
 
   /**
+   * The category identifier for this action.
+   */
+  public readonly category = "story" as const;
+
+  /**
    * The type identifier for this action instance.
    */
   public readonly type = SelectChoiceAction.typeId;

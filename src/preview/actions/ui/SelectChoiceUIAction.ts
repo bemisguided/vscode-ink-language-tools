@@ -26,11 +26,52 @@ import { UIAction } from "../UIAction";
 import { UIActionContext } from "../../UIActionContext";
 import { SelectChoiceAction } from "../story/SelectChoiceAction";
 
+/**
+ * UI Action to select a choice in the story.
+ * This action handles user choice selection by dispatching the appropriate
+ * story action and ensuring the webview receives the updated state.
+ */
 export class SelectChoiceUIAction implements UIAction {
-  readonly type = "SELECT_CHOICE";
+  // Static Properties ================================================================================================
 
-  constructor(public readonly payload: { choiceIndex: number }) {}
+  /**
+   * The type identifier for this action.
+   * Used for action identification, filtering, and debugging.
+   */
+  public static readonly typeId = "SELECT_CHOICE";
 
+  // Public Properties ==============================================================================================
+
+  /**
+   * @inheritdoc
+   */
+  readonly category = "ui" as const;
+
+  /**
+   * @inheritdoc
+   */
+  readonly type = SelectChoiceUIAction.typeId;
+
+  /**
+   * The payload containing the choice index to select.
+   */
+  public readonly payload: { choiceIndex: number };
+
+  // Constructor ======================================================================================================
+
+  /**
+   * Creates a new SelectChoiceUIAction.
+   * @param payload - The payload containing the choice index to select
+   */
+  constructor(payload: { choiceIndex: number }) {
+    this.payload = payload;
+  }
+
+  // Public Methods ===================================================================================================
+
+  /**
+   * @inheritdoc
+   */
   apply(context: UIActionContext): void {
     console.debug(
       "[SelectChoiceUIAction] Selecting choice",

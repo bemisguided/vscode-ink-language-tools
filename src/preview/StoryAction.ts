@@ -32,6 +32,11 @@ import { StoryActionContext } from "./StoryActionContext";
  */
 export interface StoryAction extends PreviewAction {
   /**
+   * Indicates that the Category of this Preview Action is "story".
+   */
+  category: "story";
+
+  /**
    * Applies this story action within the given story context.
    *
    * This method can:

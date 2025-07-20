@@ -37,7 +37,7 @@ export function mockStoryState(
     currentChoices: [],
     errors: [],
     isEnded: false,
-    isStart: true,
+    isStart: true, // Matches actual PreviewStateManager default
     lastChoiceIndex: 0,
     ...overrides,
   };

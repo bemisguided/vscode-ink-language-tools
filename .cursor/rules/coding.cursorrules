@@ -1,0 +1,204 @@
+# VSCode Ink Language Tools - Coding Standards & Best Practices
+
+## 🎯 **Core Principles**
+
+### **TypeScript Standards**
+- **Strict Mode**: Always use TypeScript strict mode with comprehensive type safety
+- **No Any Types**: Avoid `any` types; use proper typing with interfaces and generics
+- **Interface Segregation**: Create focused, single-responsibility interfaces
+- **Explicit Return Types**: Always specify return types for public methods
+
+### **Code Organization**
+- **Single Responsibility**: Each class/interface should have one clear purpose
+- **Separation of Concerns**: Maintain clear boundaries between domains (UI, Story, Build, Services)
+- **Dependency Injection**: Use service locator pattern for testability and modularity
+
+## 📁 **File Structure & Naming Conventions**
+
+### **File Naming**
+- **Classes**: PascalCase (`PreviewController.ts`, `BuildEngine.ts`)
+- **Interfaces**: PascalCase with 'I' prefix for core interfaces (`IExtensionPlugin.ts`, `IBuildResult.ts`)
+- **Service Interfaces**: Descriptive names (`IVSCodeConfigurationService.ts`)
+- **Mocks**: `Mock` prefix (`MockBuildEngine.ts`, `MockWebviewPanel.ts`)
+- **Utilities**: Lowercase with hyphens for multi-word (`parseErrorMessage.ts`)
+
+### **Class File Separation**
+- **One class per file**: Each interface and class should be in its own file
+- **Related exports**: Group related types in the same file (e.g., `StoryState.ts` contains `Choice`, `ErrorInfo`, `StoryEvent`)
+
+## 🏗️ **Architecture Patterns**
+
+### **Service Layer Pattern**
+Use service facades for all VSCode API interactions:
+
+```typescript
+/**
+ * Facade service to access VSCode API.
+ */
+export interface IServiceName {
+  /**
+   * Method description.
+   * @param param - Parameter description
+   * @returns Return value description
+   */
+  methodName(param: ParamType): ReturnType;
+}
+
+/**
+ * Implementation of the ServiceName.
+ */
+export class ServiceNameImpl implements IServiceName {
+  // Private Properties ===============================================================================================
+  
+  private readonly dependency: DependencyType;
+
+  // Constructor ======================================================================================================
+  
+  constructor(dependency: DependencyType) {
+    this.dependency = dependency;
+  }
+
+  // Public Methods ===================================================================================================
+  
+  /**
+   * @inheritdoc
+   */
+  public methodName(param: ParamType): ReturnType {
+    // Implementation
+  }
+}
+```
+
+### **Service Locator Pattern**
+Centralized dependency management for testability:
+
+```typescript
+export class VSCodeServiceLocator {
+  private static serviceInstance: IServiceType;
+
+  public static getService(): IServiceType {
+    if (!this.serviceInstance) {
+      this.serviceInstance = new ServiceTypeImpl();
+    }
+    return this.serviceInstance;
+  }
+
+  public static setService(service: IServiceType): void {
+    this.serviceInstance = service;
+  }
+}
+```
+
+## 📋 **Interface Design Standards**
+
+### **Interface Naming & Structure**
+```typescript
+/**
+ * Interface description explaining its purpose and usage.
+ */
+export interface InterfaceName {
+  /**
+   * Property description.
+   */
+  readonly propertyName: PropertyType;
+
+  /**
+   * Method description.
+   * @param param - Parameter description
+   * @returns Return value description
+   */
+  methodName(param: ParamType): ReturnType;
+}
+```
+
+### **Domain-Specific Interfaces**
+- **StoryAction**: Operations that modify story state
+- **UIAction**: User interface interactions
+- **IPipelineProcessor**: Build pipeline components
+- **IExtensionPlugin**: VSCode extension plugins
+
+### **Payload Objects**
+Use strongly-typed payload objects for complex data:
+
+```typescript
+export interface ActionPayload {
+  readonly requiredProperty: string;
+  readonly optionalProperty?: number;
+}
+```
+
+## 🛠️ **Class Structure Standards**
+
+### **Section Organization**
+Organize class members in consistent sections with comment separators:
+
+```typescript
+export class ClassName {
+  // Static Properties ================================================================================================
+  
+  public static readonly CONSTANT_VALUE = "value";
+
+  // Private Properties ===============================================================================================
+  
+  private readonly dependency: DependencyType;
+  private mutableState: StateType;
+
+  // Public Properties ==============================================================================================
+  
+  public readonly publicProperty: PropertyType;
+
+  // Constructor ======================================================================================================
+  
+  /**
+   * Creates a new ClassName.
+   * @param dependency - Injected dependency
+   */
+  constructor(dependency: DependencyType) {
+    this.dependency = dependency;
+    this.mutableState = this.initializeState();
+  }
+
+  // Public Methods ===================================================================================================
+  
+  /**
+   * Public method description.
+   */
+  public publicMethod(): void {
+    // Implementation
+  }
+
+  // Private Methods ==================================================================================================
+  
+  /**
+   * Private helper method.
+   */
+  private privateMethod(): void {
+    // Implementation
+  }
+}
+```
+
+### **Property Declaration**
+- **readonly**: Use for immutable properties
+- **private readonly**: For injected dependencies
+- **public readonly**: For exposed immutable properties
+- **Static readonly**: For constants and type identifiers
+
+### **@inheritdoc Usage**
+Use `@inheritdoc` for interface implementations:
+
+```typescript
+export class ConcreteClass implements InterfaceName {
+  /**
+   * @inheritdoc
+   */
+  public interfaceMethod(): void {
+    // Implementation
+  }
+}
+```
+
+### **Code Comments**
+- **Why not What**: Explain reasoning, not obvious implementation
+- **Complex Logic**: Comment non-obvious business logic
+- **Workarounds**: Document temporary solutions with TODO/FIXME

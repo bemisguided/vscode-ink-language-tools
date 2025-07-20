@@ -46,6 +46,11 @@ export class ContinueStoryAction implements StoryAction {
   // Public Properties ==============================================================================================
 
   /**
+   * The category identifier for this action.
+   */
+  public readonly category = "story" as const;
+
+  /**
    * The type identifier for this action instance.
    */
   public readonly type = ContinueStoryAction.typeId;
@@ -59,8 +64,6 @@ export class ContinueStoryAction implements StoryAction {
    * @param context - The action context providing state access and dispatch capability
    */
   apply(context: StoryActionContext): void {
-    console.debug("[ContinueStoryAction] ⏭️ Continuing story");
-
     // Use story manager to continue the story
     const result = context.storyManager.continue();
 
@@ -79,9 +82,5 @@ export class ContinueStoryAction implements StoryAction {
     if (result.isEnded) {
       context.dispatch(new EndStoryAction());
     }
-
-    console.debug(
-      `[ContinueStoryAction] ✅ Continue completed: ${result.events.length} events, ${result.choices.length} choices, ${result.errors.length} errors, ended: ${result.isEnded}`
-    );
   }
 }

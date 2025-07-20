@@ -51,6 +51,13 @@ export interface UIActionContext {
   dispatch(action: PreviewAction): void;
 
   /**
+   * Rewinds the story back to before the last choice selection.
+   * This goes back to the state before the last SelectChoiceAction was applied.
+   * If no SelectChoiceAction exists in the story history, rewinds to the beginning.
+   */
+  rewindStoryToLastChoice(): void;
+
+  /**
    * Sends the current story state to the webview.
    * UI actions often coordinate story updates and need to trigger story state communication.
    */

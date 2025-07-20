@@ -35,6 +35,11 @@ import { StoryActionContext } from "../StoryActionContext";
  */
 export abstract class StoryReducerAction implements StoryAction {
   /**
+   * The category identifier for this action.
+   */
+  public readonly category = "story" as const;
+
+  /**
    * The type identifier for this action.
    * Must be implemented by concrete action classes.
    */

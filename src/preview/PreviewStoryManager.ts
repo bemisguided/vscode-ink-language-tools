@@ -24,13 +24,7 @@
 
 import { Story } from "inkjs";
 import { StoryProgressResult } from "./StoryProgressResult";
-import {
-  StoryEvent,
-  TextStoryEvent,
-  Choice,
-  ErrorInfo,
-  ErrorSeverity,
-} from "./PreviewState";
+import { StoryEvent, TextStoryEvent, Choice, ErrorInfo } from "./PreviewState";
 import { parseErrorMessage } from "./parseErrorMessage";
 
 /**
@@ -68,11 +62,8 @@ export class PreviewStoryManager {
    * This prepares the story for execution from the beginning.
    */
   reset(): void {
-    console.debug("[PreviewStoryManager] 🔄 Resetting story state");
-
     try {
       this.story.ResetState();
-      console.debug("[PreviewStoryManager] ✅ Story state reset successfully");
     } catch (error) {
       console.error(
         "[PreviewStoryManager] ❌ Failed to reset story state:",
@@ -89,8 +80,6 @@ export class PreviewStoryManager {
    * @returns StoryProgressResult containing events, choices, and end state
    */
   continue(): StoryProgressResult {
-    console.debug("[PreviewStoryManager] ⏭️ Continuing story");
-
     // Guard against continuing a finished story
     if (this.isEnded()) {
       return {
@@ -122,11 +111,6 @@ export class PreviewStoryManager {
     // Get current choices
     const choices = this.getCurrentChoices();
     const isEnded = this.isEnded();
-
-    console.debug(
-      `[PreviewStoryManager] ✅ Continue completed: ${events.length} events, ${choices.length} choices, ${errors.length} errors, ended: ${isEnded}`
-    );
-
     return {
       events,
       choices,
@@ -142,8 +126,6 @@ export class PreviewStoryManager {
    * @returns StoryProgressResult containing events, choices, and end state after selection
    */
   selectChoice(choiceIndex: number): StoryProgressResult {
-    console.debug(`[PreviewStoryManager] 🎯 Selecting choice ${choiceIndex}`);
-
     try {
       // Select the choice
       this.story.ChooseChoiceIndex(choiceIndex);

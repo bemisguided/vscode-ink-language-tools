@@ -34,6 +34,11 @@ import { UIActionContext } from "../UIActionContext";
  */
 export interface UIAction extends PreviewAction {
   /**
+   * Indicates that the Category of this Preview Action is "ui".
+   */
+  category: "ui";
+
+  /**
    * Optional payload containing action-specific data.
    * Must be JSON serializable for webview communication.
    */
@@ -56,11 +61,11 @@ export function createUIAction(actionData: {
   payload?: any;
 }): UIAction {
   switch (actionData.type) {
-    case "SELECT_CHOICE":
+    case SelectChoiceUIAction.typeId:
       return new SelectChoiceUIAction(actionData.payload);
-    case "RESTART_STORY":
+    case RestartStoryUIAction.typeId:
       return new RestartStoryUIAction();
-    case "REWIND_STORY":
+    case RewindStoryUIAction.typeId:
       return new RewindStoryUIAction();
     default:
       throw new Error(`Unknown UI action type: ${actionData.type}`);

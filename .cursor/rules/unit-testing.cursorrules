@@ -1,0 +1,464 @@
+# Unit Testing Standard & Best Practices
+
+## 🎯 **Core Principles**
+
+### **Unit Testing Focus**
+- **Unit tests only**: Test individual methods and their behavior in isolation
+- **No integration tests**: Avoid testing entire workflows or multi-component interactions
+- **Minimal dependencies**: Mock only direct dependencies, not entire subsystems
+- **Single responsibility**: Each test should verify one specific behavior
+
+### **Test Organization**
+- **Method-based structure**: Organize tests by the methods being tested
+- **Behavioral grouping**: Group tests by method behavior (success cases, error cases, edge cases)
+- **Clear naming**: Use descriptive test names that specify exact behavior being tested
+
+## 📁 **Test Structure Standards**
+
+### **Describe Block Naming Convention**
+```typescript
+describe("ClassName", () => {
+  describe(".methodName()", () => {
+    // Tests for public methods
+  });
+  
+  describe(".privateMethodName()", () => {
+    // Tests for private methods (when tested indirectly)
+  });
+});
+```
+
+### **Test Structure Template**
+```typescript
+describe("ClassName", () => {
+  // Shared setup variables
+  let instance: ClassName;
+  let mockDependency: jest.Mocked<DependencyType>;
+
+  beforeEach(() => {
+    // Setup: Common initialization for all tests
+    // Create mocks, initialize test subject
+  });
+
+  afterEach(() => {
+    // Cleanup: Only if needed (dispose resources, clear state)
+  });
+
+  describe(".methodName()", () => {
+    describe("when condition", () => {
+      test("should perform expected behavior", () => {
+        // Setup
+        // Arrange test-specific data and mocks
+        
+        // Execute
+        // Call the method being tested
+        
+        // Assert
+        // Verify expected outcomes
+      });
+    });
+  });
+});
+```
+
+## 🔧 **Individual Test Standards**
+
+### **Three-Phase Test Structure**
+Every test must include these three commented sections:
+
+```typescript
+test("should do something specific", () => {
+  // Setup
+  // Arrange test data, configure mocks, prepare test conditions
+  
+  // Execute  
+  // Call the method or trigger the behavior being tested
+  
+  // Assert
+  // Verify all expected outcomes, state changes, method calls
+});
+```
+
+### **Test Naming Convention**
+- **Format**: `"should [expected behavior] when [condition]"`
+- **Be specific**: Describe the exact behavior, not just "works"
+- **Include context**: Mention important conditions or parameters
+
+**Good examples:**
+```typescript
+"should return user data when valid ID provided"
+"should throw error when user not found"
+"should update state when action dispatched successfully"
+```
+
+**Bad examples:**
+```typescript
+"should work"
+"should handle user"
+"should test method"
+```
+
+## 🎭 **Mocking Standards**
+
+### **Mock Strategy Hierarchy**
+1. **Use existing shared mocks first** - Check `tests/__mocks__/` before creating new mocks
+2. **Purpose-built test mocks** - Create simple mocks focused on test needs, not real implementations
+3. **Direct dependencies only** - Mock immediate dependencies, avoid deep mock chains
+4. **Behavior-focused testing** - Mock the interface, test the behavior
+
+### **Shared Mock Infrastructure**
+Always check and use existing shared mocks before creating new ones:
+
+```typescript
+// ✅ Good: Use existing shared mocks
+import { MockWebviewPanel } from "../__mocks__/MockWebviewPanel";
+import { MockBuildEngine } from "../__mocks__/MockBuildEngine";
+import { mockPreviewState } from "../__mocks__/mockPreviewState";
+import { mockVSCodeDocument } from "../__mocks__/mockVSCodeDocument";
+
+// ❌ Bad: Creating new mocks when shared ones exist
+const mockWebview = { postMessage: jest.fn(), html: "" };
+```
+
+**Available Shared Mocks:**
+- `MockWebviewPanel` / `MockWebview` - For VS Code webview testing
+- `MockBuildEngine` - For compilation and build testing  
+- `mockPreviewState()` / `mockStoryState()` / `mockUIState()` - For state object creation
+- `mockVSCodeDocument()` - For VS Code document mocking
+- Service mocks: `MockVSCodeExtensionService`, `MockVSCodeDocumentService`, etc.
+
+### **Purpose-Built vs Wrapper Mocks**
+
+#### **✅ Purpose-Built Mocks (Preferred)**
+Create simple mocks focused on what the test actually needs:
+
+```typescript
+// ✅ Good: Purpose-built mock action
+const createMockStoryAction = (type: string = "MOCK_ACTION") => ({
+  type,
+  apply: jest.fn()
+});
+
+// ✅ Good: Simple mock for testing specific behavior
+const mockStateManager = {
+  getState: jest.fn().mockReturnValue(mockPreviewState()),
+  dispatch: jest.fn(),
+  dispose: jest.fn()
+};
+```
+
+#### **❌ Wrapper Mocks (Avoid)**
+Don't wrap real implementations unless absolutely necessary:
+
+```typescript
+// ❌ Bad: Wrapping real implementation
+jest.mock("../../src/actions/StartStoryAction");
+const mockStartStory = new StartStoryAction(); // Still executes real logic
+
+// ❌ Bad: Complex mock that duplicates real behavior
+class MockComplexAction implements StoryAction {
+  apply(context) {
+    // Implementing real action behavior in test
+    const state = context.getState();
+    context.setState({ ...state, isStart: true });
+  }
+}
+```
+
+### **Mock Classes vs Jest Functions**
+
+#### **Use Mock Classes When:**
+- Object has multiple related methods
+- Object maintains state across method calls
+- Complex interface with many dependencies
+
+```typescript
+// ✅ Good: Mock class for complex object
+class MockStateManager {
+  private state = mockPreviewState();
+  
+  getState = jest.fn(() => this.state);
+  setState = jest.fn((newState) => { this.state = newState; });
+  dispatch = jest.fn();
+  dispose = jest.fn();
+}
+```
+
+#### **Use jest.fn() When:**
+- Single method or callback
+- Simple function interface
+- No state to maintain
+
+```typescript
+// ✅ Good: jest.fn() for simple callbacks
+const mockCallback = jest.fn();
+const mockOnStateChange = jest.fn((state) => { /* test logic */ });
+```
+
+### **Mock Creation Patterns**
+
+#### **Factory Functions for Test Data**
+```typescript
+// ✅ Good: Factory functions for consistent test data
+const createMockAction = (type: string, applyFn?: jest.Mock) => ({
+  type,
+  apply: applyFn || jest.fn()
+});
+
+const createMockChoice = (text: string, index: number = 0) => ({
+  index,
+  text,
+  tags: []
+});
+```
+
+#### **beforeEach Setup Pattern**
+```typescript
+describe("ClassName", () => {
+  let instance: ClassName;
+  let mockDependency: MockDependencyClass;
+  
+  beforeEach(() => {
+    // Setup: Use shared mocks and factories
+    mockDependency = new MockWebviewPanel(); // Shared mock
+    mockAction = createMockAction("TEST_ACTION"); // Purpose-built
+    
+    instance = new ClassName(mockDependency);
+  });
+  
+  afterEach(() => {
+    jest.clearAllMocks();
+    instance?.dispose();
+  });
+});
+```
+
+### **Mock Organization Standards**
+
+#### **File Structure**
+```typescript
+// 1. Imports (shared mocks first)
+import { MockWebviewPanel } from "../__mocks__/MockWebviewPanel";
+import { mockPreviewState } from "../__mocks__/mockPreviewState";
+
+// 2. Purpose-built test helpers
+const createMockAction = (type: string) => ({ type, apply: jest.fn() });
+
+// 3. Test suite
+describe("ClassName", () => {
+  // Setup and tests...
+});
+```
+
+#### **Mock Validation**
+```typescript
+// ✅ Good: Test the mock interaction, not implementation
+test("should call dependency method with correct parameters", () => {
+  // Setup
+  const mockMethod = jest.fn();
+  const mockDep = { method: mockMethod };
+  
+  // Execute
+  instance.doSomething("param");
+  
+  // Assert
+  expect(mockMethod).toHaveBeenCalledWith("param");
+  expect(mockMethod).toHaveBeenCalledTimes(1);
+});
+```
+
+### **Anti-Patterns to Avoid**
+
+```typescript
+// ❌ Bad: Over-mocking with jest.Mock everywhere
+let mockDependency: jest.Mocked<ComplexDependency>;
+
+// ❌ Bad: Creating mocks when shared ones exist
+const mockWebview = { postMessage: jest.fn() }; // MockWebview exists!
+
+// ❌ Bad: Testing mock implementation instead of behavior
+expect(mockAction.apply.mock.calls[0][0].getState()).toBe(expectedState);
+
+// ❌ Bad: Complex setup that duplicates production logic
+beforeEach(() => {
+  // 20 lines of mock setup that mirrors real implementation
+});
+```
+
+### **Mock Debugging Tips**
+```typescript
+// View mock call history
+console.log(mockMethod.mock.calls);
+console.log(mockMethod.mock.results);
+
+// Assert mock interactions
+expect(mockMethod).toHaveBeenCalledWith(expectedArg);
+expect(mockMethod).toHaveBeenCalledTimes(1);
+expect(mockMethod).toHaveReturnedWith(expectedResult);
+
+// Reset specific mocks mid-test if needed
+mockMethod.mockClear();
+mockMethod.mockReset();
+```
+
+Remember: **Good mocks test behavior, not implementation. Use shared infrastructure, keep mocks simple, and focus on the interface contract.**
+
+## 📊 **Test Organization Patterns**
+
+### **Method-Based Organization**
+```typescript
+describe("UserService", () => {
+  describe(".createUser()", () => {
+    describe("when valid data provided", () => {
+      test("should create user successfully", () => {});
+      test("should return created user", () => {});
+    });
+    
+    describe("when invalid data provided", () => {
+      test("should throw validation error", () => {});
+    });
+  });
+  
+  describe(".deleteUser()", () => {
+    // Delete user tests
+  });
+});
+```
+
+### **Behavioral Grouping Within Methods**
+- **Happy path**: Normal, expected usage
+- **Error cases**: Invalid inputs, system failures
+- **Edge cases**: Boundary conditions, special scenarios
+- **State verification**: Confirm side effects and state changes
+
+## ❌ **Anti-Patterns to Avoid**
+
+### **Integration Test Smells**
+```typescript
+// ❌ Bad: Testing entire workflow
+test("should handle complete user registration flow", () => {
+  // Don't test database + validation + email + logging all together
+});
+
+// ✅ Good: Test individual method behavior  
+test("should validate email format", () => {
+  // Test just the validation logic
+});
+```
+
+### **Complex Test Setup**
+```typescript
+// ❌ Bad: Heavy integration setup
+beforeEach(async () => {
+  setupDatabase();
+  startWebServer();
+  initializeFullApplication();
+});
+
+// ✅ Good: Minimal unit test setup
+beforeEach(() => {
+  mockRepository = createMockRepository();
+  userService = new UserService(mockRepository);
+});
+```
+
+### **Unclear Test Structure**
+```typescript
+// ❌ Bad: Missing clear phases
+test("user creation", () => {
+  const user = service.createUser({name: "test"});
+  expect(user.id).toBeDefined();
+  service.saveUser(user);
+  const saved = service.getUser(user.id);
+  expect(saved.name).toBe("test");
+});
+
+// ✅ Good: Clear Setup/Execute/Assert
+test("should assign ID when creating user", () => {
+  // Setup
+  const userData = {name: "test"};
+  
+  // Execute
+  const user = service.createUser(userData);
+  
+  // Assert
+  expect(user.id).toBeDefined();
+});
+```
+
+## 🎯 **Quality Checklist**
+
+### **Before Submitting Tests**
+- [ ] Each describe block targets a specific method (`.methodName()`)
+- [ ] All tests have Setup/Execute/Assert comments
+- [ ] Test names clearly describe expected behavior
+- [ ] Mocks are minimal and focused on direct dependencies
+- [ ] No integration testing across multiple components
+- [ ] Common setup is in `beforeEach`, cleanup in `afterEach` (if needed)
+- [ ] Tests are independent and can run in any order
+- [ ] Edge cases and error conditions are covered
+
+### **Refactoring Legacy Tests**
+1. **Identify integration tests**: Look for tests that set up multiple systems
+2. **Extract method-focused tests**: Break down into individual method behaviors  
+3. **Simplify mocks**: Replace heavy integration mocks with direct dependency mocks
+4. **Add structure comments**: Ensure Setup/Execute/Assert sections exist
+5. **Reorganize by methods**: Group tests under `.methodName()` describe blocks
+6. **Verify independence**: Ensure tests don't depend on each other
+
+## 📚 **Examples and Templates**
+
+### **Standard Class Test Template**
+```typescript
+import { ClassName } from "../path/to/ClassName";
+import { DependencyType } from "../path/to/DependencyType";
+
+// Mock dependencies
+jest.mock("../path/to/DependencyType");
+
+describe("ClassName", () => {
+  let instance: ClassName;
+  let mockDependency: jest.Mocked<DependencyType>;
+
+  beforeEach(() => {
+    // Setup
+    mockDependency = {
+      requiredMethod: jest.fn(),
+    } as jest.Mocked<DependencyType>;
+    
+    instance = new ClassName(mockDependency);
+  });
+
+  describe(".constructor()", () => {
+    test("should initialize with provided dependencies", () => {
+      // Setup
+      const dependency = {} as DependencyType;
+      
+      // Execute
+      const result = new ClassName(dependency);
+      
+      // Assert
+      expect(result).toBeInstanceOf(ClassName);
+    });
+  });
+
+  describe(".publicMethod()", () => {
+    describe("when valid input provided", () => {
+      test("should return expected result", () => {
+        // Setup
+        const input = "test";
+        mockDependency.requiredMethod.mockReturnValue("expected");
+        
+        // Execute
+        const result = instance.publicMethod(input);
+        
+        // Assert
+        expect(result).toBe("expected");
+        expect(mockDependency.requiredMethod).toHaveBeenCalledWith(input);
+      });
+    });
+  });
+});
+```
+
+This standard ensures consistent, maintainable, and focused unit tests that are easy to understand and modify.

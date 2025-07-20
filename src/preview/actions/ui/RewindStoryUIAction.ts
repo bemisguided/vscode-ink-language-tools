@@ -25,14 +25,48 @@
 import { UIAction } from "../UIAction";
 import { UIActionContext } from "../../UIActionContext";
 
+/**
+ * UI Action to rewind the story to the last choice point.
+ * This action restores the story state to the previous choice,
+ * allowing the user to make a different selection.
+ *
+ * The rewind functionality goes back to the state before the last
+ * SelectChoiceAction was applied. If no choices exist in the story
+ * history, it rewinds to the beginning.
+ */
 export class RewindStoryUIAction implements UIAction {
-  readonly type = "REWIND_STORY";
+  // Static Properties ================================================================================================
 
+  /**
+   * The type identifier for this action.
+   * Used for action identification, filtering, and debugging.
+   */
+  public static readonly typeId = "REWIND_STORY";
+
+  // Public Properties ==============================================================================================
+
+  /**
+   * @inheritdoc
+   */
+  readonly category = "ui" as const;
+
+  /**
+   * @inheritdoc
+   */
+  readonly type = RewindStoryUIAction.typeId;
+
+  // Public Methods ===================================================================================================
+
+  /**
+   * @inheritdoc
+   */
   apply(context: UIActionContext): void {
     console.debug("[RewindStoryUIAction] Rewinding story to last choice");
-    // TODO: Need to implement rewind functionality properly
-    // context.storyManager.rewindToLastChoice();
-    // For now, send current state to webview
+
+    // Rewind the story to the last choice point
+    context.rewindStoryToLastChoice();
+
+    // Send updated state to webview
     context.sendStoryState();
   }
 }

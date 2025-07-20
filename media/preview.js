@@ -846,13 +846,51 @@ const storyController = {
   },
 
   /**
-   * Handles a complete state update from the extension.
-   * This implements the Full State Replacement Pattern where the entire state
-   * is sent and the UI is updated to match.
-   * @param {Object} state - The complete preview state
+   * Handles granular state updates from the extension.
+   * Supports both new granular format and legacy complete state format.
+   * @param {Object} payload - Either granular {category, state} or legacy complete state
    */
-  handleUpdateState(state) {
-    log("Message: Updating complete state", state);
+  handleUpdateState(payload) {
+    log("Message: Updating state", payload);
+
+    // Handle new granular format
+    if (payload.category === "story" && payload.state) {
+      log("📖 Updating story state only");
+      const state = payload.state;
+
+      // Clear existing state if this is a story start
+      if (state.isStart) {
+        storyView.reset();
+      }
+
+      // Update errors - replace completely
+      storyView.errors = state.errors || [];
+      storyView.updateErrorButton();
+
+      // Render story content
+      this.renderCompleteStoryState(state);
+
+      // Handle story end state
+      if (state.isEnded) {
+        storyView.renderStoryEnded();
+      }
+
+      return; // Exit early for story-only updates
+    }
+
+    if (payload.category === "ui" && payload.state) {
+      log("🎨 Updating UI state only");
+      const uiState = payload.state;
+
+      // Update UI state
+      storyView.updateRewindButton(uiState.rewind);
+
+      return; // Exit early for UI-only updates
+    }
+
+    // Legacy format support - treat as complete state
+    log("📦 Processing legacy complete state format");
+    const state = payload;
 
     // Clear existing state if this is a story start
     if (state.isStart) {

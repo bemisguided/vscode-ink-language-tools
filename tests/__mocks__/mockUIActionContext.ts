@@ -37,6 +37,7 @@ export function mockUIActionContext(
     getState: jest.fn().mockReturnValue(mockUIState()),
     setState: jest.fn(),
     dispatch: jest.fn(),
+    rewindStoryToLastChoice: jest.fn(),
     sendStoryState: jest.fn(),
     sendUIState: jest.fn(),
     ...overrides,

@@ -28,9 +28,37 @@ import { StartStoryAction } from "../story/StartStoryAction";
 import { ContinueStoryAction } from "../story/ContinueStoryAction";
 import { UIActionContext } from "../../UIActionContext";
 
+/**
+ * UI Action to restart the story from the beginning.
+ * This action coordinates a full story restart by dispatching the necessary
+ * story actions to initialize, start, and continue the story execution.
+ */
 export class RestartStoryUIAction implements UIAction {
-  readonly type = "RESTART_STORY";
+  // Static Properties ================================================================================================
 
+  /**
+   * The type identifier for this action.
+   * Used for action identification, filtering, and debugging.
+   */
+  public static readonly typeId = "RESTART_STORY";
+
+  // Public Properties ==============================================================================================
+
+  /**
+   * @inheritdoc
+   */
+  readonly category = "ui" as const;
+
+  /**
+   * @inheritdoc
+   */
+  readonly type = RestartStoryUIAction.typeId;
+
+  // Public Methods ===================================================================================================
+
+  /**
+   * @inheritdoc
+   */
   apply(context: UIActionContext): void {
     console.debug("[RestartStoryUIAction] Restarting story");
     // Initialize, start, and continue story - these actions handle state updates

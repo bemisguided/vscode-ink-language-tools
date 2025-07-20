@@ -42,6 +42,11 @@ export class InitializeStoryAction implements StoryAction {
   // Public Properties ==============================================================================================
 
   /**
+   * The category identifier for this action.
+   */
+  public readonly category = "story" as const;
+
+  /**
    * The type identifier for this action instance.
    */
   public readonly type = InitializeStoryAction.typeId;
@@ -66,11 +71,7 @@ export class InitializeStoryAction implements StoryAction {
    * @param context - The action context providing access to the story manager
    */
   apply(context: StoryActionContext): void {
-    console.debug("[InitializeStoryAction] 🔄 Resetting story state");
-
     // Reset the story engine state using the story manager
     context.storyManager.reset();
-
-    console.debug("[InitializeStoryAction] ✅ Story reset completed");
   }
 }

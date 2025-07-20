@@ -62,9 +62,9 @@ export class PreviewStateManager {
   private storyManager?: PreviewStoryManager;
   private maxHistorySize = 100; // Configurable history limit
 
-  // State change callbacks
-  private onStoryStateChange?: (state: StoryState) => void;
-  private onUIStateChange?: (state: UIState) => void;
+  // State change callbacks - simple notification pattern
+  private onStoryStateChange?: () => void;
+  private onUIStateChange?: () => void;
 
   // Action types that require a story instance to be available
   private static readonly storyDependentActions = new Set([
@@ -278,39 +278,37 @@ export class PreviewStateManager {
 
   /**
    * Sets the callback function for story state changes.
-   * @param callback - Function to call when story state changes
+   * @param callback - Function to call when story state changes (no parameters)
    */
-  public setOnStoryStateChange(callback: (state: StoryState) => void): void {
+  public setOnStoryStateChange(callback: () => void): void {
     this.onStoryStateChange = callback;
   }
 
   /**
    * Sets the callback function for UI state changes.
-   * @param callback - Function to call when UI state changes
+   * @param callback - Function to call when UI state changes (no parameters)
    */
-  public setOnUIStateChange(callback: (state: UIState) => void): void {
+  public setOnUIStateChange(callback: () => void): void {
     this.onUIStateChange = callback;
   }
 
   /**
    * Sends the current story state to registered listeners.
-   * Triggers the story state change callback if set.
+   * Triggers the story state change callback if set (simple notification).
    */
   public sendStoryState(): void {
     if (this.onStoryStateChange) {
-      this.onStoryStateChange(this.getStoryState());
+      this.onStoryStateChange();
     }
   }
 
   /**
    * Sends the current UI state to registered listeners.
-   * Currently stubbed - UI state communication protocol not yet implemented.
+   * Triggers the UI state change callback if set (simple notification).
    */
   public sendUIState(): void {
-    // TODO: Implement UI state communication protocol
-    // For now, just trigger the callback if set
     if (this.onUIStateChange) {
-      this.onUIStateChange(this.getUIState());
+      this.onUIStateChange();
     }
   }
 
@@ -362,8 +360,8 @@ export class PreviewStateManager {
    * @returns True if the action is a StoryAction
    */
   private isStoryAction(action: PreviewAction): action is StoryAction {
-    // Check if the action has an apply method that takes StoryActionContext
-    return "apply" in action && typeof (action as any).apply === "function";
+    // Check for story category marker
+    return (action as any).category === "story";
   }
 
   /**
@@ -372,9 +370,8 @@ export class PreviewStateManager {
    * @returns True if the action is a UIAction
    */
   private isUIAction(action: PreviewAction): action is UIAction {
-    // For now, assume any action with apply method that's not a story action is a UI action
-    // This can be refined with more specific checks if needed
-    return "apply" in action && typeof (action as any).apply === "function";
+    // Check for UI category marker
+    return (action as any).category === "ui";
   }
 
   /**
@@ -408,10 +405,6 @@ export class PreviewStateManager {
    * @param action - The UI action to dispatch
    */
   private dispatchUIAction(action: UIAction): void {
-    console.debug(
-      `[PreviewStateManager] 🎨 Dispatching UI action: ${action.type}`
-    );
-
     const stateBefore = { ...this.uiState };
     const context = this.createUIContext();
 
@@ -444,9 +437,7 @@ export class PreviewStateManager {
       },
       storyManager: this.storyManager!,
       sendStoryState: () => {
-        if (this.onStoryStateChange) {
-          this.onStoryStateChange(this.getStoryState());
-        }
+        this.sendStoryState();
       },
     };
   }
@@ -464,15 +455,14 @@ export class PreviewStateManager {
       dispatch: (action: PreviewAction) => {
         this.dispatch(action);
       },
+      rewindStoryToLastChoice: () => {
+        this.rewindStoryStateToLastChoice();
+      },
       sendStoryState: () => {
-        if (this.onStoryStateChange) {
-          this.onStoryStateChange(this.getStoryState());
-        }
+        this.sendStoryState();
       },
       sendUIState: () => {
-        if (this.onUIStateChange) {
-          this.onUIStateChange(this.getUIState());
-        }
+        this.sendUIState();
       },
     };
   }

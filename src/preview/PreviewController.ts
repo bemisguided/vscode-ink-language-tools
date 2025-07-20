@@ -26,11 +26,7 @@ import * as vscode from "vscode";
 import path from "path";
 import { PreviewHtmlGenerator } from "./PreviewHtmlGenerator";
 import { PreviewStateManager } from "./PreviewStateManager";
-import {
-  ErrorInfo,
-  ErrorSeverity,
-  FunctionStoryEvent,
-} from "./PreviewState";
+import { ErrorInfo, ErrorSeverity, FunctionStoryEvent } from "./PreviewState";
 import { inboundMessages, Message } from "./PreviewMessages";
 import { BuildEngine } from "../build/BuildEngine";
 import { Deferred } from "../util/deferred";
@@ -67,6 +63,16 @@ export class PreviewController {
     this.webviewPanel = webviewPanel;
     this.htmlGenerator = new PreviewHtmlGenerator();
     this.stateManager = new PreviewStateManager();
+
+    // Wire up granular state change callbacks
+    this.stateManager.setOnStoryStateChange(() => {
+      this.sendStoryStateUpdate();
+    });
+
+    this.stateManager.setOnUIStateChange(() => {
+      this.sendUIStateUpdate();
+    });
+
     this.setupWebview();
     this.setupMessageHandlers();
   }
@@ -149,6 +155,9 @@ export class PreviewController {
       const action = createUIAction(actionData);
       console.debug(`[PreviewController] 🎬 Executing action: ${action.type}`);
       this.stateManager.dispatch(action);
+
+      // Send updated state to webview after processing action
+      this.sendStoryState();
     } catch (error) {
       console.error(`[PreviewController] Failed to execute action:`, error);
     }
@@ -176,19 +185,41 @@ export class PreviewController {
   }
 
   /**
-   * Sends the current story state to the webview.
-   * This replaces individual message sending with full state replacement.
+   * Sends the current story state to the webview with granular category.
    */
-  private sendStoryState(): void {
-    const state = this.stateManager.getState();
+  private sendStoryStateUpdate(): void {
+    const currentState = this.stateManager.getState();
     this.webviewPanel.webview.postMessage({
       command: "updateState",
-      payload: state,
+      payload: {
+        category: "story",
+        state: currentState.story,
+      },
     });
-    console.debug(
-      `[PreviewController] 📩 Sent complete state to webview:`,
-      state
-    );
+    console.debug("[PreviewController] 📩 Sent story state update");
+  }
+
+  /**
+   * Sends the current UI state to the webview with granular category.
+   */
+  private sendUIStateUpdate(): void {
+    const currentState = this.stateManager.getState();
+    this.webviewPanel.webview.postMessage({
+      command: "updateState",
+      payload: {
+        category: "ui",
+        state: currentState.ui,
+      },
+    });
+    console.debug("[PreviewController] 📩 Sent UI state update");
+  }
+
+  /**
+   * Legacy method for manual state sending (backward compatibility).
+   * @deprecated Use the callback-driven approach instead
+   */
+  private sendStoryState(): void {
+    this.sendStoryStateUpdate();
   }
 
   /**
