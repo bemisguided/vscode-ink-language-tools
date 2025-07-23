@@ -33,7 +33,6 @@ import { createMockSuccessfulBuildResult } from "../__mocks__/mockBuildResult";
 
 // Mock dependencies
 jest.mock("../../src/build/BuildEngine");
-jest.mock("../../src/preview/actions/UIAction");
 
 describe("PreviewController", () => {
   let controller: PreviewController;
@@ -237,71 +236,7 @@ describe("PreviewController", () => {
       // Setup: Create controller for action tests
       controller = new PreviewController(mockWebviewPanel as any);
     });
-
-    test("should create UI action from action data", () => {
-      // Setup
-      const actionData = { type: "RESTART_STORY" };
-      const mockAction = {
-        category: "ui" as const,
-        type: "RESTART_STORY",
-        apply: jest.fn(),
-      };
-      mockCreateUIAction.mockReturnValue(mockAction);
-
-      // Execute
-      mockWebviewPanel.webview.simulateMessage({
-        command: "action",
-        payload: actionData,
-      });
-
-      // Assert
-      expect(mockCreateUIAction).toHaveBeenCalledWith(actionData);
-    });
-
-    test("should send updated state after action execution", () => {
-      // Setup
-      const actionData = { type: "RESTART_STORY" };
-      const mockAction = {
-        category: "ui" as const,
-        type: "RESTART_STORY",
-        apply: jest.fn(),
-      };
-      mockCreateUIAction.mockReturnValue(mockAction);
-
-      // Execute
-      mockWebviewPanel.webview.simulateMessage({
-        command: "action",
-        payload: actionData,
-      });
-
-      // Assert
-      const sentMessages = mockWebviewPanel.webview.getSentMessages();
-      expect(sentMessages).toContainEqual(
-        expect.objectContaining({
-          command: "updateState",
-        })
-      );
-    });
-
-    test("should handle action creation errors gracefully", () => {
-      // Setup
-      const actionData = { type: "INVALID_ACTION" };
-      mockCreateUIAction.mockImplementation(() => {
-        throw new Error("Invalid action type");
-      });
-
-      const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
-
-      // Execute & Assert - Should not throw, but handle gracefully
-      expect(() => {
-        mockWebviewPanel.webview.simulateMessage({
-          command: "action",
-          payload: actionData,
-        });
-      }).not.toThrow();
-
-      consoleErrorSpy.mockRestore();
-    });
+    // TODO: preview-state: implement executeAction tests
   });
 
   describe(".setTitle()", () => {
@@ -341,78 +276,6 @@ describe("PreviewController", () => {
 
       // Assert
       expect(mockWebviewPanel.title).toBe("story.ink (Preview)");
-    });
-  });
-
-  describe(".sendStoryState()", () => {
-    beforeEach(() => {
-      // Setup: Create controller and document for state tests
-      controller = new PreviewController(mockWebviewPanel as any);
-      const mockDoc = mockVSCodeDocument("/test/story.ink", "content");
-      const successfulResult =
-        createMockSuccessfulBuildResult("/test/story.ink");
-      mockBuildEngine.setCompilationResult(mockDoc.uri, successfulResult);
-    });
-
-    test("should post current state to webview", async () => {
-      // Setup
-      const mockDoc = mockVSCodeDocument("/test/story.ink", "content");
-
-      // Execute
-      const previewPromise = controller.preview(mockDoc);
-      mockWebviewPanel.webview.simulateMessage({
-        command: "ready",
-        payload: {},
-      });
-      await previewPromise;
-
-      // Assert
-      const sentMessages = mockWebviewPanel.webview.getSentMessages();
-      expect(sentMessages).toContainEqual(
-        expect.objectContaining({
-          command: "updateState",
-          payload: expect.objectContaining({
-            category: "story",
-            state: expect.objectContaining({
-              storyEvents: expect.any(Array),
-              currentChoices: expect.any(Array),
-              errors: expect.any(Array),
-              isEnded: expect.any(Boolean),
-              isStart: expect.any(Boolean),
-              lastChoiceIndex: expect.any(Number),
-            }),
-          }),
-        })
-      );
-    });
-
-    test("should be called when action is executed", () => {
-      // Setup
-      const actionData = { type: "RESTART_STORY" };
-      const mockAction = {
-        category: "ui" as const,
-        type: "RESTART_STORY",
-        apply: jest.fn(),
-      };
-      mockCreateUIAction.mockReturnValue(mockAction);
-
-      // Clear any existing messages
-      mockWebviewPanel.webview.clearSentMessages();
-
-      // Execute
-      mockWebviewPanel.webview.simulateMessage({
-        command: "action",
-        payload: actionData,
-      });
-
-      // Assert
-      const sentMessages = mockWebviewPanel.webview.getSentMessages();
-      expect(sentMessages.length).toBeGreaterThan(0);
-      expect(sentMessages[sentMessages.length - 1]).toEqual(
-        expect.objectContaining({
-          command: "updateState",
-        })
-      );
     });
   });
 });

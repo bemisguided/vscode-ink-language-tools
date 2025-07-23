@@ -23,65 +23,75 @@
  */
 
 import { PreviewStateManager } from "../../src/preview/PreviewStateManager";
-import { StoryAction } from "../../src/preview/StoryAction";
-import { UIAction } from "../../src/preview/actions/UIAction";
-import { StoryActionContext } from "../../src/preview/StoryActionContext";
+import { PreviewAction } from "../../src/preview/PreviewAction";
+import { PreviewActionContext } from "../../src/preview/PreviewActionContext";
+import { PreviewState } from "../../src/preview/PreviewState";
+import { PreviewStoryManager } from "../../src/preview/PreviewStoryManager";
 
 // Import shared mocks
 import { mockPreviewState } from "../__mocks__/mockPreviewState";
 import { mockStoryState } from "../__mocks__/mockStoryState";
 import { mockUIState } from "../__mocks__/mockUIState";
 
-// Purpose-built mock action classes that actually implement the interfaces
-class MockStoryAction implements StoryAction {
-  public readonly category = "story" as const;
+// Purpose-built mock action classes that implement the PreviewAction interface
+class MockPreviewAction implements PreviewAction {
   public readonly type: string;
+  public readonly historical: boolean;
   public readonly apply: jest.Mock;
-
-  constructor(type: string = "MOCK_STORY_ACTION", customApply?: jest.Mock) {
-    this.type = type;
-    this.apply = customApply || jest.fn();
-  }
-}
-
-class MockUIAction implements UIAction {
-  public readonly category = "ui" as const;
-  public readonly type: string;
-  public readonly apply: jest.Mock;
-  public readonly payload?: any;
+  public readonly effect: jest.Mock;
 
   constructor(
-    type: string = "MOCK_UI_ACTION",
+    type: string = "MOCK_ACTION",
+    historical: boolean = true,
     customApply?: jest.Mock,
-    payload?: any
+    customEffect?: jest.Mock
   ) {
     this.type = type;
-    this.apply = customApply || jest.fn();
-    this.payload = payload;
+    this.historical = historical;
+    this.apply = customApply || jest.fn().mockReturnValue(mockPreviewState());
+    this.effect = customEffect || jest.fn();
   }
 }
 
-const createMockStoryAction = (
+const createMockAction = (
   type?: string,
-  customApply?: jest.Mock
-): MockStoryAction => {
-  return new MockStoryAction(type, customApply);
+  historical?: boolean,
+  customApply?: jest.Mock,
+  customEffect?: jest.Mock
+): MockPreviewAction => {
+  return new MockPreviewAction(type, historical, customApply, customEffect);
 };
 
-const createMockUIAction = (
-  type?: string,
-  customApply?: jest.Mock,
-  payload?: any
-): MockUIAction => {
-  return new MockUIAction(type, customApply, payload);
+// Mock PreviewStoryManager for tests
+const createMockStoryManager = (): jest.Mocked<PreviewStoryManager> => {
+  return {
+    reset: jest.fn(),
+    continue: jest.fn().mockReturnValue({
+      events: [],
+      choices: [],
+      isEnded: false,
+      errors: [],
+    }),
+    selectChoice: jest.fn().mockReturnValue({
+      events: [],
+      choices: [],
+      isEnded: false,
+      errors: [],
+    }),
+    isEnded: jest.fn().mockReturnValue(false),
+    canContinue: jest.fn().mockReturnValue(true),
+    getCurrentChoices: jest.fn().mockReturnValue([]),
+  } as any; // Use 'as any' to bypass strict type checking for the mock
 };
 
 describe("PreviewStateManager", () => {
   let stateManager: PreviewStateManager;
+  let mockStoryManager: jest.Mocked<PreviewStoryManager>;
 
   beforeEach(() => {
-    // Setup: Create fresh state manager for each test
-    stateManager = new PreviewStateManager();
+    // Setup: Create fresh state manager and mock story manager for each test
+    mockStoryManager = createMockStoryManager();
+    stateManager = new PreviewStateManager(mockStoryManager);
   });
 
   afterEach(() => {
@@ -91,8 +101,7 @@ describe("PreviewStateManager", () => {
 
   describe(".constructor()", () => {
     test("should initialize with default state", () => {
-      // Setup
-      // Default constructor
+      // Setup: Default constructor
 
       // Execute
       const state = stateManager.getState();
@@ -103,12 +112,22 @@ describe("PreviewStateManager", () => {
 
     test("should initialize with provided state overrides", () => {
       // Setup
-      const customState = mockPreviewState({
-        story: { isStart: false, isEnded: true },
-      });
+      const customInitialState: Partial<PreviewState> = {
+        story: {
+          storyEvents: [],
+          currentChoices: [],
+          errors: [],
+          isEnded: true,
+          isStart: false,
+          lastChoiceIndex: 0,
+        },
+      };
 
       // Execute
-      const customStateManager = new PreviewStateManager(customState);
+      const customStateManager = new PreviewStateManager(
+        createMockStoryManager(),
+        customInitialState
+      );
       const state = customStateManager.getState();
 
       // Assert
@@ -121,87 +140,104 @@ describe("PreviewStateManager", () => {
       customStateManager.dispose();
     });
 
-    test("should initialize empty history arrays", () => {
-      // Setup
-      // Default constructor
+    test("should initialize empty history", () => {
+      // Setup: Default constructor
 
       // Execute
-      const storyHistory = stateManager.getStoryHistory();
-      const uiHistory = stateManager.getUIHistory();
+      const history = stateManager.getHistory();
 
       // Assert
-      expect(storyHistory).toEqual([]);
-      expect(uiHistory).toEqual([]);
+      expect(history).toEqual([]);
+    });
+
+    test("should store the provided story manager", () => {
+      // Setup: Constructor with mock story manager
+
+      // Execute
+      const mockAction = createMockAction("TEST_ACTION");
+      stateManager.dispatch(mockAction);
+
+      // Assert
+      expect(mockAction.effect).toHaveBeenCalledWith(
+        expect.objectContaining({
+          storyManager: mockStoryManager,
+        })
+      );
     });
   });
 
   describe(".dispatch()", () => {
-    test("should call story action apply method with correct context", () => {
+    test("should call action apply method with current state", () => {
       // Setup
-      const mockAction = createMockStoryAction("TEST_STORY_ACTION");
+      const mockAction = createMockAction("TEST_ACTION");
 
       // Execute
       stateManager.dispatch(mockAction);
 
       // Assert
       expect(mockAction.apply).toHaveBeenCalledTimes(1);
-      expect(mockAction.apply).toHaveBeenCalledWith(
-        expect.objectContaining({
-          getState: expect.any(Function),
-          setState: expect.any(Function),
-        })
-      );
+      expect(mockAction.apply).toHaveBeenCalledWith(mockPreviewState());
     });
 
-    test("should call UI action apply method with correct context", () => {
+    test("should call action effect method with correct context", () => {
       // Setup
-      const mockAction = createMockUIAction("TEST_UI_ACTION");
+      const mockAction = createMockAction("TEST_ACTION");
 
       // Execute
       stateManager.dispatch(mockAction);
 
       // Assert
-      expect(mockAction.apply).toHaveBeenCalledTimes(1);
-      expect(mockAction.apply).toHaveBeenCalledWith(
+      expect(mockAction.effect).toHaveBeenCalledTimes(1);
+      expect(mockAction.effect).toHaveBeenCalledWith(
         expect.objectContaining({
           getState: expect.any(Function),
-          setState: expect.any(Function),
+          dispatch: expect.any(Function),
+          storyManager: mockStoryManager,
+          sendStoryState: expect.any(Function),
+          undo: expect.any(Function),
+          undoToLast: expect.any(Function),
         })
       );
     });
 
-    test("should add story actions to story history only", () => {
+    test("should add actions to history", () => {
       // Setup
-      const storyAction = createMockStoryAction("STORY_ACTION");
-      const uiAction = createMockUIAction("UI_ACTION");
+      const action1 = createMockAction("ACTION_1");
+      const action2 = createMockAction("ACTION_2");
 
       // Execute
-      stateManager.dispatch(storyAction);
-      stateManager.dispatch(uiAction);
+      stateManager.dispatch(action1);
+      stateManager.dispatch(action2);
 
       // Assert
-      expect(stateManager.getStoryHistory()).toHaveLength(1);
-      expect(stateManager.getUIHistory()).toHaveLength(1);
-      expect(stateManager.getStoryHistory()[0].action).toBe(storyAction);
-      expect(stateManager.getUIHistory()[0].action).toBe(uiAction);
+      const history = stateManager.getHistory();
+      expect(history).toHaveLength(2);
+      expect(history[0].action).toBe(action1);
+      expect(history[1].action).toBe(action2);
     });
 
     test("should return updated state after action execution", () => {
       // Setup
-      const mockAction = createMockStoryAction("TEST_ACTION");
+      const newState = mockPreviewState({ story: { isStart: false } });
+      const mockAction = createMockAction(
+        "TEST_ACTION",
+        true,
+        jest.fn().mockReturnValue(newState)
+      );
 
       // Execute
       const returnedState = stateManager.dispatch(mockAction);
-      const currentState = stateManager.getState();
 
       // Assert
-      expect(returnedState).toEqual(currentState);
+      expect(returnedState).toEqual(newState);
+      expect(stateManager.getState()).toEqual(newState);
     });
 
     test("should handle action execution errors", () => {
       // Setup
-      const errorAction = createMockStoryAction(
+      const errorAction = createMockAction(
         "ERROR_ACTION",
+        true,
         jest.fn().mockImplementation(() => {
           throw new Error("Test error");
         })
@@ -214,8 +250,7 @@ describe("PreviewStateManager", () => {
 
   describe(".getState()", () => {
     test("should return current state", () => {
-      // Setup
-      // Default state
+      // Setup: Default state
 
       // Execute
       const state = stateManager.getState();
@@ -225,8 +260,7 @@ describe("PreviewStateManager", () => {
     });
 
     test("should return copy not reference", () => {
-      // Setup
-      // Default state
+      // Setup: Default state
 
       // Execute
       const state1 = stateManager.getState();
@@ -239,12 +273,11 @@ describe("PreviewStateManager", () => {
 
     test("should reflect state changes after action dispatch", () => {
       // Setup
-      const mockAction = createMockStoryAction(
+      const newState = mockPreviewState({ story: { isStart: false } });
+      const mockAction = createMockAction(
         "MODIFY_STATE",
-        jest.fn().mockImplementation((context: StoryActionContext) => {
-          const currentState = context.getState();
-          context.setState({ ...currentState, isStart: false });
-        })
+        true,
+        jest.fn().mockReturnValue(newState)
       );
 
       // Execute
@@ -258,65 +291,12 @@ describe("PreviewStateManager", () => {
     });
   });
 
-  describe(".getStoryState()", () => {
-    test("should return current story state", () => {
-      // Setup
-      // Default state
-
-      // Execute
-      const storyState = stateManager.getStoryState();
-
-      // Assert
-      expect(storyState).toEqual(mockStoryState());
-    });
-
-    test("should return copy not reference", () => {
-      // Setup
-      // Default state
-
-      // Execute
-      const state1 = stateManager.getStoryState();
-      const state2 = stateManager.getStoryState();
-
-      // Assert
-      expect(state1).not.toBe(state2);
-      expect(state1).toEqual(state2);
-    });
-  });
-
-  describe(".getUIState()", () => {
-    test("should return current UI state", () => {
-      // Setup
-      // Default state
-
-      // Execute
-      const uiState = stateManager.getUIState();
-
-      // Assert
-      expect(uiState).toEqual(mockUIState());
-    });
-
-    test("should return copy not reference", () => {
-      // Setup
-      // Default state
-
-      // Execute
-      const state1 = stateManager.getUIState();
-      const state2 = stateManager.getUIState();
-
-      // Assert
-      expect(state1).not.toBe(state2);
-      expect(state1).toEqual(state2);
-    });
-  });
-
-  describe(".getStoryHistory()", () => {
+  describe(".getHistory()", () => {
     test("should return empty array initially", () => {
-      // Setup
-      // Fresh state manager
+      // Setup: Fresh state manager
 
       // Execute
-      const history = stateManager.getStoryHistory();
+      const history = stateManager.getHistory();
 
       // Assert
       expect(history).toEqual([]);
@@ -324,26 +304,26 @@ describe("PreviewStateManager", () => {
 
     test("should return copy of history array", () => {
       // Setup
-      stateManager.dispatch(createMockStoryAction());
+      stateManager.dispatch(createMockAction());
 
       // Execute
-      const history1 = stateManager.getStoryHistory();
-      const history2 = stateManager.getStoryHistory();
+      const history1 = stateManager.getHistory();
+      const history2 = stateManager.getHistory();
 
       // Assert
       expect(history1).not.toBe(history2);
       expect(history1).toEqual(history2);
     });
 
-    test("should track story actions in order", () => {
+    test("should track actions in order", () => {
       // Setup
-      const action1 = createMockStoryAction("ACTION_1");
-      const action2 = createMockStoryAction("ACTION_2");
+      const action1 = createMockAction("ACTION_1");
+      const action2 = createMockAction("ACTION_2");
 
       // Execute
       stateManager.dispatch(action1);
       stateManager.dispatch(action2);
-      const history = stateManager.getStoryHistory();
+      const history = stateManager.getHistory();
 
       // Assert
       expect(history).toHaveLength(2);
@@ -351,84 +331,28 @@ describe("PreviewStateManager", () => {
       expect(history[1].action).toBe(action2);
     });
 
-    test("should not include UI actions", () => {
+    test("should include both historical and non-historical actions", () => {
       // Setup
-      const storyAction = createMockStoryAction("STORY_ACTION");
-      const uiAction = createMockUIAction("UI_ACTION");
+      const historicalAction = createMockAction("HISTORICAL", true);
+      const nonHistoricalAction = createMockAction("NON_HISTORICAL", false);
 
       // Execute
-      stateManager.dispatch(storyAction);
-      stateManager.dispatch(uiAction);
-      const storyHistory = stateManager.getStoryHistory();
-
-      // Assert
-      expect(storyHistory).toHaveLength(1);
-      expect(storyHistory[0].action).toBe(storyAction);
-    });
-  });
-
-  describe(".getUIHistory()", () => {
-    test("should return empty array initially", () => {
-      // Setup
-      // Fresh state manager
-
-      // Execute
-      const history = stateManager.getUIHistory();
-
-      // Assert
-      expect(history).toEqual([]);
-    });
-
-    test("should return copy of history array", () => {
-      // Setup
-      stateManager.dispatch(createMockUIAction());
-
-      // Execute
-      const history1 = stateManager.getUIHistory();
-      const history2 = stateManager.getUIHistory();
-
-      // Assert
-      expect(history1).not.toBe(history2);
-      expect(history1).toEqual(history2);
-    });
-
-    test("should track UI actions in order", () => {
-      // Setup
-      const action1 = createMockUIAction("UI_ACTION_1");
-      const action2 = createMockUIAction("UI_ACTION_2");
-
-      // Execute
-      stateManager.dispatch(action1);
-      stateManager.dispatch(action2);
-      const history = stateManager.getUIHistory();
+      stateManager.dispatch(historicalAction);
+      stateManager.dispatch(nonHistoricalAction);
+      const history = stateManager.getHistory();
 
       // Assert
       expect(history).toHaveLength(2);
-      expect(history[0].action).toBe(action1);
-      expect(history[1].action).toBe(action2);
-    });
-
-    test("should not include story actions", () => {
-      // Setup
-      const storyAction = createMockStoryAction("STORY_ACTION");
-      const uiAction = createMockUIAction("UI_ACTION");
-
-      // Execute
-      stateManager.dispatch(storyAction);
-      stateManager.dispatch(uiAction);
-      const uiHistory = stateManager.getUIHistory();
-
-      // Assert
-      expect(uiHistory).toHaveLength(1);
-      expect(uiHistory[0].action).toBe(uiAction);
+      expect(history[0].action).toBe(historicalAction);
+      expect(history[1].action).toBe(nonHistoricalAction);
     });
   });
 
-  describe(".replayStoryState()", () => {
+  describe(".replay()", () => {
     test("should replay all actions when no index provided", () => {
       // Setup
-      const action1 = createMockStoryAction("ACTION_1");
-      const action2 = createMockStoryAction("ACTION_2");
+      const action1 = createMockAction("ACTION_1");
+      const action2 = createMockAction("ACTION_2");
       stateManager.dispatch(action1);
       stateManager.dispatch(action2);
 
@@ -437,7 +361,7 @@ describe("PreviewStateManager", () => {
       action2.apply.mockClear();
 
       // Execute
-      const replayedState = stateManager.replayStoryState();
+      const replayedState = stateManager.replay();
 
       // Assert
       expect(action1.apply).toHaveBeenCalledTimes(1);
@@ -447,9 +371,9 @@ describe("PreviewStateManager", () => {
 
     test("should replay actions up to specified index", () => {
       // Setup
-      const action1 = createMockStoryAction("ACTION_1");
-      const action2 = createMockStoryAction("ACTION_2");
-      const action3 = createMockStoryAction("ACTION_3");
+      const action1 = createMockAction("ACTION_1");
+      const action2 = createMockAction("ACTION_2");
+      const action3 = createMockAction("ACTION_3");
       stateManager.dispatch(action1);
       stateManager.dispatch(action2);
       stateManager.dispatch(action3);
@@ -460,20 +384,29 @@ describe("PreviewStateManager", () => {
       action3.apply.mockClear();
 
       // Execute - replay only first action (up to index 1)
-      stateManager.replayStoryState(1);
+      stateManager.replay(1);
 
       // Assert
       expect(action1.apply).toHaveBeenCalledTimes(1);
       expect(action2.apply).not.toHaveBeenCalled();
       expect(action3.apply).not.toHaveBeenCalled();
     });
+
+    test("should throw error for invalid replay index", () => {
+      // Setup
+      stateManager.dispatch(createMockAction("ACTION_1"));
+
+      // Execute & Assert
+      expect(() => stateManager.replay(-1)).toThrow("Invalid replay index: -1");
+      expect(() => stateManager.replay(5)).toThrow("Invalid replay index: 5");
+    });
   });
 
-  describe(".undoStoryState()", () => {
+  describe(".undo()", () => {
     test("should replay to one action before current", () => {
       // Setup
-      const action1 = createMockStoryAction("ACTION_1");
-      const action2 = createMockStoryAction("ACTION_2");
+      const action1 = createMockAction("ACTION_1");
+      const action2 = createMockAction("ACTION_2");
       stateManager.dispatch(action1);
       stateManager.dispatch(action2);
 
@@ -482,7 +415,7 @@ describe("PreviewStateManager", () => {
       action2.apply.mockClear();
 
       // Execute
-      const undoState = stateManager.undoStoryState();
+      const undoState = stateManager.undo();
 
       // Assert
       expect(action1.apply).toHaveBeenCalledTimes(1);
@@ -490,28 +423,23 @@ describe("PreviewStateManager", () => {
     });
 
     test("should return current state when no history", () => {
-      // Setup
-      // No actions dispatched
+      // Setup: No actions dispatched
 
       // Execute
-      const undoState = stateManager.undoStoryState();
+      const undoState = stateManager.undo();
 
       // Assert
       expect(undoState).toEqual(stateManager.getState());
     });
   });
 
-  describe(".undoStoryStateToLast()", () => {
+  describe(".undoToLast()", () => {
     test("should replay to last occurrence of specified action type", () => {
-      // Setup - mock story to allow story-dependent actions
-      const mockStory = { isRunning: true };
-      (stateManager as any).story = mockStory;
-      (stateManager as any).storyManager = {};
-
-      const action1 = createMockStoryAction("START_STORY");
-      const action2 = createMockStoryAction("ADD_STORY_EVENTS");
-      const action3 = createMockStoryAction("SET_CURRENT_CHOICES");
-      const action4 = createMockStoryAction("ADD_STORY_EVENTS");
+      // Setup
+      const action1 = createMockAction("START_STORY");
+      const action2 = createMockAction("ADD_STORY_EVENTS");
+      const action3 = createMockAction("SET_CURRENT_CHOICES");
+      const action4 = createMockAction("ADD_STORY_EVENTS");
 
       stateManager.dispatch(action1);
       stateManager.dispatch(action2);
@@ -522,7 +450,7 @@ describe("PreviewStateManager", () => {
       [action1, action2, action3, action4].forEach((a) => a.apply.mockClear());
 
       // Execute - undo to last ADD_STORY_EVENTS (action4)
-      const undoState = stateManager.undoStoryStateToLast("ADD_STORY_EVENTS");
+      const undoState = stateManager.undoToLast("ADD_STORY_EVENTS");
 
       // Assert - replay up to (but not including) last ADD_STORY_EVENTS (action4)
       expect(action1.apply).toHaveBeenCalledTimes(1);
@@ -531,85 +459,46 @@ describe("PreviewStateManager", () => {
       expect(action4.apply).not.toHaveBeenCalled(); // Should not include the last occurrence
     });
 
-    test("should return current state when action type not found", () => {
+    test("should replay to beginning when action type not found", () => {
       // Setup
-      const action1 = createMockStoryAction("START_STORY");
+      const action1 = createMockAction("START_STORY");
       stateManager.dispatch(action1);
 
-      // Execute
-      const undoState = stateManager.undoStoryStateToLast("NONEXISTENT_ACTION");
+      // Clear call counts for undo test
+      action1.apply.mockClear();
 
-      // Assert
+      // Execute
+      const undoState = stateManager.undoToLast("NONEXISTENT_ACTION");
+
+      // Assert - should replay to beginning (index 0)
+      expect(action1.apply).not.toHaveBeenCalled();
       expect(undoState).toEqual(stateManager.getState());
-    });
-  });
-
-  describe(".rewindStoryStateToLastChoice()", () => {
-    test("should replay to last SELECT_CHOICE action", () => {
-      // Setup - mock story to allow story-dependent actions
-      const mockStory = { isRunning: true };
-      (stateManager as any).story = mockStory;
-      (stateManager as any).storyManager = {};
-
-      const action1 = createMockStoryAction("START_STORY");
-      const action2 = createMockStoryAction("SELECT_CHOICE");
-      const action3 = createMockStoryAction("ADD_STORY_EVENTS");
-      const action4 = createMockStoryAction("END_STORY");
-
-      stateManager.dispatch(action1);
-      stateManager.dispatch(action2);
-      stateManager.dispatch(action3);
-      stateManager.dispatch(action4);
-
-      // Clear call counts for rewind test
-      [action1, action2, action3, action4].forEach((a) => a.apply.mockClear());
-
-      // Execute
-      const rewindState = stateManager.rewindStoryStateToLastChoice();
-
-      // Assert - replay up to (but not including) last SELECT_CHOICE (action2)
-      expect(action1.apply).toHaveBeenCalledTimes(1);
-      expect(action2.apply).not.toHaveBeenCalled(); // Should not include the SELECT_CHOICE action
-      expect(action3.apply).not.toHaveBeenCalled();
-      expect(action4.apply).not.toHaveBeenCalled();
-    });
-
-    test("should return current state when no choice actions", () => {
-      // Setup
-      const action1 = createMockStoryAction("START_STORY");
-      stateManager.dispatch(action1);
-
-      // Execute
-      const rewindState = stateManager.rewindStoryStateToLastChoice();
-
-      // Assert
-      expect(rewindState).toEqual(stateManager.getState());
     });
   });
 
   describe(".reset()", () => {
     test("should clear all history", () => {
       // Setup
-      stateManager.dispatch(createMockStoryAction());
-      stateManager.dispatch(createMockUIAction());
-      expect(stateManager.getStoryHistory()).toHaveLength(1);
-      expect(stateManager.getUIHistory()).toHaveLength(1);
+      stateManager.dispatch(createMockAction("ACTION_1"));
+      stateManager.dispatch(createMockAction("ACTION_2"));
+      expect(stateManager.getHistory()).toHaveLength(2);
 
       // Execute
       stateManager.reset();
 
       // Assert
-      expect(stateManager.getStoryHistory()).toEqual([]);
-      expect(stateManager.getUIHistory()).toEqual([]);
+      expect(stateManager.getHistory()).toEqual([]);
     });
 
     test("should reset state to default", () => {
       // Setup
-      const modifyAction = createMockStoryAction(
+      const modifiedState = mockPreviewState({
+        story: { isStart: false, isEnded: true },
+      });
+      const modifyAction = createMockAction(
         "MODIFY_STATE",
-        jest.fn().mockImplementation((context: StoryActionContext) => {
-          context.setState(mockStoryState({ isStart: false, isEnded: true }));
-        })
+        true,
+        jest.fn().mockReturnValue(modifiedState)
       );
       stateManager.dispatch(modifyAction);
 
@@ -622,17 +511,12 @@ describe("PreviewStateManager", () => {
     });
   });
 
-  describe(".setOnStoryStateChange()", () => {
-    test("should call callback when story state changes", () => {
+  describe(".setOnStateChange()", () => {
+    test("should call callback when state changes", () => {
       // Setup
       const callback = jest.fn();
-      stateManager.setOnStoryStateChange(callback);
-      const mockAction = createMockStoryAction(
-        "TEST_ACTION",
-        jest.fn().mockImplementation((context: StoryActionContext) => {
-          context.sendStoryState(); // Real actions call this
-        })
-      );
+      stateManager.setOnStateChange(callback);
+      const mockAction = createMockAction("TEST_ACTION");
 
       // Execute
       stateManager.dispatch(mockAction);
@@ -642,62 +526,23 @@ describe("PreviewStateManager", () => {
       expect(callback).toHaveBeenCalledWith(); // No parameters in new pattern
     });
 
-    test("should not call callback for UI actions", () => {
+    test("should not call callback when no callback set", () => {
       // Setup
-      const callback = jest.fn();
-      stateManager.setOnStoryStateChange(callback);
-      const mockAction = createMockUIAction();
+      const mockAction = createMockAction("TEST_ACTION");
 
-      // Execute
-      stateManager.dispatch(mockAction);
-
-      // Assert
-      expect(callback).not.toHaveBeenCalled();
+      // Execute & Assert
+      expect(() => stateManager.dispatch(mockAction)).not.toThrow();
     });
   });
 
-  describe(".setOnUIStateChange()", () => {
-    test("should call callback when UI state changes", () => {
+  describe(".sendState()", () => {
+    test("should call onStateChange callback when set", () => {
       // Setup
       const callback = jest.fn();
-      stateManager.setOnUIStateChange(callback);
-      const mockAction = createMockUIAction(
-        "TEST_UI_ACTION",
-        jest.fn().mockImplementation((context: any) => {
-          context.sendUIState(); // Real UI actions call this
-        })
-      );
+      stateManager.setOnStateChange(callback);
 
       // Execute
-      stateManager.dispatch(mockAction);
-
-      // Assert
-      expect(callback).toHaveBeenCalledTimes(1);
-      expect(callback).toHaveBeenCalledWith(); // No parameters in new pattern
-    });
-
-    test("should not call callback for story actions", () => {
-      // Setup
-      const callback = jest.fn();
-      stateManager.setOnUIStateChange(callback);
-      const mockAction = createMockStoryAction();
-
-      // Execute
-      stateManager.dispatch(mockAction);
-
-      // Assert
-      expect(callback).not.toHaveBeenCalled();
-    });
-  });
-
-  describe(".sendStoryState()", () => {
-    test("should call onStoryStateChange callback when set", () => {
-      // Setup
-      const callback = jest.fn();
-      stateManager.setOnStoryStateChange(callback);
-
-      // Execute
-      stateManager.sendStoryState();
+      stateManager.sendState();
 
       // Assert
       expect(callback).toHaveBeenCalledTimes(1);
@@ -705,60 +550,31 @@ describe("PreviewStateManager", () => {
     });
 
     test("should not throw when no callback set", () => {
-      // Setup
-      // No callback set
+      // Setup: No callback set
 
       // Execute & Assert
-      expect(() => stateManager.sendStoryState()).not.toThrow();
-    });
-  });
-
-  describe(".sendUIState()", () => {
-    test("should call onUIStateChange callback when set", () => {
-      // Setup
-      const callback = jest.fn();
-      stateManager.setOnUIStateChange(callback);
-
-      // Execute
-      stateManager.sendUIState();
-
-      // Assert
-      expect(callback).toHaveBeenCalledTimes(1);
-      expect(callback).toHaveBeenCalledWith(); // No parameters in new pattern
-    });
-
-    test("should not throw when no callback set", () => {
-      // Setup
-      // No callback set
-
-      // Execute & Assert
-      expect(() => stateManager.sendUIState()).not.toThrow();
+      expect(() => stateManager.sendState()).not.toThrow();
     });
   });
 
   describe(".dispose()", () => {
-    test("should clear all callbacks", () => {
+    test("should clear all state and history", () => {
       // Setup
-      const storyCallback = jest.fn();
-      const uiCallback = jest.fn();
-      stateManager.setOnStoryStateChange(storyCallback);
-      stateManager.setOnUIStateChange(uiCallback);
+      stateManager.dispatch(createMockAction("ACTION_1"));
+      const initialHistory = stateManager.getHistory();
+      expect(initialHistory).toHaveLength(1);
 
       // Execute
       stateManager.dispose();
 
-      // Trigger actions that would normally call callbacks
-      stateManager.dispatch(createMockStoryAction());
-      stateManager.dispatch(createMockUIAction());
-
       // Assert
-      expect(storyCallback).not.toHaveBeenCalled();
-      expect(uiCallback).not.toHaveBeenCalled();
+      const finalHistory = stateManager.getHistory();
+      expect(finalHistory).toEqual([]);
+      expect(stateManager.getState()).toEqual(mockPreviewState());
     });
 
     test("should not throw when called multiple times", () => {
-      // Setup
-      // Default state manager
+      // Setup: Default state manager
 
       // Execute & Assert
       expect(() => {

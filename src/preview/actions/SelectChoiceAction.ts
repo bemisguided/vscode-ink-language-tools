@@ -22,50 +22,45 @@
  * SOFTWARE.
  */
 
-import { UIAction } from "../UIAction";
-import { UIActionContext } from "../../UIActionContext";
-import { SelectChoiceAction } from "../story/SelectChoiceAction";
-import { SetRewindEnabledUIAction } from "./SetRewindEnabledUIAction";
+import { PreviewAction } from "../PreviewAction";
+import { PreviewActionContext } from "../PreviewActionContext";
+import { AddStoryEventsAction } from "./AddStoryEventsAction";
+import { EndStoryAction } from "./EndStoryAction";
+import { SetCurrentChoicesAction } from "./SetCurrentChoicesAction";
+import { AddErrorsAction } from "./AddErrorsAction";
+import { PreviewState } from "../PreviewState";
 
 /**
- * UI Action to select a choice in the story.
- * This action handles user choice selection by dispatching the appropriate
- * story action and ensuring the webview receives the updated state.
+ * Action to select a choice in the Story, continue the Story, and trigger updates to the Story State.
  */
-export class SelectChoiceUIAction implements UIAction {
+export class SelectChoiceAction implements PreviewAction {
   // Static Properties ================================================================================================
 
-  /**
-   * The type identifier for this action.
-   * Used for action identification, filtering, and debugging.
-   */
-  public static readonly typeId = "SELECT_CHOICE";
+  public static readonly actionType = "SELECT_CHOICE";
 
   // Public Properties ==============================================================================================
 
   /**
    * @inheritdoc
    */
-  readonly category = "ui" as const;
+  public readonly historical = true;
 
   /**
    * @inheritdoc
    */
-  readonly type = SelectChoiceUIAction.typeId;
+  public readonly type = SelectChoiceAction.actionType;
+
+  // Private Properties ===============================================================================================
 
   /**
-   * The payload containing the choice index to select.
+   * The index of the choice to select in the Story State.
    */
-  public readonly payload: { choiceIndex: number };
+  private readonly choiceIndex: number;
 
   // Constructor ======================================================================================================
 
-  /**
-   * Creates a new SelectChoiceUIAction.
-   * @param payload - The payload containing the choice index to select
-   */
-  constructor(payload: { choiceIndex: number }) {
-    this.payload = payload;
+  constructor(choiceIndex: number) {
+    this.choiceIndex = choiceIndex;
   }
 
   // Public Methods ===================================================================================================
@@ -73,22 +68,29 @@ export class SelectChoiceUIAction implements UIAction {
   /**
    * @inheritdoc
    */
-  apply(context: UIActionContext): void {
-    console.debug(
-      "[SelectChoiceUIAction] Selecting choice",
-      this.payload.choiceIndex
-    );
-    // Dispatch the story action and let it handle state updates
-    context.dispatch(new SelectChoiceAction(this.payload.choiceIndex));
+  public apply(state: PreviewState): PreviewState {
+    return state;
+  }
 
-    // Update UI state based on story state
-    const storyState = context.getStoryState();
-    const shouldEnableRewind = storyState.lastChoiceIndex > 0;
+  /**
+   * @inheritdoc
+   */
+  public effect(context: PreviewActionContext): void {
+    const storyManager = context.storyManager;
+    const result = storyManager.selectChoice(this.choiceIndex);
 
-    // Update rewind state
-    context.dispatch(new SetRewindEnabledUIAction(shouldEnableRewind));
+    if (result.errors.length > 0) {
+      context.dispatch(new AddErrorsAction(result.errors));
+    }
 
-    // Send updated state to webview
-    context.sendStoryState();
+    if (result.events.length > 0) {
+      context.dispatch(new AddStoryEventsAction(result.events));
+    }
+
+    context.dispatch(new SetCurrentChoicesAction(result.choices));
+
+    if (result.isEnded) {
+      context.dispatch(new EndStoryAction());
+    }
   }
 }

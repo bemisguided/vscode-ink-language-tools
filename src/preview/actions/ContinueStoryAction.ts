@@ -22,44 +22,58 @@
  * SOFTWARE.
  */
 
-import { StoryReducerAction } from "../StoryReducerAction";
-import { StoryState } from "../../StoryState";
+import { AddStoryEventsAction } from "./AddStoryEventsAction";
+import { SetCurrentChoicesAction } from "./SetCurrentChoicesAction";
+import { EndStoryAction } from "./EndStoryAction";
+import { AddErrorsAction } from "./AddErrorsAction";
+import { PreviewAction } from "../PreviewAction";
+import { PreviewState } from "../PreviewState";
+import { PreviewActionContext } from "../PreviewActionContext";
 
 /**
- * Action to end the story.
- * Marks the story as ended and no longer starting.
+ * Action to continue the Story and trigger updates to the Story State.
  */
-export class EndStoryAction extends StoryReducerAction {
+export class ContinueStoryAction implements PreviewAction {
   // Static Properties ================================================================================================
 
-  /**
-   * The type identifier for this action.
-   * Used for action identification, filtering, and debugging.
-   */
-  public static readonly typeId = "END_STORY";
+  public static readonly actionType = "CONTINUE_STORY";
 
   // Public Properties ==============================================================================================
 
   /**
-   * The type identifier for this action instance.
+   * @inheritdoc
    */
-  public readonly type = EndStoryAction.typeId;
+  public readonly historical = true;
+
+  /**
+   * @inheritdoc
+   */
+  public readonly type = ContinueStoryAction.actionType;
 
   // Public Methods ===================================================================================================
 
   /**
-   * Reduces the current state by marking the story as ended.
-   * This sets the isEnded flag to true, indicating that the story
-   * has reached a conclusion and no further progression is possible.
-   *
-   * @param state - The current story state
-   * @returns New state with isEnded flag set to true
+   * @inheritdoc
    */
-  reduce(state: StoryState): StoryState {
-    return {
-      ...state,
-      isEnded: true,
-      isStart: false,
-    };
+  apply(state: PreviewState): PreviewState {
+    return state;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public effect(context: PreviewActionContext): void {
+    const storyManager = context.storyManager;
+    const result = storyManager.continue();
+    if (result.errors.length > 0) {
+      context.dispatch(new AddErrorsAction(result.errors));
+    }
+    if (result.events.length > 0) {
+      context.dispatch(new AddStoryEventsAction(result.events));
+    }
+    context.dispatch(new SetCurrentChoicesAction(result.choices));
+    if (result.isEnded) {
+      context.dispatch(new EndStoryAction());
+    }
   }
 }

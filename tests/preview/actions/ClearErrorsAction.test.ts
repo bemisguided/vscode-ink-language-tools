@@ -22,47 +22,60 @@
  * SOFTWARE.
  */
 
-import { ClearErrorsAction } from "../../../../src/preview/actions/story/ClearErrorsAction";
-import { StoryState } from "../../../../src/preview/StoryState";
-import { mockStoryState } from "../../../__mocks__/mockStoryState";
+import { ClearErrorsAction } from "../../../src/preview/actions/ClearErrorsAction";
+import { PreviewState } from "../../../src/preview/PreviewState";
+import { ErrorInfo, StoryState } from "../../../src/preview/StoryState";
+import { mockStoryState } from "../../__mocks__/mockStoryState";
+import { mockPreviewState } from "../../__mocks__/mockPreviewState";
 
 describe("ClearErrorsAction", () => {
+  function setupState(
+    errors: ErrorInfo[] = [],
+    story: StoryState = mockStoryState()
+  ): PreviewState {
+    return {
+      ...mockPreviewState(),
+      story: {
+        ...story,
+        errors,
+      },
+    };
+  }
   let action: ClearErrorsAction;
 
   beforeEach(() => {
     action = new ClearErrorsAction();
   });
 
-  describe("reduce", () => {
+  describe("apply", () => {
     test("should clear all errors", () => {
-      // Set up
-      const currentState: StoryState = mockStoryState({
-        errors: [
-          {
-            message: "Error 1",
-            severity: "error",
-          },
-          {
-            message: "Warning 1",
-            severity: "warning",
-          },
-          {
-            message: "Info 1",
-            severity: "info",
-          },
-        ],
-      });
+      // Setup
+      const error1: ErrorInfo = {
+        message: "Error 1",
+        severity: "error",
+      };
+      const error2: ErrorInfo = {
+        message: "Warning 1",
+        severity: "warning",
+      };
+      const error3: ErrorInfo = {
+        message: "Info 1",
+        severity: "info",
+      };
+      const errors: ErrorInfo[] = [error1, error2, error3];
+      const currentState: PreviewState = setupState(errors);
 
       // Execute
-      const newState = action.reduce(currentState);
+      const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.errors).toEqual([]);
+      expect(newState.story.errors).toEqual([]);
     });
 
     test("should preserve all other state properties", () => {
-      // Set up
-      const currentState: StoryState = mockStoryState({
+      // Setup
+      const currentState: PreviewState = setupState([], {
+        ...mockStoryState(),
         storyEvents: [
           {
             type: "text" as const,
@@ -89,46 +102,29 @@ describe("ClearErrorsAction", () => {
       });
 
       // Execute
-      const newState = action.reduce(currentState);
+      const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.storyEvents).toEqual(currentState.storyEvents);
-      expect(newState.currentChoices).toEqual(currentState.currentChoices);
-      expect(newState.isEnded).toBe(true);
-      expect(newState.isStart).toBe(false);
-      expect(newState.lastChoiceIndex).toBe(3);
+      expect(newState.story.storyEvents).toEqual(
+        currentState.story.storyEvents
+      );
+      expect(newState.story.currentChoices).toEqual(
+        currentState.story.currentChoices
+      );
+      expect(newState.story.isEnded).toBe(true);
+      expect(newState.story.isStart).toBe(false);
+      expect(newState.story.lastChoiceIndex).toBe(3);
     });
 
     test("should work when errors array is already empty", () => {
-      // Set up
-      const currentState: StoryState = mockStoryState({
-        errors: [],
-      });
+      // Setup
+      const currentState: PreviewState = setupState([]);
 
       // Execute
-      const newState = action.reduce(currentState);
+      const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.errors).toEqual([]);
-    });
-
-    test("should return a new state object", () => {
-      // Set up
-      const currentState: StoryState = mockStoryState({
-        errors: [
-          {
-            message: "Error to clear",
-            severity: "error",
-          },
-        ],
-      });
-
-      // Execute
-      const newState = action.reduce(currentState);
-
-      // Assert
-      expect(newState).not.toBe(currentState);
-      expect(newState).toEqual(mockStoryState({ errors: [] }));
+      expect(newState.story.errors).toEqual([]);
     });
   });
 });

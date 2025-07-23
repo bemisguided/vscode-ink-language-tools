@@ -22,41 +22,50 @@
  * SOFTWARE.
  */
 
-import { EndStoryAction } from "../../../../src/preview/actions/story/EndStoryAction";
-import { StoryState } from "../../../../src/preview/StoryState";
-import { mockStoryState } from "../../../__mocks__/mockStoryState";
+import { EndStoryAction } from "../../../src/preview/actions/EndStoryAction";
+import { PreviewState } from "../../../src/preview/PreviewState";
+import { StoryEvent, StoryState } from "../../../src/preview/StoryState";
+import { mockStoryState } from "../../__mocks__/mockStoryState";
+import { mockPreviewState } from "../../__mocks__/mockPreviewState";
 
 describe("EndStoryAction", () => {
+  function setupState(story: StoryState = mockStoryState()): PreviewState {
+    return {
+      ...mockPreviewState(),
+      story,
+    };
+  }
   let action: EndStoryAction;
 
   beforeEach(() => {
     action = new EndStoryAction();
   });
 
-  describe("reduce", () => {
+  describe("apply", () => {
     test("should set isEnded to true", () => {
-      // Set up
-      const currentState: StoryState = mockStoryState({
+      // Setup
+      const currentState: PreviewState = setupState({
+        ...mockStoryState(),
         isEnded: false,
       });
 
       // Execute
-      const newState = action.reduce(currentState);
+      const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.isEnded).toBe(true);
+      expect(newState.story.isEnded).toBe(true);
     });
 
     test("should preserve all other state properties", () => {
-      // Set up
-      const currentState: StoryState = mockStoryState({
-        storyEvents: [
-          {
-            type: "text" as const,
-            text: "Some story text",
-            tags: ["ending"],
-          },
-        ],
+      // Setup
+      const existingEvent: StoryEvent = {
+        type: "text",
+        text: "Existing event",
+        tags: [],
+        isCurrent: false,
+      };
+      const currentState: PreviewState = setupState({
+        storyEvents: [existingEvent],
         currentChoices: [
           {
             index: 0,
@@ -76,41 +85,50 @@ describe("EndStoryAction", () => {
       });
 
       // Execute
-      const newState = action.reduce(currentState);
+      const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.storyEvents).toEqual(currentState.storyEvents);
-      expect(newState.currentChoices).toEqual(currentState.currentChoices);
-      expect(newState.errors).toEqual(currentState.errors);
-      expect(newState.isStart).toBe(false);
-      expect(newState.lastChoiceIndex).toBe(5);
+      expect(newState.story.storyEvents).toEqual(
+        currentState.story.storyEvents
+      );
+      expect(newState.story.currentChoices).toEqual(
+        currentState.story.currentChoices
+      );
+      expect(newState.story.errors).toEqual(currentState.story.errors);
+      expect(newState.story.isStart).toBe(false);
+      expect(newState.story.lastChoiceIndex).toBe(5);
     });
 
     test("should return a new state object", () => {
-      // Set up
-      const currentState: StoryState = mockStoryState();
+      // Setup
+      const currentState: PreviewState = setupState();
 
       // Execute
-      const newState = action.reduce(currentState);
+      const newState = action.apply(currentState);
 
       // Assert
       expect(newState).not.toBe(currentState);
       expect(newState).toEqual(
-        mockStoryState({ isEnded: true, isStart: false })
+        setupState({
+          ...mockStoryState(),
+          isEnded: true,
+          isStart: false,
+        })
       );
     });
 
     test("should work when isEnded is already true", () => {
-      // Set up
-      const currentState: StoryState = mockStoryState({
+      // Setup
+      const currentState: PreviewState = setupState({
+        ...mockStoryState(),
         isEnded: true,
       });
 
       // Execute
-      const newState = action.reduce(currentState);
+      const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.isEnded).toBe(true);
+      expect(newState.story.isEnded).toBe(true);
     });
   });
 });

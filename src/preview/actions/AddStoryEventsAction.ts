@@ -22,60 +22,69 @@
  * SOFTWARE.
  */
 
-import { StoryReducerAction } from "../StoryReducerAction";
-import { StoryState, Choice } from "../../StoryState";
+import { PreviewAction } from "../PreviewAction";
+import { StoryEvent } from "../StoryState";
+import { PreviewState } from "../PreviewState";
+import { PreviewActionContext } from "../PreviewActionContext";
 
 /**
- * Action to set the current choices available in the story.
- * Replaces the existing currentChoices array with the provided choices.
+ * Action to add story events to the Story State.
  */
-export class SetCurrentChoicesAction extends StoryReducerAction {
+export class AddStoryEventsAction implements PreviewAction {
   // Static Properties ================================================================================================
 
-  /**
-   * The type identifier for this action.
-   * Used for action identification, filtering, and debugging.
-   */
-  public static readonly typeId = "SET_CURRENT_CHOICES";
+  public static readonly actionType = "ADD_STORY_EVENTS";
 
   // Public Properties ==============================================================================================
 
   /**
-   * The type identifier for this action instance.
+   * @inheritdoc
    */
-  public readonly type = SetCurrentChoicesAction.typeId;
+  public readonly historical = true;
 
   /**
-   * The list of choices to set as current choices.
+   * @inheritdoc
    */
-  private readonly choices: Choice[];
+  public readonly type = AddStoryEventsAction.actionType;
+
+  // Private Properties ===============================================================================================
+
+  /**
+   * The list of story events to add to the state.
+   */
+  private readonly events: StoryEvent[];
 
   // Constructor ======================================================================================================
 
-  /**
-   * Creates a new SetCurrentChoicesAction.
-   * @param choices - The list of choices to set as current choices
-   */
-  constructor(choices: Choice[]) {
-    super();
-    this.choices = choices;
+  constructor(events: StoryEvent[]) {
+    this.events = events;
   }
 
   // Public Methods ===================================================================================================
 
   /**
-   * Reduces the current state by replacing the current choices.
-   * This updates the available choices that the user can select from.
-   * Also sets lastChoiceIndex to the current length of storyEvents to mark the turn boundary.
-   *
-   * @param state - The current story state
-   * @returns New state with updated current choices and turn boundary
+   * @inheritdoc
    */
-  reduce(state: StoryState): StoryState {
+  public apply(state: PreviewState): PreviewState {
+    const allEvents = [...state.story.storyEvents, ...this.events];
+    const eventsWithCurrentFlags = allEvents.map((event, index) => ({
+      ...event,
+      isCurrent: index >= state.story.lastChoiceIndex,
+    }));
+
     return {
       ...state,
-      currentChoices: [...this.choices],
-      lastChoiceIndex: state.storyEvents.length,
+      story: {
+        ...state.story,
+        storyEvents: eventsWithCurrentFlags,
+      },
     };
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public effect(context: PreviewActionContext): void {
+    // no-op
   }
 }

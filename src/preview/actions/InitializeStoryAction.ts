@@ -22,59 +22,54 @@
  * SOFTWARE.
  */
 
-import { UIReducerAction } from "../UIReducerAction";
-import { UIState } from "../../UIState";
+import { PreviewAction } from "../PreviewAction";
+import { PreviewState } from "../PreviewState";
+import { PreviewActionContext } from "../PreviewActionContext";
 
 /**
- * UI Action to enable or disable the rewind functionality.
- * This action updates the rewind property in the UI state to control
- * whether the rewind button should be enabled in the webview.
+ * Action to initialize the Story and reset the Story State.
  */
-export class SetRewindEnabledUIAction extends UIReducerAction {
+export class InitializeStoryAction implements PreviewAction {
   // Static Properties ================================================================================================
 
-  /**
-   * The type identifier for this action.
-   * Used for action identification, filtering, and debugging.
-   */
-  public static readonly typeId = "SET_REWIND_ENABLED";
+  public static readonly actionType = "INITIALIZE_STORY";
 
   // Public Properties ==============================================================================================
 
   /**
-   * The type identifier for this action instance.
+   * @inheritdoc
    */
-  public readonly type = SetRewindEnabledUIAction.typeId;
+  public readonly historical = true;
 
   /**
-   * Whether the rewind functionality should be enabled.
+   * @inheritdoc
    */
-  private readonly enabled: boolean;
+  public readonly type = InitializeStoryAction.actionType;
 
   // Constructor ======================================================================================================
-
-  /**
-   * Creates a new SetRewindEnabledUIAction.
-   * @param enabled - True to enable rewind functionality, false to disable it
-   */
-  constructor(enabled: boolean) {
-    super();
-    this.enabled = enabled;
-  }
 
   // Public Methods ===================================================================================================
 
   /**
-   * Reduces the current UI state by updating the rewind property.
-   * This sets the rewind availability based on the enabled parameter.
-   *
-   * @param state - The current UI state
-   * @returns New UI state with updated rewind property
+   * @inheritdoc
    */
-  reduce(state: UIState): UIState {
+  public apply(state: PreviewState): PreviewState {
     return {
-      ...state,
-      rewind: this.enabled,
+      story: {
+        ...state.story,
+        isStart: true,
+      },
+      ui: {
+        ...state.ui,
+        canRewind: false,
+      },
     };
   }
-} 
+
+  /**
+   * @inheritdoc
+   */
+  public effect(context: PreviewActionContext): void {
+    context.storyManager.reset();
+  }
+}

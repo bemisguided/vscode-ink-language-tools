@@ -22,44 +22,53 @@
  * SOFTWARE.
  */
 
-import { StoryState } from "./StoryState";
-import { PreviewAction } from "./PreviewAction";
-import { PreviewStoryManager } from "./PreviewStoryManager";
+import { PreviewAction } from "../PreviewAction";
+import { PreviewState } from "../PreviewState";
+import { PreviewActionContext } from "../PreviewActionContext";
 
 /**
- * Context interface for story domain actions.
- * Provides access to story state and story management operations.
- * Actions operating on story data use this context exclusively.
+ * Action to clear all errors from the Story State.
  */
-export interface StoryActionContext {
-  /**
-   * Gets the current story state.
-   * @returns Copy of current story state
-   */
-  getState(): StoryState;
+export class ClearErrorsAction implements PreviewAction {
+  // Static Properties ================================================================================================
 
   /**
-   * Updates the story state.
-   * @param state - New story state to set
+   * The type identifier for this action.
+   * Used for action identification, filtering, and debugging.
    */
-  setState(state: StoryState): void;
+  public static readonly actionType = "CLEAR_ERRORS";
+
+  // Public Properties ==============================================================================================
 
   /**
-   * Dispatches an action back through the unified dispatcher.
-   * Allows story actions to trigger other actions when needed.
-   * @param action - Action to dispatch
+   * @inheritdoc
    */
-  dispatch(action: PreviewAction): void;
+  public readonly historical = true;
 
   /**
-   * Story manager for interacting with the Ink story engine.
-   * Provides methods for continuing story, selecting choices, etc.
+   * @inheritdoc
    */
-  storyManager: PreviewStoryManager;
+  public readonly type = ClearErrorsAction.actionType;
+
+  // Public Methods ===================================================================================================
 
   /**
-   * Sends the current story state to the webview.
-   * Used to notify the UI when story state has changed.
+   * @inheritdoc
    */
-  sendStoryState(): void;
+  public apply(state: PreviewState): PreviewState {
+    return {
+      ...state,
+      story: {
+        ...state.story,
+        errors: [],
+      },
+    };
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public effect(context: PreviewActionContext): void {
+    // no-op
+  }
 }

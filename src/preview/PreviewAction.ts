@@ -22,18 +22,24 @@
  * SOFTWARE.
  */
 
+import { PreviewActionContext } from "./PreviewActionContext";
+import { PreviewState } from "./PreviewState";
+
 /**
- * Base interface for all actions in the preview system.
- * Implements the Command pattern where each action encapsulates both data and behavior.
- *
- * This is a pure base interface containing common properties.
- * Domain-specific actions (StoryAction, UIAction) define their own apply() methods
- * with appropriate context types for type safety and clear separation of concerns.
+ * Base interface for all Actions in the Preview System.
  */
 export interface PreviewAction {
   /**
-   * The type identifier for this action.
-   * Used for action identification, filtering, debugging, and dispatch routing.
+   * The type identifier for this Action.
    */
   readonly type: string;
+
+  /**
+   * Indicates whether this Action is tracked in the history.
+   */
+  readonly historical: boolean;
+
+  apply(state: PreviewState): PreviewState;
+
+  effect(context: PreviewActionContext): void;
 }

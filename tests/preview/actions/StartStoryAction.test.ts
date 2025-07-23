@@ -22,11 +22,18 @@
  * SOFTWARE.
  */
 
-import { StartStoryAction } from "../../../../src/preview/actions/story/StartStoryAction";
-import { StoryState } from "../../../../src/preview/StoryState";
-import { mockStoryState } from "../../../__mocks__/mockStoryState";
+import { StartStoryAction } from "../../../src/preview/actions/StartStoryAction";
+import { PreviewState } from "../../../src/preview/PreviewState";
+import { mockPreviewState } from "../../__mocks__/mockPreviewState";
+import { mockStoryState } from "../../__mocks__/mockStoryState";
+import { StoryState } from "../../../src/preview/StoryState";
 
 describe("StartStoryAction", () => {
+  function setupState(story: StoryState = mockStoryState()): PreviewState {
+    return mockPreviewState({
+      story,
+    });
+  }
   let action: StartStoryAction;
 
   beforeEach(() => {
@@ -36,82 +43,47 @@ describe("StartStoryAction", () => {
   describe("reduce", () => {
     test("should reset state to initial starting state", () => {
       // Set up
-      const currentState: StoryState = mockStoryState({
-        storyEvents: [
-          {
-            type: "text" as const,
-            text: "Some existing text",
-            tags: ["tag1"],
-          },
-        ],
-        currentChoices: [
-          {
-            index: 0,
-            text: "Choice 1",
-            tags: [],
-          },
-        ],
-        errors: [
-          {
-            message: "Some error",
-            severity: "error",
-          },
-        ],
-        isEnded: true,
-        isStart: false,
-        lastChoiceIndex: 0,
-      });
+      const currentState: PreviewState = setupState();
 
       // Execute
-      const newState = action.reduce(currentState);
+      const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.storyEvents).toEqual([]);
-      expect(newState.currentChoices).toEqual([]);
-      expect(newState.errors).toEqual([]);
-      expect(newState.isEnded).toBe(false);
-      expect(newState.isStart).toBe(true);
+      expect(newState.story).toEqual(mockStoryState({ isStart: true }));
     });
 
     test("should preserve existing state unchanged", () => {
       // Set up
-      const currentState: StoryState = mockStoryState();
+      const currentState: PreviewState = setupState();
 
       // Execute
-      const newState = action.reduce(currentState);
+      const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.storyEvents).toEqual([]);
-      expect(newState.currentChoices).toEqual([]);
-      expect(newState.errors).toEqual([]);
-      expect(newState.isEnded).toBe(false);
-      expect(newState.isStart).toBe(true);
-      expect(newState.lastChoiceIndex).toBe(0);
+      expect(newState.story).toEqual(mockStoryState({ isStart: true }));
     });
 
     test("should reset lastChoiceIndex to 0", () => {
       // Set up
-      const currentState: StoryState = mockStoryState({
-        lastChoiceIndex: 5,
-      });
+      const currentState: PreviewState = setupState();
 
       // Execute
-      const newState = action.reduce(currentState);
+      const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.lastChoiceIndex).toBe(0);
+      expect(newState.story).toEqual(mockStoryState({ isStart: true }));
     });
 
     test("should return a new state object", () => {
       // Set up
-      const currentState: StoryState = mockStoryState();
+      const currentState: PreviewState = setupState();
 
       // Execute
-      const newState = action.reduce(currentState);
+      const newState = action.apply(currentState);
 
       // Assert
       expect(newState).not.toBe(currentState);
-      expect(newState).toEqual(mockStoryState({ isStart: true }));
+      expect(newState.story).toEqual(mockStoryState({ isStart: true }));
     });
   });
 });

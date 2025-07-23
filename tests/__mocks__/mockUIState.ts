@@ -31,7 +31,7 @@ import { UIState } from "../../src/preview/UIState";
  */
 export function mockUIState(overrides: Partial<UIState> = {}): UIState {
   return {
-    rewind: false,
+    canRewind: false,
     ...overrides,
   };
 }

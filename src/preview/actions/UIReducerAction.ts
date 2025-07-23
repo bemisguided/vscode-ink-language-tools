@@ -24,7 +24,8 @@
 
 import { UIAction } from "./UIAction";
 import { UIState } from "../UIState";
-import { UIActionContext } from "../UIActionContext";
+import { PreviewState } from "../PreviewState";
+import { PreviewActionContext } from "../PreviewActionContext";
 
 /**
  * Abstract base class for UI actions that primarily perform state mutations.
@@ -38,6 +39,11 @@ export abstract class UIReducerAction implements UIAction {
    * The category identifier for this action.
    */
   public readonly category = "ui" as const;
+
+  /**
+   * @inheritdoc
+   */
+  public readonly historical = true;
 
   /**
    * The type identifier for this action.
@@ -60,14 +66,20 @@ export abstract class UIReducerAction implements UIAction {
   abstract reduce(state: UIState): UIState;
 
   /**
-   * Applies this reducer action by calling reduce() and updating the UI state.
-   * This bridges the gap between the action system and reducer-style actions.
-   *
-   * @param context - The UI action context
+   * @inheritdoc
    */
-  apply(context: UIActionContext): void {
-    const currentState = context.getState();
-    const newState = this.reduce(currentState);
-    context.setState(newState);
+  public apply(state: PreviewState): PreviewState {
+    const newUIState = this.reduce(state.ui);
+    return {
+      ...state,
+      ui: newUIState,
+    };
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public effect(context: PreviewActionContext): void {
+    // no-op by default - subclasses can override if needed
   }
 }

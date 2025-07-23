@@ -44,40 +44,22 @@ export class ExternalFunctionPreProcessor implements IPipelineProcessor {
   private static readonly linkInCommentRegex = /^\s*LINKS?\s+(.+\.js)\s*$/gm;
 
   public async run(context: PipelineContext): Promise<void> {
-    console.debug(
-      "[ExternalFunctionPreProcessor] Starting external function processing"
-    );
-
     const linkDirectives = this.parseLinkDirectives(context.getText());
 
     if (linkDirectives.length === 0) {
-      console.debug("[ExternalFunctionPreProcessor] No LINK directives found");
       return;
     }
-
-    console.debug(
-      `[ExternalFunctionPreProcessor] Found ${linkDirectives.length} LINK directives`
-    );
 
     const externalFunctionVM = new ExternalFunctionVM();
     const documentService = VSCodeServiceLocator.getDocumentService();
     let hasAnyFailures = false;
 
     for (const directive of linkDirectives) {
-      console.debug(
-        `[ExternalFunctionPreProcessor] Processing directive: ${directive.path} at line ${directive.line}`
-      );
-
       try {
         const resolvedUri = context.resolvePath(context.uri, directive.path);
         if (!resolvedUri) {
           throw new Error(`Could not resolve path: ${directive.path}`);
         }
-
-        console.debug(
-          `[ExternalFunctionPreProcessor] Resolved path: ${resolvedUri.fsPath}`
-        );
-
         const jsDocument = await documentService.getTextDocument(resolvedUri);
         const jsContent = jsDocument.getText();
         const conflicts = externalFunctionVM.addJavaScriptContent(
@@ -96,10 +78,6 @@ export class ExternalFunctionPreProcessor implements IPipelineProcessor {
         }
       } catch (error) {
         hasAnyFailures = true;
-        console.error(
-          `[ExternalFunctionPreProcessor] Error processing ${directive.path}:`,
-          error
-        );
         this.reportFileError(context, directive, error);
       }
     }
@@ -110,14 +88,8 @@ export class ExternalFunctionPreProcessor implements IPipelineProcessor {
     }
 
     if (!hasAnyFailures) {
-      console.debug(
-        `[ExternalFunctionPreProcessor] Successfully processed all LINK directives, storing VM`
-      );
       context.setExternalFunctionVM(externalFunctionVM);
     } else {
-      console.warn(
-        "[ExternalFunctionPreProcessor] Disposing VM due to failures"
-      );
       externalFunctionVM.dispose();
     }
   }

@@ -92,8 +92,8 @@ function createTagsContainer(tags) {
  * Utility function to log a message to the VSCode Extension.
  * @param {string} message - The message to log.
  */
-function log(message) {
-  console.debug(`[preview.js] ${message}`);
+function log(message, ...payload) {
+  console.info(`[preview.js] ${message}`, ...payload);
 }
 
 // Action Dispatcher =================================================================================================
@@ -388,9 +388,6 @@ const storyView = {
     // Reset UI
     this.elements.storyContent.innerHTML = "";
     this.elements.choicesContainer.innerHTML = "";
-
-    // Reset rewind button to disabled state
-    this.updateRewindButton(false);
   },
 
   /**
@@ -833,10 +830,6 @@ const storyController = {
    */
   actionRestartStory() {
     log("Action: Requesting story restart");
-    // Clear errors immediately when restart is requested
-    storyView.errors = [];
-    storyView.updateErrorButton();
-    storyView.hideErrorModal();
     actionDispatcher.dispatch({ type: "RESTART_STORY" });
   },
 
@@ -855,7 +848,7 @@ const storyController = {
 
     // Handle new granular format
     if (payload.category === "story" && payload.state) {
-      log("📖 Updating story state only");
+      log("📖 Update State: Story", payload.state);
       const state = payload.state;
 
       // Clear existing state if this is a story start
@@ -875,49 +868,17 @@ const storyController = {
         storyView.renderStoryEnded();
       }
 
-      return; // Exit early for story-only updates
+      return;
     }
 
     if (payload.category === "ui" && payload.state) {
-      log("🎨 Updating UI state only");
+      log("🎨 Update State: UI", payload.state);
       const uiState = payload.state;
 
       // Update UI state
-      storyView.updateRewindButton(uiState.rewind);
+      storyView.updateRewindButton(uiState.canRewind);
 
-      return; // Exit early for UI-only updates
-    }
-
-    // Legacy format support - treat as complete state
-    log("📦 Processing legacy complete state format");
-    const state = payload;
-
-    // Clear existing state if this is a story start
-    if (state.isStart) {
-      storyView.reset();
-    }
-
-    // Update errors - replace completely
-    storyView.errors = state.errors || [];
-    storyView.updateErrorButton();
-
-    // Update UI state
-    if (state.uiState) {
-      storyView.updateRewindButton(state.uiState.rewind);
-    }
-
-    // Update story content by directly rendering to maintain proper styling
-    this.renderCompleteStoryState(state);
-
-    // Handle story end state
-    if (state.isEnded) {
-      storyView.renderStoryEnded();
-    }
-
-    // Update metadata if needed (could be used for title updates)
-    if (state.metadata) {
-      // Currently no UI elements use metadata directly
-      // This is available for future enhancements
+      return;
     }
   },
 

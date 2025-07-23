@@ -23,10 +23,8 @@
  */
 
 import { PreviewAction } from "../PreviewAction";
-import { SelectChoiceUIAction } from "./ui/SelectChoiceUIAction";
-import { RestartStoryUIAction } from "./ui/RestartStoryUIAction";
-import { RewindStoryUIAction } from "./ui/RewindStoryUIAction";
-import { UIActionContext } from "../UIActionContext";
+import { PreviewState } from "../PreviewState";
+import { PreviewActionContext } from "../PreviewActionContext";
 
 /**
  * Base interface for actions sent from the webview to the controller.
@@ -43,12 +41,6 @@ export interface UIAction extends PreviewAction {
    * Must be JSON serializable for webview communication.
    */
   readonly payload?: any;
-
-  /**
-   * Apply the action to the UI state.
-   * @param context - The UI action context
-   */
-  apply(context: UIActionContext): void;
 }
 
 /**
@@ -60,14 +52,15 @@ export function createUIAction(actionData: {
   type: string;
   payload?: any;
 }): UIAction {
-  switch (actionData.type) {
-    case SelectChoiceUIAction.typeId:
-      return new SelectChoiceUIAction(actionData.payload);
-    case RestartStoryUIAction.typeId:
-      return new RestartStoryUIAction();
-    case RewindStoryUIAction.typeId:
-      return new RewindStoryUIAction();
-    default:
-      throw new Error(`Unknown UI action type: ${actionData.type}`);
-  }
+  // Simple implementation for now
+  return {
+    type: actionData.type,
+    category: "ui",
+    historical: true,
+    payload: actionData.payload,
+    apply: (state: PreviewState) => state,
+    effect: (context: PreviewActionContext) => {
+      // no-op for now
+    },
+  };
 }

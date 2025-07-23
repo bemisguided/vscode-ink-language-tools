@@ -22,43 +22,50 @@
  * SOFTWARE.
  */
 
-import { StoryReducerAction } from "../StoryReducerAction";
-import { StoryState } from "../../StoryState";
+import { PreviewAction } from "../PreviewAction";
+import { PreviewState } from "../PreviewState";
+import { PreviewActionContext } from "../PreviewActionContext";
 
 /**
- * Action to clear all errors from the state.
- * Removes all errors from the errors array.
+ * Action to mark the Story as ended in the Story State.
  */
-export class ClearErrorsAction extends StoryReducerAction {
+export class EndStoryAction implements PreviewAction {
   // Static Properties ================================================================================================
 
-  /**
-   * The type identifier for this action.
-   * Used for action identification, filtering, and debugging.
-   */
-  public static readonly typeId = "CLEAR_ERRORS";
+  public static readonly actionType = "END_STORY";
 
   // Public Properties ==============================================================================================
 
   /**
-   * The type identifier for this action instance.
+   * @inheritdoc
    */
-  public readonly type = ClearErrorsAction.typeId;
+  public readonly historical = true;
+
+  /**
+   * @inheritdoc
+   */
+  public readonly type = EndStoryAction.actionType;
 
   // Public Methods ===================================================================================================
 
   /**
-   * Reduces the current state by clearing all errors.
-   * This removes all accumulated errors from the state, effectively resetting
-   * the error list to an empty array.
-   *
-   * @param state - The current story state
-   * @returns New state with cleared errors array
+   * @inheritdoc
    */
-  reduce(state: StoryState): StoryState {
+  public apply(state: PreviewState): PreviewState {
     return {
       ...state,
-      errors: [],
+      story: {
+        ...state.story,
+        isEnded: true,
+        isStart: false,
+      },
     };
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public effect(context: PreviewActionContext): void {
+    // no-op
   }
 }

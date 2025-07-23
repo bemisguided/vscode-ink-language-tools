@@ -38,13 +38,6 @@ export interface PreviewActionContext {
   getState(): PreviewState;
 
   /**
-   * Sets the preview state to a new state.
-   * This should only be called by reducer actions that perform state mutations.
-   * @param newState - The new state to set
-   */
-  setState(newState: PreviewState): void;
-
-  /**
    * Dispatches another action within this action's context.
    * This allows actions to dispatch other actions.
    * @param action - The action to dispatch
@@ -63,4 +56,14 @@ export interface PreviewActionContext {
    * Available for actions that need to trigger state updates to the UI.
    */
   sendStoryState(): void;
+
+  /**
+   * Undoes the last action.
+   */
+  undo(): void;
+
+  /**
+   * Undoes the last action of a specific type.
+   */
+  undoToLast(actionType: string): void;
 }

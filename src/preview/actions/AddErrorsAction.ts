@@ -22,56 +22,67 @@
  * SOFTWARE.
  */
 
-import { StoryAction } from "../../StoryAction";
-import { StoryActionContext } from "../../StoryActionContext";
+import { ErrorInfo } from "../StoryState";
+import { PreviewAction } from "../PreviewAction";
+import { PreviewState } from "../PreviewState";
+import { PreviewActionContext } from "../PreviewActionContext";
 
 /**
- * Action to initialize the story by resetting the Ink story engine state.
- * This action performs the side effect of calling story.ResetState() to prepare
- * the story for execution from the beginning.
+ * Action to add errors to the Story State.
  */
-export class InitializeStoryAction implements StoryAction {
+export class AddErrorsAction implements PreviewAction {
   // Static Properties ================================================================================================
 
-  /**
-   * The type identifier for this action.
-   * Used for action identification, filtering, and debugging.
-   */
-  public static readonly typeId = "INITIALIZE_STORY";
+  public static readonly actionType = "ADD_ERRORS";
 
   // Public Properties ==============================================================================================
 
   /**
-   * The category identifier for this action.
+   * @inheritdoc
    */
-  public readonly category = "story" as const;
+  public readonly historical = true;
 
   /**
-   * The type identifier for this action instance.
+   * @inheritdoc
    */
-  public readonly type = InitializeStoryAction.typeId;
+  public readonly type = AddErrorsAction.actionType;
+
+  // Private Properties ===============================================================================================
+
+  /**
+   * The list of errors to add to the state.
+   */
+  private readonly errors: ErrorInfo[];
 
   // Constructor ======================================================================================================
 
   /**
-   * Creates a new InitializeStoryAction.
-   * No parameters are required as this action only resets the story state.
+   * Creates a new AddErrorsAction.
+   * @param errors - The list of errors to add to the state
    */
-  constructor() {
-    // No parameters needed
+  constructor(errors: ErrorInfo[]) {
+    this.errors = errors;
   }
 
   // Public Methods ===================================================================================================
 
   /**
-   * Applies this action by resetting the story engine state.
-   * This prepares the story for execution from the beginning by calling
-   * the story manager's reset method.
-   *
-   * @param context - The action context providing access to the story manager
+   * @inheritdoc
    */
-  apply(context: StoryActionContext): void {
-    // Reset the story engine state using the story manager
-    context.storyManager.reset();
+  public apply(state: PreviewState): PreviewState {
+    return {
+      ...state,
+      story: {
+        ...state.story,
+        errors: [...state.story.errors, ...this.errors],
+      },
+    };
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public effect(context: PreviewActionContext): void {
+    // no-op
   }
 }

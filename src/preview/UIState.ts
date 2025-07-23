@@ -33,5 +33,5 @@ export interface UIState {
    * True when there are historical (non-current) story events that can be rewound to.
    * False when the story has just started or restarted with no historical events.
    */
-  rewind: boolean;
+  canRewind: boolean;
 }
