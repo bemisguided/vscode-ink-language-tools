@@ -24,14 +24,11 @@
 
 import { PreviewStateManager } from "../../src/preview/PreviewStateManager";
 import { PreviewAction } from "../../src/preview/PreviewAction";
-import { PreviewActionContext } from "../../src/preview/PreviewActionContext";
 import { PreviewState } from "../../src/preview/PreviewState";
 import { PreviewStoryManager } from "../../src/preview/PreviewStoryManager";
 
 // Import shared mocks
 import { mockPreviewState } from "../__mocks__/mockPreviewState";
-import { mockStoryState } from "../__mocks__/mockStoryState";
-import { mockUIState } from "../__mocks__/mockUIState";
 
 // Purpose-built mock action classes that implement the PreviewAction interface
 class MockPreviewAction implements PreviewAction {
@@ -91,7 +88,8 @@ describe("PreviewStateManager", () => {
   beforeEach(() => {
     // Setup: Create fresh state manager and mock story manager for each test
     mockStoryManager = createMockStoryManager();
-    stateManager = new PreviewStateManager(mockStoryManager);
+    stateManager = new PreviewStateManager();
+    stateManager.storyManager = mockStoryManager;
   });
 
   afterEach(() => {
@@ -124,10 +122,9 @@ describe("PreviewStateManager", () => {
       };
 
       // Execute
-      const customStateManager = new PreviewStateManager(
-        createMockStoryManager(),
-        customInitialState
-      );
+      const customStateManager = new PreviewStateManager();
+      customStateManager.storyManager = createMockStoryManager();
+      customStateManager.reset();
       const state = customStateManager.getState();
 
       // Assert
@@ -169,14 +166,19 @@ describe("PreviewStateManager", () => {
   describe(".dispatch()", () => {
     test("should call action apply method with current state", () => {
       // Setup
-      const mockAction = createMockAction("TEST_ACTION");
+      const mockAction = createMockAction(
+        "TEST_ACTION",
+        true,
+        jest.fn().mockImplementation((draft) => {
+          draft.story.isStart = false;
+        })
+      );
 
       // Execute
       stateManager.dispatch(mockAction);
 
       // Assert
       expect(mockAction.apply).toHaveBeenCalledTimes(1);
-      expect(mockAction.apply).toHaveBeenCalledWith(mockPreviewState());
     });
 
     test("should call action effect method with correct context", () => {
@@ -200,20 +202,19 @@ describe("PreviewStateManager", () => {
       );
     });
 
-    test("should add actions to history", () => {
+    test("should only add actions to history when the action is historical", () => {
       // Setup
-      const action1 = createMockAction("ACTION_1");
-      const action2 = createMockAction("ACTION_2");
+      const historicalAction = createMockAction("ACTION_1", true);
+      const nonHistoricalAction = createMockAction("ACTION_2", false);
 
       // Execute
-      stateManager.dispatch(action1);
-      stateManager.dispatch(action2);
+      stateManager.dispatch(historicalAction);
+      stateManager.dispatch(nonHistoricalAction);
 
       // Assert
       const history = stateManager.getHistory();
-      expect(history).toHaveLength(2);
-      expect(history[0].action).toBe(action1);
-      expect(history[1].action).toBe(action2);
+      expect(history).toHaveLength(1);
+      expect(history[0].action).toBe(historicalAction);
     });
 
     test("should return updated state after action execution", () => {
@@ -222,7 +223,9 @@ describe("PreviewStateManager", () => {
       const mockAction = createMockAction(
         "TEST_ACTION",
         true,
-        jest.fn().mockReturnValue(newState)
+        jest.fn().mockImplementation((draft) => {
+          draft.story.isStart = false;
+        })
       );
 
       // Execute
@@ -246,6 +249,67 @@ describe("PreviewStateManager", () => {
       // Execute & Assert
       expect(() => stateManager.dispatch(errorAction)).toThrow("Test error");
     });
+
+    test("should return immutable state", () => {
+      // Setup
+      const mockAction = createMockAction("TEST_ACTION");
+
+      // Execute
+      const updatedState = stateManager.dispatch(mockAction);
+
+      // Assert
+      expect(() => (updatedState.story.isStart = false)).toThrow(
+        "Cannot assign to read only property 'isStart' of object '#<Object>'"
+      );
+    });
+
+    test("should send state change notification when a single action is dispatched", () => {
+      // Setup
+      const mockAction = createMockAction("TEST_ACTION");
+      const stateChangeCallback = jest.fn();
+      stateManager.setOnStateChange(stateChangeCallback);
+
+      // Execute
+      const updatedState = stateManager.dispatch(mockAction);
+
+      // Assert
+      expect(stateChangeCallback).toHaveBeenCalledTimes(1);
+      expect(stateChangeCallback).toHaveBeenCalledWith(updatedState);
+    });
+
+    test("should send state change notification when the stack of actions has been processed", () => {
+      // Setup
+      const mockAction1 = createMockAction(
+        "TEST_ACTION1",
+        true,
+        jest.fn().mockImplementation((draft) => {
+          draft.story.isEnded = true;
+        })
+      );
+      const mockAction2 = createMockAction(
+        "TEST_ACTION2",
+        true,
+        jest.fn().mockImplementation((draft) => {
+          draft.story.isStart = false;
+        }),
+        jest.fn().mockImplementation((context) => {
+          context.dispatch(mockAction1);
+        })
+      );
+      const stateChangeCallback = jest.fn();
+      stateManager.setOnStateChange(stateChangeCallback);
+
+      // Execute
+      const updatedState = stateManager.dispatch(mockAction2);
+
+      // Assert
+      expect(mockAction1.effect).toHaveBeenCalledTimes(1);
+      expect(mockAction2.effect).toHaveBeenCalledTimes(1);
+      expect(updatedState.story.isEnded).toBe(true);
+      expect(updatedState.story.isStart).toBe(false);
+      expect(stateChangeCallback).toHaveBeenCalledTimes(1);
+      expect(stateChangeCallback).toHaveBeenCalledWith(updatedState);
+    });
   });
 
   describe(".getState()", () => {
@@ -267,17 +331,27 @@ describe("PreviewStateManager", () => {
       const state2 = stateManager.getState();
 
       // Assert
-      expect(state1).not.toBe(state2);
       expect(state1).toEqual(state2);
+    });
+
+    test("should return immutable state", () => {
+      // Setup: Default state
+
+      // Execute
+      const state = stateManager.getState();
+      expect(() => (state.story.isStart = false)).toThrow(
+        "Cannot assign to read only property 'isStart' of object '#<Object>'"
+      );
     });
 
     test("should reflect state changes after action dispatch", () => {
       // Setup
-      const newState = mockPreviewState({ story: { isStart: false } });
       const mockAction = createMockAction(
         "MODIFY_STATE",
         true,
-        jest.fn().mockReturnValue(newState)
+        jest.fn().mockImplementation((draft) => {
+          draft.story.isStart = false;
+        })
       );
 
       // Execute
@@ -329,22 +403,6 @@ describe("PreviewStateManager", () => {
       expect(history).toHaveLength(2);
       expect(history[0].action).toBe(action1);
       expect(history[1].action).toBe(action2);
-    });
-
-    test("should include both historical and non-historical actions", () => {
-      // Setup
-      const historicalAction = createMockAction("HISTORICAL", true);
-      const nonHistoricalAction = createMockAction("NON_HISTORICAL", false);
-
-      // Execute
-      stateManager.dispatch(historicalAction);
-      stateManager.dispatch(nonHistoricalAction);
-      const history = stateManager.getHistory();
-
-      // Assert
-      expect(history).toHaveLength(2);
-      expect(history[0].action).toBe(historicalAction);
-      expect(history[1].action).toBe(nonHistoricalAction);
     });
   });
 
@@ -515,23 +573,21 @@ describe("PreviewStateManager", () => {
     test("should call callback when state changes", () => {
       // Setup
       const callback = jest.fn();
-      stateManager.setOnStateChange(callback);
-      const mockAction = createMockAction("TEST_ACTION");
+      const initialState = stateManager.getState();
 
       // Execute
-      stateManager.dispatch(mockAction);
+      stateManager.setOnStateChange(callback);
+      stateManager.sendState();
 
       // Assert
       expect(callback).toHaveBeenCalledTimes(1);
-      expect(callback).toHaveBeenCalledWith(); // No parameters in new pattern
+      expect(callback).toHaveBeenCalledWith(initialState);
     });
 
     test("should not call callback when no callback set", () => {
-      // Setup
-      const mockAction = createMockAction("TEST_ACTION");
-
+      // Setup: No callback set
       // Execute & Assert
-      expect(() => stateManager.dispatch(mockAction)).not.toThrow();
+      expect(() => stateManager.sendState()).not.toThrow();
     });
   });
 
@@ -539,6 +595,7 @@ describe("PreviewStateManager", () => {
     test("should call onStateChange callback when set", () => {
       // Setup
       const callback = jest.fn();
+      const initialState = stateManager.getState();
       stateManager.setOnStateChange(callback);
 
       // Execute
@@ -546,7 +603,7 @@ describe("PreviewStateManager", () => {
 
       // Assert
       expect(callback).toHaveBeenCalledTimes(1);
-      expect(callback).toHaveBeenCalledWith(); // No parameters in new pattern
+      expect(callback).toHaveBeenCalledWith(initialState);
     });
 
     test("should not throw when no callback set", () => {

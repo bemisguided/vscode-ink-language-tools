@@ -43,14 +43,12 @@ export const inboundMessages = {
   action: "action",
 } as const;
 
-import { UIAction } from "./actions/UIAction";
-
 /**
  * Type for inbound message payloads
  */
 export interface InboundMessagePayloads {
   [inboundMessages.ready]: void;
-  [inboundMessages.action]: UIAction;
+  [inboundMessages.action]: void;
 }
 
 /**

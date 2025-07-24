@@ -22,11 +22,11 @@
  * SOFTWARE.
  */
 
-import { Story } from "inkjs";
 import { PreviewState } from "./PreviewState";
 import { PreviewAction } from "./PreviewAction";
 import { PreviewStoryManager } from "./PreviewStoryManager";
 import { PreviewActionContext } from "./PreviewActionContext";
+import { freeze, produce } from "immer";
 
 /**
  * Represents a single entry in the action history.
@@ -40,6 +40,11 @@ export interface HistoryEntry {
 }
 
 /**
+ * Represents a callback function for state changes.
+ */
+export type StateChangeCallback = (state: PreviewState) => void;
+
+/**
  * Manages the complete state of the preview system using immutable state updates.
  * Processes actions through the apply() method pattern and maintains the single source of truth
  * for all preview data using the Full State Replacement Pattern.
@@ -49,25 +54,23 @@ export interface HistoryEntry {
 export class PreviewStateManager {
   // Private Properties ===============================================================================================
 
-  private state!: PreviewState;
+  private dispatchCount: number = 0;
+
   private history: HistoryEntry[] = [];
-  private storyManager: PreviewStoryManager;
 
-  private onStateChange?: () => void;
+  private state!: PreviewState;
 
-  private static readonly storyDependentActions = new Set([
-    "INITIALIZE_STORY",
-    "CONTINUE_STORY",
-    "SELECT_CHOICE",
-  ]);
+  private onStateChange?: StateChangeCallback;
+
+  // Public Properties ================================================================================================
+
+  public storyManager!: PreviewStoryManager;
 
   // Constructor ======================================================================================================
 
   constructor(
-    storyManager: PreviewStoryManager,
     initialState?: Partial<PreviewState>
   ) {
-    this.storyManager = storyManager;
     this.state = this.createDefaultState(initialState);
   }
 
@@ -81,17 +84,36 @@ export class PreviewStateManager {
    * @returns The new unified state after applying the action
    */
   public dispatch(action: PreviewAction): PreviewState {
+    // Count the number of dispatch calls
+    this.dispatchCount++;
+
+    // Reduce the state
     const stateBefore = this.state;
-    const stateAfter = action.apply(stateBefore);
-    this.state = stateAfter;
-    this.history.push({
-      action,
-      timestamp: Date.now(),
-      stateBefore,
-      stateAfter,
+    const stateAfter = produce(this.state, (draft) => {
+      action.apply(draft);
     });
+    this.state = stateAfter;
+
+    // Add to history if the action is historical
+    if (action.historical) {
+      this.history.push({
+        action,
+        timestamp: Date.now(),
+        stateBefore,
+        stateAfter,
+      });
+    }
+
+    // Perform side effects
     action.effect(this.createContext());
-    this.sendState();
+
+    // Send state change notification, when all actions have been processed
+    this.dispatchCount--;
+    if (this.dispatchCount === 0) {
+      this.sendState();
+    }
+
+    // Return the new state
     return this.getState();
   }
 
@@ -100,7 +122,7 @@ export class PreviewStateManager {
    * @returns A copy of the current state with dual structure
    */
   public getState(): PreviewState {
-    return JSON.parse(JSON.stringify(this.state));
+    return this.state;
   }
 
   /**
@@ -188,7 +210,7 @@ export class PreviewStateManager {
    * Sets the callback function for state changes.
    * @param callback - Function to call when state changes (no parameters)
    */
-  public setOnStateChange(callback: () => void): void {
+  public setOnStateChange(callback: StateChangeCallback): void {
     this.onStateChange = callback;
   }
 
@@ -198,7 +220,7 @@ export class PreviewStateManager {
    */
   public sendState(): void {
     if (this.onStateChange) {
-      this.onStateChange();
+      this.onStateChange(this.getState());
     }
   }
 
@@ -266,6 +288,6 @@ export class PreviewStateManager {
       };
     }
 
-    return defaultState;
+    return freeze(defaultState, true);
   }
 }

@@ -28,7 +28,6 @@ import { BuildEngine } from "../../src/build/BuildEngine";
 import { MockBuildEngine } from "../__mocks__/MockBuildEngine";
 import { MockWebviewPanel } from "../__mocks__/MockWebviewPanel";
 import { mockVSCodeDocument } from "../__mocks__/mockVSCodeDocument";
-import { createUIAction } from "../../src/preview/actions/UIAction";
 import { createMockSuccessfulBuildResult } from "../__mocks__/mockBuildResult";
 
 // Mock dependencies
@@ -38,7 +37,6 @@ describe("PreviewController", () => {
   let controller: PreviewController;
   let mockWebviewPanel: MockWebviewPanel;
   let mockBuildEngine: MockBuildEngine;
-  let mockCreateUIAction: jest.MockedFunction<typeof createUIAction>;
 
   // Jest spies for webview methods
   let postMessageSpy: jest.SpyInstance;
@@ -57,11 +55,6 @@ describe("PreviewController", () => {
       mockWebviewPanel.webview,
       "onDidReceiveMessage"
     );
-
-    // Setup: Mock createUIAction
-    mockCreateUIAction = createUIAction as jest.MockedFunction<
-      typeof createUIAction
-    >;
   });
 
   afterEach(() => {
@@ -183,7 +176,6 @@ describe("PreviewController", () => {
           expect.objectContaining({
             command: "updateState",
             payload: expect.objectContaining({
-              category: "story",
               state: expect.any(Object),
             }),
           })
@@ -232,10 +224,6 @@ describe("PreviewController", () => {
   });
 
   describe(".executeAction()", () => {
-    beforeEach(() => {
-      // Setup: Create controller for action tests
-      controller = new PreviewController(mockWebviewPanel as any);
-    });
     // TODO: preview-state: implement executeAction tests
   });
 

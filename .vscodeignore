@@ -10,5 +10,6 @@ vsc-extension-quickstart.md
 **/*.ts
 **/node_modules/**
 !**/node_modules/inkjs/**
+!**/node_modules/immer/**
 **/.DS_Store
 **/Thumbs.db 

@@ -40,7 +40,6 @@ import { InitializeStoryAction } from "./actions/InitializeStoryAction";
 import { ContinueStoryAction } from "./actions/ContinueStoryAction";
 import { SelectChoiceAction } from "./actions/SelectChoiceAction";
 import { parseErrorMessage } from "./parseErrorMessage";
-import { createUIAction } from "./actions/UIAction";
 
 /**
  * Coordinates the story preview, managing the webview, state manager, and user interactions.
@@ -53,18 +52,20 @@ export class PreviewController {
   private readonly webviewPanel: vscode.WebviewPanel;
   private readonly htmlGenerator: PreviewHtmlGenerator;
   private readonly disposables: vscode.Disposable[] = [];
-  private stateManager?: PreviewStateManager; // Made optional since it's created after story compilation
+  private stateManager: PreviewStateManager;
   private document?: vscode.TextDocument;
   private isInitialized: boolean = false;
   private viewReadyDeferred: Deferred<void> | null = null;
 
   // Constructor ======================================================================================================
 
-  constructor(webviewPanel: vscode.WebviewPanel) {
+  constructor(
+    webviewPanel: vscode.WebviewPanel,
+    stateManager = new PreviewStateManager()
+  ) {
     this.webviewPanel = webviewPanel;
     this.htmlGenerator = new PreviewHtmlGenerator();
-    // stateManager is now created in startStory() when we have the compiled story
-
+    this.stateManager = stateManager;
     this.setupWebview();
     this.setupMessageHandlers();
   }
@@ -149,24 +150,7 @@ export class PreviewController {
    * @param actionData - Raw action data from webview
    */
   private executeAction(actionData: any): void {
-    try {
-      const action = createUIAction(actionData);
-      console.debug(`[PreviewController] 🎬 Executing action: ${action.type}`);
-
-      if (!this.stateManager) {
-        console.warn(
-          `[PreviewController] State manager not initialized, ignoring action: ${action.type}`
-        );
-        return;
-      }
-
-      this.stateManager.dispatch(action);
-
-      // Send updated state to webview after processing action
-      this.sendState();
-    } catch (error) {
-      console.error(`[PreviewController] Failed to execute action:`, error);
-    }
+    // TODO: preview-state: execute action
   }
 
   /**
@@ -201,13 +185,11 @@ export class PreviewController {
       return;
     }
 
-    // TODO: preview-state: send the entire state
     const state = this.stateManager.getState();
     const message: Message = {
       command: "updateState",
       payload: {
-        category: "story",
-        state: state.story,
+        state: state,
       },
     };
     this.webviewPanel.webview.postMessage(message);
@@ -241,7 +223,8 @@ export class PreviewController {
 
     // Create PreviewStoryManager and PreviewStateManager with the compiled story
     const storyManager = new PreviewStoryManager(compiledStory.story);
-    this.stateManager = new PreviewStateManager(storyManager);
+    this.stateManager.storyManager = storyManager;
+    this.stateManager.reset();
 
     // Wire up unified state change callback
     this.stateManager.setOnStateChange(() => {
