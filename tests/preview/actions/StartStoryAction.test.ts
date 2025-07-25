@@ -23,67 +23,56 @@
  */
 
 import { StartStoryAction } from "../../../src/preview/actions/StartStoryAction";
-import { PreviewState } from "../../../src/preview/PreviewState";
-import { mockPreviewState } from "../../__mocks__/mockPreviewState";
+import { PreviewActionContext } from "../../../src/preview/PreviewActionContext";
+import { mockPreviewActionContext } from "../../__mocks__/mockPreviewActionContext";
 import { mockStoryState } from "../../__mocks__/mockStoryState";
+import { PreviewState } from "../../../src/preview/PreviewState";
 import { StoryState } from "../../../src/preview/StoryState";
+import { mockPreviewState } from "../../__mocks__/mockPreviewState";
+import { SetCurrentChoicesAction } from "../../../src/preview/actions/SetCurrentChoicesAction";
 
 describe("StartStoryAction", () => {
   function setupState(story: StoryState = mockStoryState()): PreviewState {
-    return mockPreviewState({
+    return {
+      ...mockPreviewState(),
       story,
-    });
+    };
   }
-  let action: StartStoryAction;
+  let mockContext: PreviewActionContext;
 
   beforeEach(() => {
-    action = new StartStoryAction();
+    mockContext = mockPreviewActionContext();
   });
 
-  describe("reduce", () => {
-    test("should reset state to initial starting state", () => {
-      // Set up
-      const currentState: PreviewState = setupState();
+  describe("apply()", () => {
+    test("should not mutate state", () => {
+      // Setup
+      const story: StoryState = mockStoryState();
+      const action = new StartStoryAction();
 
       // Execute
-      const newState = action.apply(currentState);
+      action.apply(setupState(story));
 
       // Assert
-      expect(newState.story).toEqual(mockStoryState({ isStart: true }));
+      expect(mockContext.getState().story).toEqual(story);
     });
+  });
 
-    test("should preserve existing state unchanged", () => {
-      // Set up
-      const currentState: PreviewState = setupState();
-
-      // Execute
-      const newState = action.apply(currentState);
-
-      // Assert
-      expect(newState.story).toEqual(mockStoryState({ isStart: true }));
-    });
-
-    test("should reset lastChoiceIndex to 0", () => {
-      // Set up
-      const currentState: PreviewState = setupState();
+  describe("effect()", () => {
+    test("should reset the story state", () => {
+      // Setup
+      const action = new StartStoryAction();
+      const context = mockPreviewActionContext();
 
       // Execute
-      const newState = action.apply(currentState);
+      action.effect(context);
 
       // Assert
-      expect(newState.story).toEqual(mockStoryState({ isStart: true }));
-    });
-
-    test("should return a new state object", () => {
-      // Set up
-      const currentState: PreviewState = setupState();
-
-      // Execute
-      const newState = action.apply(currentState);
-
-      // Assert
-      expect(newState).not.toBe(currentState);
-      expect(newState.story).toEqual(mockStoryState({ isStart: true }));
+      expect(context.storyManager.reset).toHaveBeenCalled();
+      expect(context.storyManager.continue).toHaveBeenCalled();
+      expect(context.dispatch).toHaveBeenCalledWith(
+        new SetCurrentChoicesAction([])
+      );
     });
   });
 });

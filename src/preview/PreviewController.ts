@@ -33,13 +33,12 @@ import { BuildEngine } from "../build/BuildEngine";
 import { Deferred } from "../util/deferred";
 import { ISuccessfulBuildResult } from "../build/IBuildResult";
 // Import all actions
-import { StartStoryAction } from "./actions/StartStoryAction";
 import { AddErrorsAction } from "./actions/AddErrorsAction";
 import { AddStoryEventsAction } from "./actions/AddStoryEventsAction";
-import { InitializeStoryAction } from "./actions/InitializeStoryAction";
-import { ContinueStoryAction } from "./actions/ContinueStoryAction";
-import { SelectChoiceAction } from "./actions/SelectChoiceAction";
+import { StartStoryAction } from "./actions/StartStoryAction";
 import { parseErrorMessage } from "./parseErrorMessage";
+import { PreviewAction } from "./PreviewAction";
+import { SelectChoiceAction } from "./actions/SelectChoiceAction";
 
 /**
  * Coordinates the story preview, managing the webview, state manager, and user interactions.
@@ -68,6 +67,7 @@ export class PreviewController {
     this.stateManager = stateManager;
     this.setupWebview();
     this.setupMessageHandlers();
+    this.setupStateChangeHandler();
   }
 
   // Public Methods ===================================================================================================
@@ -117,40 +117,27 @@ export class PreviewController {
   }
 
   /**
-   * Sets up the webview and initializes its content.
+   * Creates an action instance from the given data.
+   * @param data - The action data
+   * @returns The action instance
    */
-  private setupWebview(): void {
-    console.debug("[PreviewController] 👀 Initializing preview webview");
-    this.webviewPanel.webview.html = this.htmlGenerator.generateHtml(
-      this.webviewPanel.webview
-    );
-  }
-
-  /**
-   * Sets up message handlers for webview communication.
-   */
-  private setupMessageHandlers(): void {
-    // Handle webview ready
-    this.registerMessageHandler(inboundMessages.ready, () => {
-      console.debug("[PreviewController] 📖 Webview ready");
-      if (this.viewReadyDeferred) {
-        this.viewReadyDeferred.resolve();
-        this.viewReadyDeferred = null;
-      }
-    });
-
-    // Handle all actions
-    this.registerMessageHandler(inboundMessages.action, (actionData: any) => {
-      this.executeAction(actionData);
-    });
+  private createAction(data: any): PreviewAction {
+    if (data.type === StartStoryAction.actionType) {
+      return new StartStoryAction();
+    }
+    if (data.type === SelectChoiceAction.actionType) {
+      return new SelectChoiceAction(data.payload.choiceIndex);
+    }
+    throw new Error(`Unknown action type: ${data.type}`);
   }
 
   /**
    * Executes a UI action by creating the action instance and applying it.
-   * @param actionData - Raw action data from webview
+   * @param action - The action to execute
    */
-  private executeAction(actionData: any): void {
-    // TODO: preview-state: execute action
+  private executeAction(data: any): void {
+    const actionInstance = this.createAction(data);
+    this.stateManager.dispatch(actionInstance);
   }
 
   /**
@@ -175,24 +162,48 @@ export class PreviewController {
   }
 
   /**
-   * Sends the current story state to the webview.
+   * Sets up message handlers for webview communication.
    */
-  private sendState(): void {
-    if (!this.stateManager) {
-      console.warn(
-        "[PreviewController] Cannot send story state - state manager not initialized"
-      );
-      return;
-    }
+  private setupMessageHandlers(): void {
+    // Handle webview ready
+    this.registerMessageHandler(inboundMessages.ready, () => {
+      console.debug("[PreviewController] 📖 Webview ready");
+      if (this.viewReadyDeferred) {
+        this.viewReadyDeferred.resolve();
+        this.viewReadyDeferred = null;
+      }
+    });
 
-    const state = this.stateManager.getState();
-    const message: Message = {
-      command: "updateState",
-      payload: {
-        state: state,
-      },
-    };
-    this.webviewPanel.webview.postMessage(message);
+    // Handle all actions
+    this.registerMessageHandler(inboundMessages.action, (actionData: any) => {
+      this.executeAction(actionData);
+    });
+  }
+
+  /**
+   * Set up the state change handler.
+   */
+  private setupStateChangeHandler(): void {
+    this.stateManager.setOnStateChange((state) => {
+      const message: Message = {
+        command: "updateState",
+        payload: {
+          state,
+        },
+      };
+      console.debug("[PreviewController] 📤 Sending state", state);
+      this.webviewPanel.webview.postMessage(message);
+    });
+  }
+
+  /**
+   * Sets up the webview and initializes its content.
+   */
+  private setupWebview(): void {
+    console.debug("[PreviewController] 👀 Initializing preview webview");
+    this.webviewPanel.webview.html = this.htmlGenerator.generateHtml(
+      this.webviewPanel.webview
+    );
   }
 
   /**
@@ -226,44 +237,19 @@ export class PreviewController {
     this.stateManager.storyManager = storyManager;
     this.stateManager.reset();
 
-    // Wire up unified state change callback
-    this.stateManager.setOnStateChange(() => {
-      this.sendState();
-    });
+    // Set up story error handler
+    compiledStory.story.onError = (error) => {
+      const { message, severity } = parseErrorMessage(error.toString());
+      this.stateManager.dispatch(
+        new AddErrorsAction([{ message, severity: severity || "error" }])
+      );
+    };
 
     // Bind external functions directly - no model needed
     this.bindAllExternalFunctions(compiledStory);
 
-    // Initialize story state (reset story)
-    this.stateManager.dispatch(new InitializeStoryAction());
-
-    // Set up story error handler
-    compiledStory.story.onError = (error) => {
-      const { message, severity } = parseErrorMessage(error.toString());
-      this.stateManager!.dispatch(
-        new AddErrorsAction([{ message, severity: severity || "error" }])
-      );
-      this.sendState();
-    };
-
-    // Start story workflow
+    // Start the story
     this.stateManager.dispatch(new StartStoryAction());
-    this.stateManager.dispatch(new ContinueStoryAction());
-    this.sendState();
-  }
-
-  /**
-   * Handles a choice selection from the user.
-   * @param index - The index of the selected choice
-   */
-  private handleChoice(index: number): void {
-    console.debug("[PreviewController] 📖 Selecting choice", index);
-
-    // Select the choice and continue story (action handles all state updates)
-    this.stateManager?.dispatch(new SelectChoiceAction(index));
-
-    // Send updated state to webview
-    this.sendState();
   }
 
   /**
@@ -274,9 +260,6 @@ export class PreviewController {
   private addErrorToState(message: string, severity: ErrorSeverity): void {
     const error: ErrorInfo = { message, severity };
     this.stateManager?.dispatch(new AddErrorsAction([error]));
-
-    // Send updated state to webview
-    this.sendState();
   }
 
   /**
@@ -285,7 +268,7 @@ export class PreviewController {
    */
   private handleCompilationError(message: string): void {
     // Reset state manager for error handling (no story available)
-    this.stateManager?.reset();
+    this.stateManager.reset();
 
     // Add compilation error to state
     this.addErrorToState(message, "error");
@@ -299,9 +282,6 @@ export class PreviewController {
     compiledStory: ISuccessfulBuildResult
   ): void {
     if (!compiledStory.externalFunctionVM) {
-      console.debug(
-        "[PreviewController] No ExternalFunctionVM available for binding"
-      );
       return;
     }
 
@@ -309,16 +289,8 @@ export class PreviewController {
       compiledStory.externalFunctionVM.getFunctionNames();
 
     if (availableFunctions.length === 0) {
-      console.debug(
-        "[PreviewController] No external functions available for binding"
-      );
       return;
     }
-
-    console.debug(
-      `[PreviewController] Attempting to bind ${availableFunctions.length} functions:`,
-      availableFunctions
-    );
 
     const failedBindings = compiledStory.externalFunctionVM.bindFunctions(
       compiledStory.story,
@@ -338,21 +310,12 @@ export class PreviewController {
     );
 
     if (failedBindings.length > 0) {
-      console.error(
-        `[PreviewController] Failed to bind external functions:`,
-        failedBindings
-      );
-
       const errors = failedBindings.map((funcName) => ({
         message: `Failed to bind external function: ${funcName}`,
         severity: "error" as const,
       }));
 
       this.stateManager?.dispatch(new AddErrorsAction(errors));
-    } else {
-      console.debug(
-        `[PreviewController] Successfully bound all ${availableFunctions.length} functions`
-      );
     }
   }
 }

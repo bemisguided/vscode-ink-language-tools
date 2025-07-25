@@ -56,13 +56,8 @@ export class ClearErrorsAction implements PreviewAction {
    * @inheritdoc
    */
   public apply(state: PreviewState): PreviewState {
-    return {
-      ...state,
-      story: {
-        ...state.story,
-        errors: [],
-      },
-    };
+    state.story.errors = [];
+    return state;
   }
 
   /**

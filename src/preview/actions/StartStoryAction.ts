@@ -25,19 +25,18 @@
 import { PreviewAction } from "../PreviewAction";
 import { PreviewState } from "../PreviewState";
 import { PreviewActionContext } from "../PreviewActionContext";
+import { SetCurrentChoicesAction } from "./SetCurrentChoicesAction";
+import { AddErrorsAction } from "./AddErrorsAction";
+import { AddStoryEventsAction } from "./AddStoryEventsAction";
+import { EndStoryAction } from "./EndStoryAction";
 
 /**
- * Action to start/restart the story.
- * Resets the story state to its initial state and marks it as starting.
+ * Action to starts or restarts the Story and resets the Story State.
  */
 export class StartStoryAction implements PreviewAction {
   // Static Properties ================================================================================================
 
-  /**
-   * The type identifier for this action.
-   * Used for action identification, filtering, and debugging.
-   */
-  public static readonly typeId = "START_STORY";
+  public static readonly actionType = "START_STORY";
 
   // Public Properties ==============================================================================================
 
@@ -47,9 +46,11 @@ export class StartStoryAction implements PreviewAction {
   public readonly historical = true;
 
   /**
-   * The type identifier for this action instance.
+   * @inheritdoc
    */
-  public readonly type = StartStoryAction.typeId;
+  public readonly type = StartStoryAction.actionType;
+
+  // Constructor ======================================================================================================
 
   // Public Methods ===================================================================================================
 
@@ -57,27 +58,32 @@ export class StartStoryAction implements PreviewAction {
    * @inheritdoc
    */
   public apply(state: PreviewState): PreviewState {
-    return {
-      ...state,
-      story: {
-        storyEvents: [],
-        currentChoices: [],
-        errors: [],
-        isEnded: false,
-        isStart: true,
-        lastChoiceIndex: 0,
-      },
-      ui: {
-        ...state.ui,
-        canRewind: false,
-      },
-    };
+    state.story.storyEvents = [];
+    state.story.currentChoices = [];
+    state.story.errors = [];
+    state.story.isEnded = false;
+    state.story.lastChoiceIndex = 0;
+    state.story.isStart = true;
+    state.ui.canRewind = false;
+    return state;
   }
 
   /**
    * @inheritdoc
    */
   public effect(context: PreviewActionContext): void {
-    // no-op
+    context.storyManager.reset();
+    const storyManager = context.storyManager;
+    const result = storyManager.continue();
+    if (result.errors.length > 0) {
+      context.dispatch(new AddErrorsAction(result.errors));
+    }
+    if (result.events.length > 0) {
+      context.dispatch(new AddStoryEventsAction(result.events));
+    }
+    context.dispatch(new SetCurrentChoicesAction(result.choices));
+    if (result.isEnded) {
+      context.dispatch(new EndStoryAction());
+    }
   }
 }

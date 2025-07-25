@@ -108,35 +108,6 @@ describe("PreviewStateManager", () => {
       expect(state).toEqual(mockPreviewState());
     });
 
-    test("should initialize with provided state overrides", () => {
-      // Setup
-      const customInitialState: Partial<PreviewState> = {
-        story: {
-          storyEvents: [],
-          currentChoices: [],
-          errors: [],
-          isEnded: true,
-          isStart: false,
-          lastChoiceIndex: 0,
-        },
-      };
-
-      // Execute
-      const customStateManager = new PreviewStateManager();
-      customStateManager.storyManager = createMockStoryManager();
-      customStateManager.reset();
-      const state = customStateManager.getState();
-
-      // Assert
-      expect(state).toEqual(
-        mockPreviewState({
-          story: { isStart: false, isEnded: true },
-        })
-      );
-
-      customStateManager.dispose();
-    });
-
     test("should initialize empty history", () => {
       // Setup: Default constructor
 

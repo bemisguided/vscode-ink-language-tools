@@ -52,14 +52,8 @@ export class EndStoryAction implements PreviewAction {
    * @inheritdoc
    */
   public apply(state: PreviewState): PreviewState {
-    return {
-      ...state,
-      story: {
-        ...state.story,
-        isEnded: true,
-        isStart: false,
-      },
-    };
+    state.story.isEnded = true;
+    return state;
   }
 
   /**

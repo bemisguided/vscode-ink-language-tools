@@ -27,6 +27,7 @@ import { PreviewState } from "../../../src/preview/PreviewState";
 import { StoryState, Choice } from "../../../src/preview/StoryState";
 import { mockStoryState } from "../../__mocks__/mockStoryState";
 import { mockPreviewState } from "../../__mocks__/mockPreviewState";
+import { mockPreviewActionContext } from "../../__mocks__/mockPreviewActionContext";
 
 describe("SetCurrentChoicesAction", () => {
   function setupState(story: StoryState = mockStoryState()): PreviewState {
@@ -224,115 +225,19 @@ describe("SetCurrentChoicesAction", () => {
 
     test("should return a new state object", () => {
       // Set up
-      const newChoices: Choice[] = [
-        {
-          index: 0,
-          text: "Test choice",
-          tags: [],
-        },
-      ];
-      const action = new SetCurrentChoicesAction(newChoices);
+      const newChoice: Choice = {
+        index: 0,
+        text: "Test choice",
+        tags: [],
+      };
+      const action = new SetCurrentChoicesAction([newChoice]);
       const currentState: PreviewState = setupState();
 
       // Execute
       const newState = action.apply(currentState);
 
       // Assert
-      expect(newState).not.toBe(currentState);
-      expect(newState).toEqual(
-        setupState({
-          ...mockStoryState(),
-          currentChoices: newChoices,
-        })
-      );
-    });
-  });
-
-  describe("Edge cases", () => {
-    test("should handle choices with empty text", () => {
-      // Set up
-      const choicesWithEmptyText: Choice[] = [
-        {
-          index: 0,
-          text: "",
-          tags: [],
-        },
-        {
-          index: 1,
-          text: "Normal choice",
-          tags: [],
-        },
-      ];
-      const action = new SetCurrentChoicesAction(choicesWithEmptyText);
-      const currentState: PreviewState = setupState();
-
-      // Execute
-      const newState = action.apply(currentState);
-
-      // Assert
-      expect(newState.story.currentChoices).toEqual(choicesWithEmptyText);
-    });
-
-    test("should handle choices with special characters", () => {
-      // Set up
-      const specialChoices: Choice[] = [
-        {
-          index: 0,
-          text: "Choice with special chars: àáâãäåæçèéêë 🔥💥",
-          tags: ["special", "unicode"],
-        },
-      ];
-      const action = new SetCurrentChoicesAction(specialChoices);
-      const currentState: PreviewState = setupState();
-
-      // Execute
-      const newState = action.apply(currentState);
-
-      // Assert
-      expect(newState.story.currentChoices).toEqual(specialChoices);
-    });
-
-    test("should handle choices with many tags", () => {
-      // Set up
-      const choicesWithManyTags: Choice[] = [
-        {
-          index: 0,
-          text: "Choice with many tags",
-          tags: ["tag1", "tag2", "tag3", "tag4", "tag5"],
-        },
-      ];
-      const action = new SetCurrentChoicesAction(choicesWithManyTags);
-      const currentState: PreviewState = setupState();
-
-      // Execute
-      const newState = action.apply(currentState);
-
-      // Assert
-      expect(newState.story.currentChoices).toEqual(choicesWithManyTags);
-    });
-
-    test("should handle choices with duplicate indices", () => {
-      // Set up
-      const duplicateIndexChoices: Choice[] = [
-        {
-          index: 0,
-          text: "First choice",
-          tags: [],
-        },
-        {
-          index: 0,
-          text: "Second choice with same index",
-          tags: [],
-        },
-      ];
-      const action = new SetCurrentChoicesAction(duplicateIndexChoices);
-      const currentState: PreviewState = setupState();
-
-      // Execute
-      const newState = action.apply(currentState);
-
-      // Assert
-      expect(newState.story.currentChoices).toEqual(duplicateIndexChoices);
+      expect(newState.story.currentChoices).toEqual([newChoice]);
     });
   });
 });

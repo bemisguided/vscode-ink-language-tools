@@ -66,19 +66,11 @@ export class AddStoryEventsAction implements PreviewAction {
    * @inheritdoc
    */
   public apply(state: PreviewState): PreviewState {
-    const allEvents = [...state.story.storyEvents, ...this.events];
-    const eventsWithCurrentFlags = allEvents.map((event, index) => ({
-      ...event,
-      isCurrent: index >= state.story.lastChoiceIndex,
-    }));
-
-    return {
-      ...state,
-      story: {
-        ...state.story,
-        storyEvents: eventsWithCurrentFlags,
-      },
-    };
+    state.story.storyEvents.push(...this.events);
+    state.story.storyEvents.forEach((event, index) => {
+      event.isCurrent = index >= state.story.lastChoiceIndex;
+    });
+    return state;
   }
 
   /**

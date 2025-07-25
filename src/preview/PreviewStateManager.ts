@@ -22,11 +22,12 @@
  * SOFTWARE.
  */
 
+import { freeze, produce } from "immer";
 import { PreviewState } from "./PreviewState";
 import { PreviewAction } from "./PreviewAction";
 import { PreviewStoryManager } from "./PreviewStoryManager";
 import { PreviewActionContext } from "./PreviewActionContext";
-import { freeze, produce } from "immer";
+import { StoryState } from "./StoryState";
 
 /**
  * Represents a single entry in the action history.
@@ -58,7 +59,7 @@ export class PreviewStateManager {
 
   private history: HistoryEntry[] = [];
 
-  private state!: PreviewState;
+  private state: PreviewState;
 
   private onStateChange?: StateChangeCallback;
 
@@ -68,10 +69,8 @@ export class PreviewStateManager {
 
   // Constructor ======================================================================================================
 
-  constructor(
-    initialState?: Partial<PreviewState>
-  ) {
-    this.state = this.createDefaultState(initialState);
+  constructor() {
+    this.state = this.createDefaultState();
   }
 
   // Public Methods ===================================================================================================
@@ -201,8 +200,7 @@ export class PreviewStateManager {
    * Clears all histories.
    */
   public reset(): void {
-    const defaultState = this.createDefaultState();
-    this.state = defaultState;
+    this.state = this.createDefaultState();
     this.history = [];
   }
 
@@ -235,17 +233,13 @@ export class PreviewStateManager {
 
   // Private Methods ==================================================================================================
 
-  /**
-   * Creates a story action context for story domain actions.
-   * @returns StoryActionContext with story state access and operations
-   */
   private createContext(): PreviewActionContext {
     return {
       getState: () => this.getState(),
       dispatch: (action: PreviewAction) => {
         this.dispatch(action);
       },
-      storyManager: this.storyManager || ({} as any), // Provide a stub if not set
+      storyManager: this.storyManager,
       sendStoryState: () => {
         this.sendState();
       },
@@ -254,40 +248,25 @@ export class PreviewStateManager {
     };
   }
 
-  /**
-   * Creates the default state structure with optional overrides.
-   * @param overrides - Partial state to override defaults
-   * @returns Complete default state
-   */
-  private createDefaultState(overrides?: Partial<PreviewState>): PreviewState {
-    const defaultState: PreviewState = {
-      story: {
-        storyEvents: [],
-        currentChoices: [],
-        errors: [],
-        isEnded: false,
-        isStart: true,
-        lastChoiceIndex: 0,
-      },
+  private createDefaultState(): PreviewState {
+    const state: PreviewState = {
+      story: this.createDefaultStoryState(),
       ui: {
         canRewind: false,
       },
     };
 
-    if (overrides) {
-      return {
-        ...defaultState,
-        story: {
-          ...defaultState.story,
-          ...overrides.story,
-        },
-        ui: {
-          ...defaultState.ui,
-          ...overrides.ui,
-        },
-      };
-    }
+    return freeze(state, true);
+  }
 
-    return freeze(defaultState, true);
+  private createDefaultStoryState(): StoryState {
+    return {
+      storyEvents: [],
+      currentChoices: [],
+      errors: [],
+      isEnded: false,
+      isStart: true,
+      lastChoiceIndex: 0,
+    };
   }
 }

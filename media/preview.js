@@ -830,7 +830,7 @@ const storyController = {
    */
   actionRestartStory() {
     log("Action: Requesting story restart");
-    actionDispatcher.dispatch({ type: "RESTART_STORY" });
+    actionDispatcher.dispatch({ type: "START_STORY" });
   },
 
   actionRewindStory() {
@@ -846,40 +846,22 @@ const storyController = {
   handleUpdateState(payload) {
     log("Message: Updating state", payload);
 
-    // Handle new granular format
-    if (payload.category === "story" && payload.state) {
-      log("📖 Update State: Story", payload.state);
-      const state = payload.state;
+    const { story, ui } = payload.state;
 
-      // Clear existing state if this is a story start
-      if (state.isStart) {
-        storyView.reset();
-      }
+    // Update errors - replace completely
+    storyView.errors = story.errors || [];
+    storyView.updateErrorButton();
 
-      // Update errors - replace completely
-      storyView.errors = state.errors || [];
-      storyView.updateErrorButton();
+    // Render story content
+    this.renderCompleteStoryState(story);
 
-      // Render story content
-      this.renderCompleteStoryState(state);
-
-      // Handle story end state
-      if (state.isEnded) {
-        storyView.renderStoryEnded();
-      }
-
-      return;
+    // Handle story end state
+    if (story.isEnded) {
+      storyView.renderStoryEnded();
     }
 
-    if (payload.category === "ui" && payload.state) {
-      log("🎨 Update State: UI", payload.state);
-      const uiState = payload.state;
-
-      // Update UI state
-      storyView.updateRewindButton(uiState.canRewind);
-
-      return;
-    }
+    // Update UI state
+    storyView.updateRewindButton(ui.canRewind);
   },
 
   /**
@@ -890,15 +872,11 @@ const storyController = {
   renderCompleteStoryState(state) {
     const storyContent = storyView.elements.storyContent;
 
-    // If starting fresh, clear everything
-    if (state.isStart) {
-      storyContent.innerHTML = "";
-    }
+    // Clear existing content
+    storyContent.innerHTML = "";
 
     // If there are story events, render them using their isCurrent flags
     if (state.storyEvents && state.storyEvents.length > 0) {
-      // Clear existing content
-      storyContent.innerHTML = "";
 
       // Group events by their isCurrent status and render in order
       this.renderEventsByCurrentStatus(state.storyEvents, storyContent);

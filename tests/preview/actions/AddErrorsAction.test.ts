@@ -89,31 +89,31 @@ describe("AddErrorsAction", () => {
 
     test("should append errors to existing errors array", () => {
       // Set up
-      const existingErrors: ErrorInfo[] = [
-        {
-          message: "Existing error",
-          severity: "error",
-        },
-      ];
-      const newErrors: ErrorInfo[] = [
-        {
-          message: "New error",
-          severity: "error",
-        },
-        {
-          message: "New warning",
-          severity: "warning",
-        },
-      ];
-      const action = new AddErrorsAction(newErrors);
-      const currentState = setupState(existingErrors);
+      const existingError: ErrorInfo = {
+        message: "Existing error",
+        severity: "error",
+      };
+      const newError1: ErrorInfo = {
+        message: "New error",
+        severity: "error",
+      };
+      const newError2: ErrorInfo = {
+        message: "New warning",
+        severity: "warning",
+      };
+      const action = new AddErrorsAction([newError1, newError2]);
+      const previousState = setupState([existingError]);
 
       // Execute
-      const newState = action.apply(currentState);
+      const newState = action.apply(previousState);
 
       // Assert
       expect(newState.story.errors).toHaveLength(3);
-      expect(newState.story.errors).toEqual([...existingErrors, ...newErrors]);
+      expect(newState.story.errors).toEqual([
+        existingError,
+        newError1,
+        newError2,
+      ]);
     });
 
     test("should preserve all other state properties", () => {

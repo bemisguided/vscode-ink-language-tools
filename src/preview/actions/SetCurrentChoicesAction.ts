@@ -75,14 +75,9 @@ export class SetCurrentChoicesAction implements PreviewAction {
    * @inheritdoc
    */
   public apply(state: PreviewState): PreviewState {
-    return {
-      ...state,
-      story: {
-        ...state.story,
-        currentChoices: [...this.choices],
-        lastChoiceIndex: state.story.storyEvents.length,
-      },
-    };
+    state.story.currentChoices = [...this.choices];
+    state.story.lastChoiceIndex = state.story.storyEvents.length;
+    return state;
   }
 
   /**

@@ -69,6 +69,7 @@ export class SelectChoiceAction implements PreviewAction {
    * @inheritdoc
    */
   public apply(state: PreviewState): PreviewState {
+    state.story.isStart = false;
     return state;
   }
 
@@ -79,6 +80,7 @@ export class SelectChoiceAction implements PreviewAction {
     const storyManager = context.storyManager;
     const result = storyManager.selectChoice(this.choiceIndex);
 
+    console.debug("[SelectChoiceAction] 📥 Result", result);
     if (result.errors.length > 0) {
       context.dispatch(new AddErrorsAction(result.errors));
     }

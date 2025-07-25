@@ -95,26 +95,8 @@ describe("EndStoryAction", () => {
         currentState.story.currentChoices
       );
       expect(newState.story.errors).toEqual(currentState.story.errors);
-      expect(newState.story.isStart).toBe(false);
+      expect(newState.story.isStart).toBe(true);
       expect(newState.story.lastChoiceIndex).toBe(5);
-    });
-
-    test("should return a new state object", () => {
-      // Setup
-      const currentState: PreviewState = setupState();
-
-      // Execute
-      const newState = action.apply(currentState);
-
-      // Assert
-      expect(newState).not.toBe(currentState);
-      expect(newState).toEqual(
-        setupState({
-          ...mockStoryState(),
-          isEnded: true,
-          isStart: false,
-        })
-      );
     });
 
     test("should work when isEnded is already true", () => {
