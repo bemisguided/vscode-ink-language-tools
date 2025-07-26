@@ -876,15 +876,15 @@ const storyController = {
     storyContent.innerHTML = "";
 
     // If there are story events, render them using their isCurrent flags
-    if (state.storyEvents && state.storyEvents.length > 0) {
+    if (state.events && state.events.length > 0) {
 
       // Group events by their isCurrent status and render in order
-      this.renderEventsByCurrentStatus(state.storyEvents, storyContent);
+      this.renderEventsByCurrentStatus(state.events, storyContent);
     }
 
     // Always update choices (they can change without new events)
-    if (state.currentChoices && state.currentChoices.length > 0) {
-      storyView.renderChoices(state.currentChoices);
+    if (state.choices && state.choices.length > 0) {
+      storyView.renderChoices(state.choices);
     } else {
       // Clear choices if none exist
       storyView.elements.choicesContainer.innerHTML = "";

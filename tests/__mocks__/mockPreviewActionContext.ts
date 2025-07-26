@@ -77,9 +77,7 @@ export function mockPreviewActionContext(
       canContinue: jest.fn().mockReturnValue(false),
       getCurrentChoices: jest.fn().mockReturnValue([]),
     } as any,
-    sendStoryState: jest.fn(),
     undo: jest.fn(),
-    undoToLast: jest.fn(),
   };
 
   return {

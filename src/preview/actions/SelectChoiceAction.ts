@@ -31,7 +31,7 @@ import { AddErrorsAction } from "./AddErrorsAction";
 import { PreviewState } from "../PreviewState";
 
 /**
- * Action to select a choice in the Story, continue the Story, and trigger updates to the Story State.
+ * Action to select a Choice in the Story, continue the Story, triggering updates to the Story State.
  */
 export class SelectChoiceAction implements PreviewAction {
   // Static Properties ================================================================================================
@@ -43,7 +43,7 @@ export class SelectChoiceAction implements PreviewAction {
   /**
    * @inheritdoc
    */
-  public readonly historical = true;
+  public readonly cursor = true;
 
   /**
    * @inheritdoc
@@ -53,7 +53,7 @@ export class SelectChoiceAction implements PreviewAction {
   // Private Properties ===============================================================================================
 
   /**
-   * The index of the choice to select in the Story State.
+   * The index of the Choice to select in the Story.
    */
   private readonly choiceIndex: number;
 
@@ -70,6 +70,7 @@ export class SelectChoiceAction implements PreviewAction {
    */
   public apply(state: PreviewState): PreviewState {
     state.story.isStart = false;
+    state.ui.canRewind = true;
     return state;
   }
 
@@ -79,8 +80,6 @@ export class SelectChoiceAction implements PreviewAction {
   public effect(context: PreviewActionContext): void {
     const storyManager = context.storyManager;
     const result = storyManager.selectChoice(this.choiceIndex);
-
-    console.debug("[SelectChoiceAction] 📥 Result", result);
     if (result.errors.length > 0) {
       context.dispatch(new AddErrorsAction(result.errors));
     }

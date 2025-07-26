@@ -26,7 +26,7 @@ import { PreviewActionContext } from "./PreviewActionContext";
 import { PreviewState } from "./PreviewState";
 
 /**
- * Base interface for all Actions in the Preview System.
+ * Interface representing a Preview Action.
  */
 export interface PreviewAction {
   /**
@@ -37,9 +37,18 @@ export interface PreviewAction {
   /**
    * Indicates whether this Action is tracked in the history.
    */
-  readonly historical: boolean;
+  readonly cursor: boolean;
 
+  /**
+   * Applies this Action to the Preview State.
+   * @param state - The Preview State upon which to apply this Action
+   * @returns The resulting updated Preview State
+   */
   apply(state: PreviewState): PreviewState;
 
+  /**
+   * Applies this Action as a side-effect to the Story.
+   * @param context - The Preview Action Context
+   */
   effect(context: PreviewActionContext): void;
 }

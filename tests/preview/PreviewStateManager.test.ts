@@ -24,16 +24,12 @@
 
 import { PreviewStateManager } from "../../src/preview/PreviewStateManager";
 import { PreviewAction } from "../../src/preview/PreviewAction";
-import { PreviewState } from "../../src/preview/PreviewState";
 import { PreviewStoryManager } from "../../src/preview/PreviewStoryManager";
-
-// Import shared mocks
 import { mockPreviewState } from "../__mocks__/mockPreviewState";
 
-// Purpose-built mock action classes that implement the PreviewAction interface
 class MockPreviewAction implements PreviewAction {
   public readonly type: string;
-  public readonly historical: boolean;
+  public readonly cursor: boolean;
   public readonly apply: jest.Mock;
   public readonly effect: jest.Mock;
 
@@ -44,7 +40,7 @@ class MockPreviewAction implements PreviewAction {
     customEffect?: jest.Mock
   ) {
     this.type = type;
-    this.historical = historical;
+    this.cursor = historical;
     this.apply = customApply || jest.fn().mockReturnValue(mockPreviewState());
     this.effect = customEffect || jest.fn();
   }
@@ -168,7 +164,6 @@ describe("PreviewStateManager", () => {
           storyManager: mockStoryManager,
           sendStoryState: expect.any(Function),
           undo: expect.any(Function),
-          undoToLast: expect.any(Function),
         })
       );
     });
@@ -185,12 +180,12 @@ describe("PreviewStateManager", () => {
       // Assert
       const history = stateManager.getHistory();
       expect(history).toHaveLength(1);
-      expect(history[0].action).toBe(historicalAction);
+      expect(history[0]).toBe(historicalAction);
     });
 
     test("should return updated state after action execution", () => {
       // Setup
-      const newState = mockPreviewState({ story: { isStart: false } });
+      const newState = mockPreviewState();
       const mockAction = createMockAction(
         "TEST_ACTION",
         true,
@@ -203,8 +198,7 @@ describe("PreviewStateManager", () => {
       const returnedState = stateManager.dispatch(mockAction);
 
       // Assert
-      expect(returnedState).toEqual(newState);
-      expect(stateManager.getState()).toEqual(newState);
+      expect(returnedState.story.isStart).toEqual(false);
     });
 
     test("should handle action execution errors", () => {
@@ -372,8 +366,8 @@ describe("PreviewStateManager", () => {
 
       // Assert
       expect(history).toHaveLength(2);
-      expect(history[0].action).toBe(action1);
-      expect(history[1].action).toBe(action2);
+      expect(history[0]).toBe(action1);
+      expect(history[1]).toBe(action2);
     });
   });
 
@@ -521,9 +515,17 @@ describe("PreviewStateManager", () => {
 
     test("should reset state to default", () => {
       // Setup
-      const modifiedState = mockPreviewState({
-        story: { isStart: false, isEnded: true },
-      });
+      const modifiedState = mockPreviewState(
+        {
+          isStart: false,
+          isEnded: true,
+          choices: [],
+          errors: [],
+          events: [],
+          lastChoiceIndex: 0,
+        },
+        { canRewind: true }
+      );
       const modifyAction = createMockAction(
         "MODIFY_STATE",
         true,

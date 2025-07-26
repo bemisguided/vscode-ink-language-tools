@@ -22,28 +22,116 @@
  * SOFTWARE.
  */
 
-import { StoryState } from "./StoryState";
-import { UIState } from "./UIState";
+/**
+ * Represents a Choice available to the player for the Story.
+ */
+export interface Choice {
+  index: number;
+  text: string;
+  tags: string[];
+}
 
 /**
- * Represents the complete state of the preview webview.
- * This combines both story domain state and UI domain state into a unified structure.
- * Designed to be sent as a complete snapshot to the webview for state replacement.
+ * Represents a Text Story Event.
+ */
+export interface TextStoryEvent {
+  type: "text";
+  text: string;
+  tags: string[];
+  isCurrent?: boolean;
+}
+
+/**
+ * Represents a Function Story Event.
+ */
+export interface FunctionStoryEvent {
+  type: "function";
+  functionName: string;
+  args: any[];
+  result: any;
+  isCurrent?: boolean;
+}
+
+/**
+ * An Event that occurred during the Story.
+ */
+export type StoryEvent = TextStoryEvent | FunctionStoryEvent;
+
+/**
+ * Represents the Severity of an Error for the Story.
+ */
+export type ErrorSeverity = "error" | "warning" | "info";
+
+/**
+ * Represents an Error that occurred during the Story.
+ */
+export interface ErrorInfo {
+  /**
+   * The human-readable Error Message to display to the user.
+   */
+  message: string;
+
+  /**
+   * The Severity of this Error.
+   */
+  severity: ErrorSeverity;
+}
+
+/**
+ * Represents the State of the Story.
+ */
+export interface PreviewStoryState {
+  /**
+   * Choices currently available to the player for the Story.
+   */
+  choices: Choice[];
+
+  /**
+   * All errors that have occurred during the Story.
+   */
+  errors: ErrorInfo[];
+  /**
+   * All Story Events in chronological order for the Story.
+   */
+  events: StoryEvent[];
+
+  /**
+   * Indicates whether the Story has just started.
+   */
+  isStart: boolean;
+
+  /**
+   * Indicates whether the Story has reached an end state.
+   */
+  isEnded: boolean;
+
+  /**
+   * The index of the last Choice made for the Story.
+   */
+  lastChoiceIndex: number;
+}
+
+/**
+ * Represents the State of the UI.
+ */
+export interface PreviewUIState {
+  /**
+   * Indicates whether the Story can be rewound.
+   */
+  canRewind: boolean;
+}
+
+/**
+ * Represents the complete State of the Preview Webview.
  */
 export interface PreviewState {
   /**
-   * Story domain state containing events, choices, errors, and story flow.
-   * All data related to story execution and progression.
+   * The current state of the Story.
    */
-  story: StoryState;
+  story: PreviewStoryState;
 
   /**
-   * UI domain state controlling the availability and visual state of webview elements.
-   * Contains flags for enabling/disabling functionality based on current story state.
+   * The current state of the UI.
    */
-  ui: UIState;
+  ui: PreviewUIState;
 }
-
-// TODO: Remove this once refactor complete
-export * from "./StoryState";
-export * from "./UIState";

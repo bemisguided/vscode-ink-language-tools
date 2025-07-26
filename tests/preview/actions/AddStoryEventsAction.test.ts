@@ -23,21 +23,26 @@
  */
 
 import { AddStoryEventsAction } from "../../../src/preview/actions/AddStoryEventsAction";
-import { PreviewState } from "../../../src/preview/PreviewState";
-import { StoryState, StoryEvent } from "../../../src/preview/StoryState";
-import { mockStoryState } from "../../__mocks__/mockStoryState";
-import { mockPreviewState } from "../../__mocks__/mockPreviewState";
+import {
+  PreviewState,
+  PreviewStoryState,
+  StoryEvent,
+} from "../../../src/preview/PreviewState";
+import {
+  mockPreviewState,
+  mockPreviewStoryState,
+} from "../../__mocks__/mockPreviewState";
 
 describe("AddStoryEventsAction", () => {
   function setupState(
-    storyEvents: StoryEvent[] = [],
-    story: StoryState = mockStoryState()
+    events: StoryEvent[] = [],
+    story: PreviewStoryState = mockPreviewStoryState()
   ): PreviewState {
     return {
       ...mockPreviewState(),
       story: {
         ...story,
-        storyEvents,
+        events,
       },
     };
   }
@@ -52,8 +57,8 @@ describe("AddStoryEventsAction", () => {
       };
       const action = new AddStoryEventsAction([newEvent]);
       const currentState: PreviewState = setupState([], {
-        ...mockStoryState(),
-        storyEvents: [],
+        ...mockPreviewStoryState(),
+        events: [],
         lastChoiceIndex: 0,
       });
 
@@ -61,8 +66,8 @@ describe("AddStoryEventsAction", () => {
       const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.story.storyEvents).toHaveLength(1);
-      expect(newState.story.storyEvents[0]).toEqual({
+      expect(newState.story.events).toHaveLength(1);
+      expect(newState.story.events[0]).toEqual({
         ...newEvent,
         isCurrent: true,
       });
@@ -84,8 +89,8 @@ describe("AddStoryEventsAction", () => {
       const newEvents: StoryEvent[] = [newEvent1, newEvent2];
       const action = new AddStoryEventsAction(newEvents);
       const currentState: PreviewState = setupState([], {
-        ...mockStoryState(),
-        storyEvents: [],
+        ...mockPreviewStoryState(),
+        events: [],
         lastChoiceIndex: 0,
       });
 
@@ -93,12 +98,12 @@ describe("AddStoryEventsAction", () => {
       const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.story.storyEvents).toHaveLength(2);
-      expect(newState.story.storyEvents[0]).toEqual({
+      expect(newState.story.events).toHaveLength(2);
+      expect(newState.story.events[0]).toEqual({
         ...newEvent1,
         isCurrent: true,
       });
-      expect(newState.story.storyEvents[1]).toEqual({
+      expect(newState.story.events[1]).toEqual({
         ...newEvent2,
         isCurrent: true,
       });
@@ -125,8 +130,8 @@ describe("AddStoryEventsAction", () => {
       const newEvents: StoryEvent[] = [newEvent];
       const action = new AddStoryEventsAction(newEvents);
       const currentState: PreviewState = setupState(existingEvents, {
-        ...mockStoryState(),
-        storyEvents: existingEvents,
+        ...mockPreviewStoryState(),
+        events: existingEvents,
         lastChoiceIndex: 1,
       });
 
@@ -134,12 +139,12 @@ describe("AddStoryEventsAction", () => {
       const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.story.storyEvents).toHaveLength(2);
-      expect(newState.story.storyEvents[0]).toEqual({
+      expect(newState.story.events).toHaveLength(2);
+      expect(newState.story.events[0]).toEqual({
         ...existingEvent,
         isCurrent: false,
       });
-      expect(newState.story.storyEvents[1]).toEqual({
+      expect(newState.story.events[1]).toEqual({
         ...newEvent,
         isCurrent: true,
       });
@@ -168,8 +173,8 @@ describe("AddStoryEventsAction", () => {
       const newEvents: StoryEvent[] = [newEvent];
       const action = new AddStoryEventsAction(newEvents);
       const currentState: PreviewState = setupState(existingEvents, {
-        ...mockStoryState(),
-        storyEvents: existingEvents,
+        ...mockPreviewStoryState(),
+        events: existingEvents,
         lastChoiceIndex: 1, // Second event onwards should be current
       });
 
@@ -177,16 +182,16 @@ describe("AddStoryEventsAction", () => {
       const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.story.storyEvents).toHaveLength(3);
-      expect(newState.story.storyEvents[0]).toEqual({
+      expect(newState.story.events).toHaveLength(3);
+      expect(newState.story.events[0]).toEqual({
         ...existingEvent1,
         isCurrent: false,
       });
-      expect(newState.story.storyEvents[1]).toEqual({
+      expect(newState.story.events[1]).toEqual({
         ...existingEvent2,
         isCurrent: true,
       });
-      expect(newState.story.storyEvents[2]).toEqual({
+      expect(newState.story.events[2]).toEqual({
         ...newEvent,
         isCurrent: true,
       });
@@ -201,9 +206,9 @@ describe("AddStoryEventsAction", () => {
       };
       const action = new AddStoryEventsAction([newEvent]);
       const currentState: PreviewState = setupState([], {
-        ...mockStoryState(),
-        storyEvents: [],
-        currentChoices: [
+        ...mockPreviewStoryState(),
+        events: [],
+        choices: [
           {
             index: 0,
             text: "Choice 1",
@@ -225,9 +230,7 @@ describe("AddStoryEventsAction", () => {
       const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.story.currentChoices).toEqual(
-        currentState.story.currentChoices
-      );
+      expect(newState.story.choices).toEqual(currentState.story.choices);
       expect(newState.story.errors).toEqual(currentState.story.errors);
       expect(newState.story.isEnded).toBe(true);
       expect(newState.story.isStart).toBe(false);
@@ -249,8 +252,8 @@ describe("AddStoryEventsAction", () => {
       const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.story.storyEvents).toHaveLength(1);
-      expect(newState.story.storyEvents[0]).toEqual({
+      expect(newState.story.events).toHaveLength(1);
+      expect(newState.story.events[0]).toEqual({
         ...existingEvent,
         isCurrent: true,
       });

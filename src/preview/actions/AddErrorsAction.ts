@@ -22,9 +22,8 @@
  * SOFTWARE.
  */
 
-import { ErrorInfo } from "../StoryState";
 import { PreviewAction } from "../PreviewAction";
-import { PreviewState } from "../PreviewState";
+import { ErrorInfo, PreviewState } from "../PreviewState";
 import { PreviewActionContext } from "../PreviewActionContext";
 
 /**
@@ -40,7 +39,7 @@ export class AddErrorsAction implements PreviewAction {
   /**
    * @inheritdoc
    */
-  public readonly historical = true;
+  public readonly cursor = false;
 
   /**
    * @inheritdoc
@@ -50,16 +49,12 @@ export class AddErrorsAction implements PreviewAction {
   // Private Properties ===============================================================================================
 
   /**
-   * The list of errors to add to the state.
+   * The list of Errors to be added to the Story.
    */
   private readonly errors: ErrorInfo[];
 
   // Constructor ======================================================================================================
 
-  /**
-   * Creates a new AddErrorsAction.
-   * @param errors - The list of errors to add to the state
-   */
   constructor(errors: ErrorInfo[]) {
     this.errors = errors;
   }

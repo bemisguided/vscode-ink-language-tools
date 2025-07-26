@@ -24,14 +24,19 @@
 
 import { ClearErrorsAction } from "../../../src/preview/actions/ClearErrorsAction";
 import { PreviewState } from "../../../src/preview/PreviewState";
-import { ErrorInfo, StoryState } from "../../../src/preview/StoryState";
-import { mockStoryState } from "../../__mocks__/mockStoryState";
-import { mockPreviewState } from "../../__mocks__/mockPreviewState";
+import {
+  ErrorInfo,
+  PreviewStoryState,
+} from "../../../src/preview/PreviewState";
+import {
+  mockPreviewState,
+  mockPreviewStoryState,
+} from "../../__mocks__/mockPreviewState";
 
 describe("ClearErrorsAction", () => {
   function setupState(
     errors: ErrorInfo[] = [],
-    story: StoryState = mockStoryState()
+    story: PreviewStoryState = mockPreviewStoryState()
   ): PreviewState {
     return {
       ...mockPreviewState(),
@@ -75,15 +80,15 @@ describe("ClearErrorsAction", () => {
     test("should preserve all other state properties", () => {
       // Setup
       const currentState: PreviewState = setupState([], {
-        ...mockStoryState(),
-        storyEvents: [
+        ...mockPreviewStoryState(),
+        events: [
           {
             type: "text" as const,
             text: "Some story text",
             tags: ["test"],
           },
         ],
-        currentChoices: [
+        choices: [
           {
             index: 0,
             text: "Choice 1",
@@ -105,12 +110,8 @@ describe("ClearErrorsAction", () => {
       const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.story.storyEvents).toEqual(
-        currentState.story.storyEvents
-      );
-      expect(newState.story.currentChoices).toEqual(
-        currentState.story.currentChoices
-      );
+      expect(newState.story.events).toEqual(currentState.story.events);
+      expect(newState.story.choices).toEqual(currentState.story.choices);
       expect(newState.story.isEnded).toBe(true);
       expect(newState.story.isStart).toBe(false);
       expect(newState.story.lastChoiceIndex).toBe(3);

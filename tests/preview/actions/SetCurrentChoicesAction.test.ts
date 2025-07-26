@@ -23,17 +23,21 @@
  */
 
 import { SetCurrentChoicesAction } from "../../../src/preview/actions/SetCurrentChoicesAction";
-import { PreviewState } from "../../../src/preview/PreviewState";
-import { StoryState, Choice } from "../../../src/preview/StoryState";
-import { mockStoryState } from "../../__mocks__/mockStoryState";
-import { mockPreviewState } from "../../__mocks__/mockPreviewState";
-import { mockPreviewActionContext } from "../../__mocks__/mockPreviewActionContext";
+import {
+  Choice,
+  PreviewState,
+  PreviewStoryState,
+} from "../../../src/preview/PreviewState";
+import {
+  mockPreviewState,
+  mockPreviewStoryState,
+} from "../../__mocks__/mockPreviewState";
 
 describe("SetCurrentChoicesAction", () => {
-  function setupState(story: StoryState = mockStoryState()): PreviewState {
-    return mockPreviewState({
-      story,
-    });
+  function setupState(
+    story: PreviewStoryState = mockPreviewStoryState()
+  ): PreviewState {
+    return mockPreviewState(story);
   }
   describe("apply()", () => {
     test("should set choices when currentChoices is empty", () => {
@@ -57,7 +61,7 @@ describe("SetCurrentChoicesAction", () => {
       const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.story.currentChoices).toEqual(newChoices);
+      expect(newState.story.choices).toEqual(newChoices);
       expect(newState.story.lastChoiceIndex).toBe(0); // storyEvents.length
     });
 
@@ -84,8 +88,8 @@ describe("SetCurrentChoicesAction", () => {
       ];
       const action = new SetCurrentChoicesAction(newChoices);
       const currentState: PreviewState = setupState({
-        currentChoices: existingChoices,
-        storyEvents: [
+        choices: existingChoices,
+        events: [
           {
             type: "text" as const,
             text: "Some story",
@@ -102,7 +106,7 @@ describe("SetCurrentChoicesAction", () => {
       const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.story.currentChoices).toEqual(newChoices);
+      expect(newState.story.choices).toEqual(newChoices);
       expect(newState.story.lastChoiceIndex).toBe(1); // storyEvents.length
     });
 
@@ -117,8 +121,8 @@ describe("SetCurrentChoicesAction", () => {
       ];
       const action = new SetCurrentChoicesAction(newChoices);
       const currentState: PreviewState = setupState({
-        currentChoices: [],
-        storyEvents: [
+        choices: [],
+        events: [
           {
             type: "text" as const,
             text: "Event 1",
@@ -160,14 +164,14 @@ describe("SetCurrentChoicesAction", () => {
       ];
       const action = new SetCurrentChoicesAction(newChoices);
       const currentState: PreviewState = setupState({
-        storyEvents: [
+        events: [
           {
             type: "text" as const,
             text: "Story content",
             tags: ["story"],
           },
         ],
-        currentChoices: [],
+        choices: [],
         errors: [
           {
             message: "Test error",
@@ -183,9 +187,7 @@ describe("SetCurrentChoicesAction", () => {
       const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.story.storyEvents).toEqual(
-        currentState.story.storyEvents
-      );
+      expect(newState.story.events).toEqual(currentState.story.events);
       expect(newState.story.errors).toEqual(currentState.story.errors);
       expect(newState.story.isEnded).toBe(true);
       expect(newState.story.isStart).toBe(false);
@@ -195,14 +197,14 @@ describe("SetCurrentChoicesAction", () => {
       // Set up
       const action = new SetCurrentChoicesAction([]);
       const currentState: PreviewState = setupState({
-        currentChoices: [
+        choices: [
           {
             index: 0,
             text: "Existing choice",
             tags: [],
           },
         ],
-        storyEvents: [
+        events: [
           {
             type: "text" as const,
             text: "Story event",
@@ -219,7 +221,7 @@ describe("SetCurrentChoicesAction", () => {
       const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.story.currentChoices).toEqual([]);
+      expect(newState.story.choices).toEqual([]);
       expect(newState.story.lastChoiceIndex).toBe(1); // storyEvents.length
     });
 
@@ -237,7 +239,7 @@ describe("SetCurrentChoicesAction", () => {
       const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.story.currentChoices).toEqual([newChoice]);
+      expect(newState.story.choices).toEqual([newChoice]);
     });
   });
 });

@@ -43,14 +43,12 @@ export class StartStoryAction implements PreviewAction {
   /**
    * @inheritdoc
    */
-  public readonly historical = true;
+  public readonly cursor = true;
 
   /**
    * @inheritdoc
    */
   public readonly type = StartStoryAction.actionType;
-
-  // Constructor ======================================================================================================
 
   // Public Methods ===================================================================================================
 
@@ -58,8 +56,8 @@ export class StartStoryAction implements PreviewAction {
    * @inheritdoc
    */
   public apply(state: PreviewState): PreviewState {
-    state.story.storyEvents = [];
-    state.story.currentChoices = [];
+    state.story.events = [];
+    state.story.choices = [];
     state.story.errors = [];
     state.story.isEnded = false;
     state.story.lastChoiceIndex = 0;

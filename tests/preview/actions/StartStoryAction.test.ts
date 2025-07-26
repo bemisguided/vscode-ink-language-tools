@@ -22,17 +22,23 @@
  * SOFTWARE.
  */
 
+import {
+  PreviewState,
+  PreviewStoryState,
+} from "../../../src/preview/PreviewState";
 import { StartStoryAction } from "../../../src/preview/actions/StartStoryAction";
 import { PreviewActionContext } from "../../../src/preview/PreviewActionContext";
 import { mockPreviewActionContext } from "../../__mocks__/mockPreviewActionContext";
-import { mockStoryState } from "../../__mocks__/mockStoryState";
-import { PreviewState } from "../../../src/preview/PreviewState";
-import { StoryState } from "../../../src/preview/StoryState";
-import { mockPreviewState } from "../../__mocks__/mockPreviewState";
+import {
+  mockPreviewState,
+  mockPreviewStoryState,
+} from "../../__mocks__/mockPreviewState";
 import { SetCurrentChoicesAction } from "../../../src/preview/actions/SetCurrentChoicesAction";
 
 describe("StartStoryAction", () => {
-  function setupState(story: StoryState = mockStoryState()): PreviewState {
+  function setupState(
+    story: PreviewStoryState = mockPreviewStoryState()
+  ): PreviewState {
     return {
       ...mockPreviewState(),
       story,
@@ -47,7 +53,7 @@ describe("StartStoryAction", () => {
   describe("apply()", () => {
     test("should not mutate state", () => {
       // Setup
-      const story: StoryState = mockStoryState();
+      const story: PreviewStoryState = mockPreviewStoryState();
       const action = new StartStoryAction();
 
       // Execute

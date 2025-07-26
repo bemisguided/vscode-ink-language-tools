@@ -23,9 +23,8 @@
  */
 
 import { PreviewAction } from "../PreviewAction";
-import { PreviewState } from "../PreviewState";
+import { Choice, PreviewState } from "../PreviewState";
 import { PreviewActionContext } from "../PreviewActionContext";
-import { Choice } from "../StoryState";
 
 /**
  * Action to set the current choices available in the story.
@@ -45,7 +44,7 @@ export class SetCurrentChoicesAction implements PreviewAction {
   /**
    * @inheritdoc
    */
-  public readonly historical = true;
+  public readonly cursor = false;
 
   /**
    * The type identifier for this action instance.
@@ -75,8 +74,8 @@ export class SetCurrentChoicesAction implements PreviewAction {
    * @inheritdoc
    */
   public apply(state: PreviewState): PreviewState {
-    state.story.currentChoices = [...this.choices];
-    state.story.lastChoiceIndex = state.story.storyEvents.length;
+    state.story.choices = [...this.choices];
+    state.story.lastChoiceIndex = state.story.events.length;
     return state;
   }
 

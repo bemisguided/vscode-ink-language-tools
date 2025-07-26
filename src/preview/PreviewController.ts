@@ -39,11 +39,10 @@ import { StartStoryAction } from "./actions/StartStoryAction";
 import { parseErrorMessage } from "./parseErrorMessage";
 import { PreviewAction } from "./PreviewAction";
 import { SelectChoiceAction } from "./actions/SelectChoiceAction";
+import { RewindStoryAction } from "./actions/RewindStoryAction";
 
 /**
- * Coordinates the story preview, managing the webview, state manager, and user interactions.
- * Uses the Full State Replacement Pattern where the complete state is sent to the webview
- * instead of individual update messages.
+ * Controller for the Preview Webview that coordinates Preview State with the Webview.
  */
 export class PreviewController {
   // Private Properties ===============================================================================================
@@ -128,6 +127,9 @@ export class PreviewController {
     if (data.type === SelectChoiceAction.actionType) {
       return new SelectChoiceAction(data.payload.choiceIndex);
     }
+    if (data.type === RewindStoryAction.actionType) {
+      return new RewindStoryAction();
+    }
     throw new Error(`Unknown action type: ${data.type}`);
   }
 
@@ -191,7 +193,6 @@ export class PreviewController {
           state,
         },
       };
-      console.debug("[PreviewController] 📤 Sending state", state);
       this.webviewPanel.webview.postMessage(message);
     });
   }

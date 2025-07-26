@@ -23,15 +23,20 @@
  */
 
 import { AddErrorsAction } from "../../../src/preview/actions/AddErrorsAction";
-import { PreviewState } from "../../../src/preview/PreviewState";
-import { StoryState, ErrorInfo } from "../../../src/preview/StoryState";
-import { mockPreviewState } from "../../__mocks__/mockPreviewState";
-import { mockStoryState } from "../../__mocks__/mockStoryState";
+import {
+  PreviewState,
+  PreviewStoryState,
+} from "../../../src/preview/PreviewState";
+import { ErrorInfo } from "../../../src/preview/PreviewState";
+import {
+  mockPreviewState,
+  mockPreviewStoryState,
+} from "../../__mocks__/mockPreviewState";
 
 describe("AddErrorsAction", () => {
   function setupState(
     errors: ErrorInfo[] = [],
-    story: StoryState = mockStoryState()
+    story: PreviewStoryState = mockPreviewStoryState()
   ): PreviewState {
     return {
       ...mockPreviewState(),
@@ -124,15 +129,15 @@ describe("AddErrorsAction", () => {
       };
       const action = new AddErrorsAction([newError]);
       const currentState = setupState([], {
-        ...mockStoryState(),
-        storyEvents: [
+        ...mockPreviewStoryState(),
+        events: [
           {
             type: "text" as const,
             text: "Story content",
             tags: ["test"],
           },
         ],
-        currentChoices: [
+        choices: [
           {
             index: 0,
             text: "Choice 1",
@@ -145,12 +150,8 @@ describe("AddErrorsAction", () => {
       const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.story.storyEvents).toEqual(
-        currentState.story.storyEvents
-      );
-      expect(newState.story.currentChoices).toEqual(
-        currentState.story.currentChoices
-      );
+      expect(newState.story.events).toEqual(currentState.story.events);
+      expect(newState.story.choices).toEqual(currentState.story.choices);
       expect(newState.story.isEnded).toBe(currentState.story.isEnded);
       expect(newState.story.isStart).toBe(currentState.story.isStart);
       expect(newState.story.lastChoiceIndex).toBe(
@@ -170,7 +171,7 @@ describe("AddErrorsAction", () => {
             severity: "error",
           },
         ],
-        mockStoryState()
+        mockPreviewStoryState()
       );
 
       // Execute

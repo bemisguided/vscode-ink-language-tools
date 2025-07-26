@@ -27,7 +27,6 @@ import { PreviewState } from "./PreviewState";
 import { PreviewAction } from "./PreviewAction";
 import { PreviewStoryManager } from "./PreviewStoryManager";
 import { PreviewActionContext } from "./PreviewActionContext";
-import { StoryState } from "./StoryState";
 
 /**
  * Represents a single entry in the action history.
@@ -57,7 +56,7 @@ export class PreviewStateManager {
 
   private dispatchCount: number = 0;
 
-  private history: HistoryEntry[] = [];
+  private history: PreviewAction[] = [];
 
   private state: PreviewState;
 
@@ -87,20 +86,14 @@ export class PreviewStateManager {
     this.dispatchCount++;
 
     // Reduce the state
-    const stateBefore = this.state;
     const stateAfter = produce(this.state, (draft) => {
       action.apply(draft);
     });
     this.state = stateAfter;
 
     // Add to history if the action is historical
-    if (action.historical) {
-      this.history.push({
-        action,
-        timestamp: Date.now(),
-        stateBefore,
-        stateAfter,
-      });
+    if (action.cursor) {
+      this.history.push(action);
     }
 
     // Perform side effects
@@ -108,7 +101,7 @@ export class PreviewStateManager {
 
     // Send state change notification, when all actions have been processed
     this.dispatchCount--;
-    if (this.dispatchCount === 0) {
+    if (this.dispatchCount <= 0) {
       this.sendState();
     }
 
@@ -128,7 +121,7 @@ export class PreviewStateManager {
    * Gets the story history.
    * @returns A copy of the story history
    */
-  public getHistory(): HistoryEntry[] {
+  public getHistory(): PreviewAction[] {
     return [...this.history];
   }
 
@@ -140,16 +133,24 @@ export class PreviewStateManager {
    * @returns The state after replay
    */
   public replay(toIndex?: number): PreviewState {
+    // Get the end index
     const endIndex = toIndex ?? this.history.length;
 
+    // Validate the index
     if (endIndex < 0 || endIndex > this.history.length) {
       throw new Error(`Invalid replay index: ${endIndex}`);
     }
 
+    // Clone the history
+    const history = [...this.history.slice(0, endIndex)];
+
+    // Clear the history
+    this.history = [];
+
     // Replay actions up to the target index
     for (let i = 0; i < endIndex; i++) {
-      const entry = this.history[i];
-      this.dispatch(entry.action);
+      const action = history[i];
+      this.dispatch(action);
     }
 
     return this.getState();
@@ -179,7 +180,7 @@ export class PreviewStateManager {
     // Find the last occurrence of the action type in history
     let lastIndex = -1;
     for (let i = this.history.length - 1; i >= 0; i--) {
-      if (this.history[i].action.type === actionType) {
+      if (this.history[i].type === actionType) {
         lastIndex = i;
         break;
       }
@@ -240,11 +241,7 @@ export class PreviewStateManager {
         this.dispatch(action);
       },
       storyManager: this.storyManager,
-      sendStoryState: () => {
-        this.sendState();
-      },
       undo: () => this.undo(),
-      undoToLast: (actionType: string) => this.undoToLast(actionType),
     };
   }
 
@@ -259,10 +256,10 @@ export class PreviewStateManager {
     return freeze(state, true);
   }
 
-  private createDefaultStoryState(): StoryState {
+  private createDefaultStoryState(): PreviewState["story"] {
     return {
-      storyEvents: [],
-      currentChoices: [],
+      events: [],
+      choices: [],
       errors: [],
       isEnded: false,
       isStart: true,

@@ -39,7 +39,7 @@ export class EndStoryAction implements PreviewAction {
   /**
    * @inheritdoc
    */
-  public readonly historical = true;
+  public readonly cursor = false;
 
   /**
    * @inheritdoc

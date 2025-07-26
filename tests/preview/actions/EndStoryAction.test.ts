@@ -24,12 +24,17 @@
 
 import { EndStoryAction } from "../../../src/preview/actions/EndStoryAction";
 import { PreviewState } from "../../../src/preview/PreviewState";
-import { StoryEvent, StoryState } from "../../../src/preview/StoryState";
-import { mockStoryState } from "../../__mocks__/mockStoryState";
-import { mockPreviewState } from "../../__mocks__/mockPreviewState";
+import {
+  PreviewStoryState,
+  StoryEvent,
+} from "../../../src/preview/PreviewState";
+import {
+  mockPreviewState,
+  mockPreviewStoryState,
+} from "../../__mocks__/mockPreviewState";
 
 describe("EndStoryAction", () => {
-  function setupState(story: StoryState = mockStoryState()): PreviewState {
+  function setupState(story: PreviewStoryState = mockPreviewStoryState()): PreviewState {
     return {
       ...mockPreviewState(),
       story,
@@ -45,7 +50,7 @@ describe("EndStoryAction", () => {
     test("should set isEnded to true", () => {
       // Setup
       const currentState: PreviewState = setupState({
-        ...mockStoryState(),
+        ...mockPreviewStoryState(),
         isEnded: false,
       });
 
@@ -65,8 +70,8 @@ describe("EndStoryAction", () => {
         isCurrent: false,
       };
       const currentState: PreviewState = setupState({
-        storyEvents: [existingEvent],
-        currentChoices: [
+        events: [existingEvent],
+        choices: [
           {
             index: 0,
             text: "Final choice",
@@ -88,12 +93,8 @@ describe("EndStoryAction", () => {
       const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.story.storyEvents).toEqual(
-        currentState.story.storyEvents
-      );
-      expect(newState.story.currentChoices).toEqual(
-        currentState.story.currentChoices
-      );
+      expect(newState.story.events).toEqual(currentState.story.events);
+      expect(newState.story.choices).toEqual(currentState.story.choices);
       expect(newState.story.errors).toEqual(currentState.story.errors);
       expect(newState.story.isStart).toBe(true);
       expect(newState.story.lastChoiceIndex).toBe(5);
@@ -102,7 +103,7 @@ describe("EndStoryAction", () => {
     test("should work when isEnded is already true", () => {
       // Setup
       const currentState: PreviewState = setupState({
-        ...mockStoryState(),
+        ...mockPreviewStoryState(),
         isEnded: true,
       });
 

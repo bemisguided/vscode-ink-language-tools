@@ -23,8 +23,7 @@
  */
 
 import { PreviewAction } from "../PreviewAction";
-import { StoryEvent } from "../StoryState";
-import { PreviewState } from "../PreviewState";
+import { PreviewState, StoryEvent } from "../PreviewState";
 import { PreviewActionContext } from "../PreviewActionContext";
 
 /**
@@ -40,7 +39,7 @@ export class AddStoryEventsAction implements PreviewAction {
   /**
    * @inheritdoc
    */
-  public readonly historical = true;
+  public readonly cursor = false;
 
   /**
    * @inheritdoc
@@ -50,7 +49,7 @@ export class AddStoryEventsAction implements PreviewAction {
   // Private Properties ===============================================================================================
 
   /**
-   * The list of story events to add to the state.
+   * The list of Story Events to be added to the Story.
    */
   private readonly events: StoryEvent[];
 
@@ -66,8 +65,8 @@ export class AddStoryEventsAction implements PreviewAction {
    * @inheritdoc
    */
   public apply(state: PreviewState): PreviewState {
-    state.story.storyEvents.push(...this.events);
-    state.story.storyEvents.forEach((event, index) => {
+    state.story.events.push(...this.events);
+    state.story.events.forEach((event, index) => {
       event.isCurrent = index >= state.story.lastChoiceIndex;
     });
     return state;

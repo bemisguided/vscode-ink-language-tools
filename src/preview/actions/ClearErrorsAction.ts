@@ -32,10 +32,6 @@ import { PreviewActionContext } from "../PreviewActionContext";
 export class ClearErrorsAction implements PreviewAction {
   // Static Properties ================================================================================================
 
-  /**
-   * The type identifier for this action.
-   * Used for action identification, filtering, and debugging.
-   */
   public static readonly actionType = "CLEAR_ERRORS";
 
   // Public Properties ==============================================================================================
@@ -43,7 +39,7 @@ export class ClearErrorsAction implements PreviewAction {
   /**
    * @inheritdoc
    */
-  public readonly historical = true;
+  public readonly cursor = false;
 
   /**
    * @inheritdoc

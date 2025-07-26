@@ -74,11 +74,6 @@ export class ExternalFunctionVM {
    */
   public addJavaScriptContent(content: string, filePath: string): string[] {
     this.ensureNotDisposed();
-
-    console.debug(
-      `[ExternalFunctionVM] Loading JavaScript content from: ${filePath}`
-    );
-
     const conflicts: string[] = [];
 
     try {
@@ -95,11 +90,6 @@ export class ExternalFunctionVM {
       // Extract functions from the temporary sandbox
       const extractedFunctions = this.extractFunctions(tempSandbox);
 
-      console.debug(
-        `[ExternalFunctionVM] Extracted ${extractedFunctions.size} functions from ${filePath}:`,
-        Array.from(extractedFunctions.keys())
-      );
-
       // Check for conflicts with existing functions
       for (const [functionName, fn] of extractedFunctions) {
         if (this.functions.has(functionName)) {
@@ -108,9 +98,6 @@ export class ExternalFunctionVM {
           // Add to main sandbox and function map
           this.functions.set(functionName, fn);
           this.functionSources.set(functionName, filePath);
-          console.debug(
-            `[ExternalFunctionVM] Added function '${functionName}' from ${filePath}`
-          );
         }
       }
 
@@ -120,19 +107,11 @@ export class ExternalFunctionVM {
 
         // Merge the temp sandbox into the main sandbox
         this.mergeSandboxes(tempSandbox);
-        console.debug(
-          `[ExternalFunctionVM] Successfully loaded content from ${filePath}`
-        );
       } else {
-        console.warn(
-          `[ExternalFunctionVM] Conflicts detected for functions:`,
-          conflicts
-        );
       }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown execution error";
-      console.error(`[ExternalFunctionVM] Error loading ${filePath}:`, error);
       this.errors.push(`Error loading ${filePath}: ${errorMessage}`);
     }
 
@@ -182,22 +161,10 @@ export class ExternalFunctionVM {
   ): boolean {
     this.ensureNotDisposed();
 
-    console.debug(
-      `[ExternalFunctionVM] Attempting to bind function: ${functionName}`
-    );
-
     const fn = this.functions.get(functionName);
     if (!fn) {
-      console.error(
-        `[ExternalFunctionVM] Function '${functionName}' not found in VM. Available functions:`,
-        this.getFunctionNames()
-      );
       return false;
     }
-
-    console.debug(
-      `[ExternalFunctionVM] Function '${functionName}' found, attempting to bind to story`
-    );
 
     try {
       story.BindExternalFunction(
@@ -217,17 +184,10 @@ export class ExternalFunctionVM {
         },
         false
       );
-      console.debug(
-        `[ExternalFunctionVM] Successfully bound function: ${functionName}`
-      );
       return true;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown binding error";
-      console.error(
-        `[ExternalFunctionVM] Failed to bind function '${functionName}':`,
-        error
-      );
       this.errors.push(
         `Failed to bind function '${functionName}': ${errorMessage}`
       );

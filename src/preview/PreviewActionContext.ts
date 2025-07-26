@@ -27,43 +27,28 @@ import { PreviewState } from "./PreviewState";
 import { PreviewStoryManager } from "./PreviewStoryManager";
 
 /**
- * Context object passed to all PreviewAction.apply() methods.
- * Provides access to current state, state mutation, action dispatching, and side-effect resources.
+ * Preview Action Context used by Preview Actions to enact side-effects and access the Preview State.
  */
 export interface PreviewActionContext {
   /**
-   * Gets the current preview state.
-   * @returns The current preview state (immutable)
+   * Gets the current Preview State.
+   * @returns The current Preview State (immutable)
    */
   getState(): PreviewState;
 
   /**
-   * Dispatches another action within this action's context.
-   * This allows actions to dispatch other actions.
-   * @param action - The action to dispatch
+   * Dispatches another Preview Action.
+   * @param action - The Preview Action to dispatch
    */
   dispatch(action: PreviewAction): void;
 
   /**
-   * The story manager for performing story operations.
-   * This provides a high-level interface for story interactions (reset, continue, selectChoice).
-   * Guaranteed to be available for story-dependent actions.
+   * The Preview Story Manager for performing Story operations.
    */
   storyManager: PreviewStoryManager;
 
   /**
-   * Sends the current story state to the webview.
-   * Available for actions that need to trigger state updates to the UI.
-   */
-  sendStoryState(): void;
-
-  /**
-   * Undoes the last action.
+   * Undoes the last Preview Action.
    */
   undo(): void;
-
-  /**
-   * Undoes the last action of a specific type.
-   */
-  undoToLast(actionType: string): void;
 }

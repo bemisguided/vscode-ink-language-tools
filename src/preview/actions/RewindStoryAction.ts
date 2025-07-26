@@ -22,16 +22,12 @@
  * SOFTWARE.
  */
 
-import { AddStoryEventsAction } from "./AddStoryEventsAction";
-import { SetCurrentChoicesAction } from "./SetCurrentChoicesAction";
-import { EndStoryAction } from "./EndStoryAction";
-import { AddErrorsAction } from "./AddErrorsAction";
 import { PreviewAction } from "../PreviewAction";
 import { PreviewState } from "../PreviewState";
-import { PreviewActionContext } from "../PreviewActionContext";
+import { PreviewActionContext } from "../PreviewActionContext"; 
 
 /**
- * Action to continue the Story and trigger updates to the Story State.
+ * Action to rewind the Story to the last Choice made.
  */
 export class RewindStoryAction implements PreviewAction {
   // Static Properties ================================================================================================
@@ -43,7 +39,7 @@ export class RewindStoryAction implements PreviewAction {
   /**
    * @inheritdoc
    */
-  public readonly historical = false;
+  public readonly cursor = false;
 
   /**
    * @inheritdoc
@@ -63,6 +59,6 @@ export class RewindStoryAction implements PreviewAction {
    * @inheritdoc
    */
   public effect(context: PreviewActionContext): void {
-    // no-op TODO: Implement
+    context.undo();
   }
 }
