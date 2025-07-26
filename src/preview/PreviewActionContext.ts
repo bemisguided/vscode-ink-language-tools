@@ -22,41 +22,33 @@
  * SOFTWARE.
  */
 
-import {
-  PreviewState,
-  PreviewStoryState,
-  PreviewUIState,
-} from "../../src/preview/PreviewState";
+import { PreviewAction } from "./PreviewAction";
+import { PreviewState } from "./PreviewState";
+import { PreviewStoryManager } from "./PreviewStoryManager";
 
-export function mockPreviewStoryState(
-  overrides: Partial<PreviewStoryState> = {}
-): PreviewStoryState {
-  return {
-    choices: [],
-    errors: [],
-    events: [],
-    isStart: true,
-    isEnded: false,
-    lastChoiceIndex: 0,
-    ...overrides,
-  };
-}
+/**
+ * Preview Action Context used by Preview Actions to enact side-effects and access the Preview State.
+ */
+export interface PreviewActionContext {
+  /**
+   * Gets the current Preview State.
+   * @returns The current Preview State (immutable)
+   */
+  getState(): PreviewState;
 
-export function mockPreviewUIState(
-  overrides: Partial<PreviewUIState> = {}
-): PreviewUIState {
-  return {
-    canRewind: false,
-    ...overrides,
-  };
-}
+  /**
+   * Dispatches another Preview Action.
+   * @param action - The Preview Action to dispatch
+   */
+  dispatch(action: PreviewAction): void;
 
-export function mockPreviewState(
-  story: Partial<PreviewStoryState> = {},
-  ui: Partial<PreviewUIState> = {}
-): PreviewState {
-  return {
-    story: mockPreviewStoryState(story),
-    ui: mockPreviewUIState(ui),
-  };
+  /**
+   * The Preview Story Manager for performing Story operations.
+   */
+  storyManager: PreviewStoryManager;
+
+  /**
+   * Undoes the last Preview Action.
+   */
+  undo(): void;
 }

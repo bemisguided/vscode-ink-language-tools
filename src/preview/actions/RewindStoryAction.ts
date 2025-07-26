@@ -22,41 +22,43 @@
  * SOFTWARE.
  */
 
-import {
-  PreviewState,
-  PreviewStoryState,
-  PreviewUIState,
-} from "../../src/preview/PreviewState";
+import { PreviewAction } from "../PreviewAction";
+import { PreviewState } from "../PreviewState";
+import { PreviewActionContext } from "../PreviewActionContext"; 
 
-export function mockPreviewStoryState(
-  overrides: Partial<PreviewStoryState> = {}
-): PreviewStoryState {
-  return {
-    choices: [],
-    errors: [],
-    events: [],
-    isStart: true,
-    isEnded: false,
-    lastChoiceIndex: 0,
-    ...overrides,
-  };
-}
+/**
+ * Action to rewind the Story to the last Choice made.
+ */
+export class RewindStoryAction implements PreviewAction {
+  // Static Properties ================================================================================================
 
-export function mockPreviewUIState(
-  overrides: Partial<PreviewUIState> = {}
-): PreviewUIState {
-  return {
-    canRewind: false,
-    ...overrides,
-  };
-}
+  public static readonly actionType = "REWIND_STORY";
 
-export function mockPreviewState(
-  story: Partial<PreviewStoryState> = {},
-  ui: Partial<PreviewUIState> = {}
-): PreviewState {
-  return {
-    story: mockPreviewStoryState(story),
-    ui: mockPreviewUIState(ui),
-  };
+  // Public Properties ==============================================================================================
+
+  /**
+   * @inheritdoc
+   */
+  public readonly cursor = false;
+
+  /**
+   * @inheritdoc
+   */
+  public readonly type = RewindStoryAction.actionType;
+
+  // Public Methods ===================================================================================================
+
+  /**
+   * @inheritdoc
+   */
+  apply(state: PreviewState): PreviewState {
+    return state;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public effect(context: PreviewActionContext): void {
+    context.undo();
+  }
 }

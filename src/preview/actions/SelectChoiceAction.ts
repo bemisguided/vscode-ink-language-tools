@@ -22,43 +22,43 @@
  * SOFTWARE.
  */
 
-import { PreviewAction, PreviewActionContext } from "../PreviewAction";
+import { PreviewAction } from "../PreviewAction";
+import { PreviewActionContext } from "../PreviewActionContext";
 import { AddStoryEventsAction } from "./AddStoryEventsAction";
 import { EndStoryAction } from "./EndStoryAction";
 import { SetCurrentChoicesAction } from "./SetCurrentChoicesAction";
 import { AddErrorsAction } from "./AddErrorsAction";
+import { PreviewState } from "../PreviewState";
 
 /**
- * Action to select a choice in the story and then continue until the next choice point or end.
- * This action uses composition to reuse the continue logic after choice selection.
+ * Action to select a Choice in the Story, continue the Story, triggering updates to the Story State.
  */
 export class SelectChoiceAction implements PreviewAction {
   // Static Properties ================================================================================================
 
+  public static readonly actionType = "SELECT_CHOICE";
+
+  // Public Properties ==============================================================================================
+
   /**
-   * The type identifier for this action.
-   * Used for action identification, filtering, and debugging.
+   * @inheritdoc
    */
-  public static readonly typeId = "SELECT_CHOICE";
-
-  // Instance Properties ==============================================================================================
+  public readonly cursor = true;
 
   /**
-   * The type identifier for this action instance.
+   * @inheritdoc
    */
-  public readonly type = SelectChoiceAction.typeId;
+  public readonly type = SelectChoiceAction.actionType;
+
+  // Private Properties ===============================================================================================
 
   /**
-   * The index of the choice to select.
+   * The index of the Choice to select in the Story.
    */
   private readonly choiceIndex: number;
 
   // Constructor ======================================================================================================
 
-  /**
-   * Creates a new SelectChoiceAction.
-   * @param choiceIndex - The index of the choice to select
-   */
   constructor(choiceIndex: number) {
     this.choiceIndex = choiceIndex;
   }
@@ -66,25 +66,24 @@ export class SelectChoiceAction implements PreviewAction {
   // Public Methods ===================================================================================================
 
   /**
-   * Applies this action to select a choice and continue the story.
-   * Uses the story manager to select the choice and continue in one operation.
-   *
-   * @param context - The action context providing state access and dispatch capability
+   * @inheritdoc
    */
-  apply(context: PreviewActionContext): void {
-    console.debug(
-      `[SelectChoiceAction] 🎯 Selecting choice ${this.choiceIndex}`
-    );
+  public apply(state: PreviewState): PreviewState {
+    state.story.isStart = false;
+    state.ui.canRewind = true;
+    return state;
+  }
 
-    // Use story manager to select choice and continue the story
-    const result = context.storyManager.selectChoice(this.choiceIndex);
-
-    // Dispatch error actions if errors occurred
+  /**
+   * @inheritdoc
+   */
+  public effect(context: PreviewActionContext): void {
+    const storyManager = context.storyManager;
+    const result = storyManager.selectChoice(this.choiceIndex);
     if (result.errors.length > 0) {
       context.dispatch(new AddErrorsAction(result.errors));
     }
 
-    // Dispatch state mutations based on the result
     if (result.events.length > 0) {
       context.dispatch(new AddStoryEventsAction(result.events));
     }
@@ -94,9 +93,5 @@ export class SelectChoiceAction implements PreviewAction {
     if (result.isEnded) {
       context.dispatch(new EndStoryAction());
     }
-
-    console.debug(
-      `[SelectChoiceAction] ✅ Choice selection completed: ${result.events.length} events, ${result.choices.length} choices, ended: ${result.isEnded}`
-    );
   }
 }

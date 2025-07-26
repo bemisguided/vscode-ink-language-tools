@@ -24,40 +24,54 @@
 
 import { EndStoryAction } from "../../../src/preview/actions/EndStoryAction";
 import { PreviewState } from "../../../src/preview/PreviewState";
-import { mockPreviewState } from "../../__mocks__/mockPreviewState";
+import {
+  PreviewStoryState,
+  StoryEvent,
+} from "../../../src/preview/PreviewState";
+import {
+  mockPreviewState,
+  mockPreviewStoryState,
+} from "../../__mocks__/mockPreviewState";
 
 describe("EndStoryAction", () => {
+  function setupState(story: PreviewStoryState = mockPreviewStoryState()): PreviewState {
+    return {
+      ...mockPreviewState(),
+      story,
+    };
+  }
   let action: EndStoryAction;
 
   beforeEach(() => {
     action = new EndStoryAction();
   });
 
-  describe("reduce", () => {
+  describe("apply", () => {
     test("should set isEnded to true", () => {
-      // Set up
-      const currentState: PreviewState = mockPreviewState({
+      // Setup
+      const currentState: PreviewState = setupState({
+        ...mockPreviewStoryState(),
         isEnded: false,
       });
 
       // Execute
-      const newState = action.reduce(currentState);
+      const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.isEnded).toBe(true);
+      expect(newState.story.isEnded).toBe(true);
     });
 
     test("should preserve all other state properties", () => {
-      // Set up
-      const currentState: PreviewState = mockPreviewState({
-        storyEvents: [
-          {
-            type: "text" as const,
-            text: "Some story text",
-            tags: ["ending"],
-          },
-        ],
-        currentChoices: [
+      // Setup
+      const existingEvent: StoryEvent = {
+        type: "text",
+        text: "Existing event",
+        tags: [],
+        isCurrent: false,
+      };
+      const currentState: PreviewState = setupState({
+        events: [existingEvent],
+        choices: [
           {
             index: 0,
             text: "Final choice",
@@ -76,39 +90,28 @@ describe("EndStoryAction", () => {
       });
 
       // Execute
-      const newState = action.reduce(currentState);
+      const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.storyEvents).toEqual(currentState.storyEvents);
-      expect(newState.currentChoices).toEqual(currentState.currentChoices);
-      expect(newState.errors).toEqual(currentState.errors);
-      expect(newState.isStart).toBe(false);
-      expect(newState.lastChoiceIndex).toBe(5);
-    });
-
-    test("should return a new state object", () => {
-      // Set up
-      const currentState: PreviewState = mockPreviewState();
-
-      // Execute
-      const newState = action.reduce(currentState);
-
-      // Assert
-      expect(newState).not.toBe(currentState);
-      expect(newState).toEqual(mockPreviewState({ isEnded: true }));
+      expect(newState.story.events).toEqual(currentState.story.events);
+      expect(newState.story.choices).toEqual(currentState.story.choices);
+      expect(newState.story.errors).toEqual(currentState.story.errors);
+      expect(newState.story.isStart).toBe(true);
+      expect(newState.story.lastChoiceIndex).toBe(5);
     });
 
     test("should work when isEnded is already true", () => {
-      // Set up
-      const currentState: PreviewState = mockPreviewState({
+      // Setup
+      const currentState: PreviewState = setupState({
+        ...mockPreviewStoryState(),
         isEnded: true,
       });
 
       // Execute
-      const newState = action.reduce(currentState);
+      const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.isEnded).toBe(true);
+      expect(newState.story.isEnded).toBe(true);
     });
   });
 });

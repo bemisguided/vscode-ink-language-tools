@@ -22,44 +22,44 @@
  * SOFTWARE.
  */
 
-import { PreviewReducerAction } from "../PreviewAction";
+import { PreviewAction } from "../PreviewAction";
 import { PreviewState } from "../PreviewState";
+import { PreviewActionContext } from "../PreviewActionContext";
 
 /**
- * Action to clear all errors from the state.
- * Removes all errors from the errors array.
+ * Action to clear all errors from the Story State.
  */
-export class ClearErrorsAction extends PreviewReducerAction {
+export class ClearErrorsAction implements PreviewAction {
   // Static Properties ================================================================================================
 
-  /**
-   * The type identifier for this action.
-   * Used for action identification, filtering, and debugging.
-   */
-  public static readonly typeId = "CLEAR_ERRORS";
+  public static readonly actionType = "CLEAR_ERRORS";
 
-  // Instance Properties ==============================================================================================
+  // Public Properties ==============================================================================================
 
   /**
-   * The type identifier for this action instance.
+   * @inheritdoc
    */
-  public readonly type = ClearErrorsAction.typeId;
+  public readonly cursor = false;
+
+  /**
+   * @inheritdoc
+   */
+  public readonly type = ClearErrorsAction.actionType;
 
   // Public Methods ===================================================================================================
 
   /**
-   * Reduces the current state by clearing all errors.
-   * This removes all accumulated errors from the state, effectively resetting
-   * the error list to an empty array.
-   *
-   * @param state - The current preview state
-   * @returns New state with cleared errors array
+   * @inheritdoc
    */
-  reduce(state: PreviewState): PreviewState {
-    return {
-      ...state,
-      errors: [],
-      uiState: { ...state.uiState },
-    };
+  public apply(state: PreviewState): PreviewState {
+    state.story.errors = [];
+    return state;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public effect(context: PreviewActionContext): void {
+    // no-op
   }
 }

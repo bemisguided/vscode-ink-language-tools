@@ -22,62 +22,57 @@
  * SOFTWARE.
  */
 
-import { PreviewReducerAction } from "../PreviewAction";
-import { PreviewState } from "../PreviewState";
-import { ErrorInfo } from "../PreviewState";
+import { PreviewAction } from "../PreviewAction";
+import { ErrorInfo, PreviewState } from "../PreviewState";
+import { PreviewActionContext } from "../PreviewActionContext";
 
 /**
- * Action to add errors to the state.
- * Appends a list of new errors to the existing errors array.
- * This allows for flexible addition of single errors or multiple errors at once.
+ * Action to add errors to the Story State.
  */
-export class AddErrorsAction extends PreviewReducerAction {
+export class AddErrorsAction implements PreviewAction {
   // Static Properties ================================================================================================
 
+  public static readonly actionType = "ADD_ERRORS";
+
+  // Public Properties ==============================================================================================
+
   /**
-   * The type identifier for this action.
-   * Used for action identification, filtering, and debugging.
+   * @inheritdoc
    */
-  public static readonly typeId = "ADD_ERRORS";
-
-  // Instance Properties ==============================================================================================
+  public readonly cursor = false;
 
   /**
-   * The type identifier for this action instance.
+   * @inheritdoc
    */
-  public readonly type = AddErrorsAction.typeId;
+  public readonly type = AddErrorsAction.actionType;
+
+  // Private Properties ===============================================================================================
 
   /**
-   * The list of errors to add to the state.
+   * The list of Errors to be added to the Story.
    */
   private readonly errors: ErrorInfo[];
 
   // Constructor ======================================================================================================
 
-  /**
-   * Creates a new AddErrorsAction.
-   * @param errors - The list of errors to add to the state
-   */
   constructor(errors: ErrorInfo[]) {
-    super();
     this.errors = errors;
   }
 
   // Public Methods ===================================================================================================
 
   /**
-   * Reduces the current state by appending new errors.
-   * This adds the provided errors to the existing errors array,
-   * preserving all previously recorded errors.
-   *
-   * @param state - The current preview state
-   * @returns New state with errors appended to the existing errors array
+   * @inheritdoc
    */
-  reduce(state: PreviewState): PreviewState {
-    return {
-      ...state,
-      errors: [...state.errors, ...this.errors],
-      uiState: { ...state.uiState },
-    };
+  public apply(state: PreviewState): PreviewState {
+    state.story.errors.push(...this.errors);
+    return state;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public effect(context: PreviewActionContext): void {
+    // no-op
   }
 }

@@ -22,49 +22,66 @@
  * SOFTWARE.
  */
 
-import { PreviewReducerAction } from "../PreviewAction";
+import { PreviewAction } from "../PreviewAction";
 import { PreviewState } from "../PreviewState";
+import { PreviewActionContext } from "../PreviewActionContext";
+import { SetCurrentChoicesAction } from "./SetCurrentChoicesAction";
+import { AddErrorsAction } from "./AddErrorsAction";
+import { AddStoryEventsAction } from "./AddStoryEventsAction";
+import { EndStoryAction } from "./EndStoryAction";
 
 /**
- * Action to start/restart the story.
- * Resets the story state to its initial state and marks it as starting.
+ * Action to starts or restarts the Story and resets the Story State.
  */
-export class StartStoryAction extends PreviewReducerAction {
+export class StartStoryAction implements PreviewAction {
   // Static Properties ================================================================================================
 
-  /**
-   * The type identifier for this action.
-   * Used for action identification, filtering, and debugging.
-   */
-  public static readonly typeId = "START_STORY";
+  public static readonly actionType = "START_STORY";
 
-  // Instance Properties ==============================================================================================
+  // Public Properties ==============================================================================================
 
   /**
-   * The type identifier for this action instance.
+   * @inheritdoc
    */
-  public readonly type = StartStoryAction.typeId;
+  public readonly cursor = true;
+
+  /**
+   * @inheritdoc
+   */
+  public readonly type = StartStoryAction.actionType;
 
   // Public Methods ===================================================================================================
 
   /**
-   * Reduces the current state to a fresh starting state.
-   * Clears all story events, choices, and errors, and marks the story as starting.
-   *
-   * @param state - The current preview state
-   * @returns New state with cleared story data and isStart flag set
+   * @inheritdoc
    */
-  reduce(state: PreviewState): PreviewState {
-    return {
-      storyEvents: [],
-      currentChoices: [],
-      errors: [],
-      isEnded: false,
-      isStart: true,
-      lastChoiceIndex: 0,
-      uiState: {
-        rewind: false,
-      },
-    };
+  public apply(state: PreviewState): PreviewState {
+    state.story.events = [];
+    state.story.choices = [];
+    state.story.errors = [];
+    state.story.isEnded = false;
+    state.story.lastChoiceIndex = 0;
+    state.story.isStart = true;
+    state.ui.canRewind = false;
+    return state;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public effect(context: PreviewActionContext): void {
+    context.storyManager.reset();
+    const storyManager = context.storyManager;
+    const result = storyManager.continue();
+    if (result.errors.length > 0) {
+      context.dispatch(new AddErrorsAction(result.errors));
+    }
+    if (result.events.length > 0) {
+      context.dispatch(new AddStoryEventsAction(result.events));
+    }
+    context.dispatch(new SetCurrentChoicesAction(result.choices));
+    if (result.isEnded) {
+      context.dispatch(new EndStoryAction());
+    }
   }
 }

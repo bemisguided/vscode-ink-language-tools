@@ -22,29 +22,36 @@
  * SOFTWARE.
  */
 
-import { PreviewReducerAction } from "../PreviewAction";
-import { PreviewState } from "../PreviewState";
-import { Choice } from "../PreviewState";
+import { PreviewAction } from "../PreviewAction";
+import { Choice, PreviewState } from "../PreviewState";
+import { PreviewActionContext } from "../PreviewActionContext";
 
 /**
  * Action to set the current choices available in the story.
  * Replaces the existing currentChoices array with the provided choices.
  */
-export class SetCurrentChoicesAction extends PreviewReducerAction {
+export class SetCurrentChoicesAction implements PreviewAction {
   // Static Properties ================================================================================================
 
   /**
    * The type identifier for this action.
    * Used for action identification, filtering, and debugging.
    */
-  public static readonly typeId = "SET_CURRENT_CHOICES";
+  public static readonly actionType = "SET_CURRENT_CHOICES";
 
-  // Instance Properties ==============================================================================================
+  // Public Properties ==============================================================================================
+
+  /**
+   * @inheritdoc
+   */
+  public readonly cursor = false;
 
   /**
    * The type identifier for this action instance.
    */
-  public readonly type = SetCurrentChoicesAction.typeId;
+  public readonly type = SetCurrentChoicesAction.actionType;
+
+  // Private Properties ===============================================================================================
 
   /**
    * The list of choices to set as current choices.
@@ -58,26 +65,24 @@ export class SetCurrentChoicesAction extends PreviewReducerAction {
    * @param choices - The list of choices to set as current choices
    */
   constructor(choices: Choice[]) {
-    super();
     this.choices = choices;
   }
 
   // Public Methods ===================================================================================================
 
   /**
-   * Reduces the current state by replacing the current choices.
-   * This updates the available choices that the user can select from.
-   * Also sets lastChoiceIndex to the current length of storyEvents to mark the turn boundary.
-   *
-   * @param state - The current preview state
-   * @returns New state with updated current choices and turn boundary
+   * @inheritdoc
    */
-  reduce(state: PreviewState): PreviewState {
-    return {
-      ...state,
-      currentChoices: [...this.choices],
-      lastChoiceIndex: state.storyEvents.length,
-      uiState: { ...state.uiState },
-    };
+  public apply(state: PreviewState): PreviewState {
+    state.story.choices = [...this.choices];
+    state.story.lastChoiceIndex = state.story.events.length;
+    return state;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public effect(context: PreviewActionContext): void {
+    // no-op
   }
 }

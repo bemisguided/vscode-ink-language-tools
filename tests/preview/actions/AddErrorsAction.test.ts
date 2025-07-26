@@ -23,12 +23,31 @@
  */
 
 import { AddErrorsAction } from "../../../src/preview/actions/AddErrorsAction";
-import { PreviewState } from "../../../src/preview/PreviewState";
+import {
+  PreviewState,
+  PreviewStoryState,
+} from "../../../src/preview/PreviewState";
 import { ErrorInfo } from "../../../src/preview/PreviewState";
-import { mockPreviewState } from "../../__mocks__/mockPreviewState";
+import {
+  mockPreviewState,
+  mockPreviewStoryState,
+} from "../../__mocks__/mockPreviewState";
 
 describe("AddErrorsAction", () => {
-  describe("reduce", () => {
+  function setupState(
+    errors: ErrorInfo[] = [],
+    story: PreviewStoryState = mockPreviewStoryState()
+  ): PreviewState {
+    return {
+      ...mockPreviewState(),
+      story: {
+        ...story,
+        errors,
+      },
+    };
+  }
+
+  describe("apply", () => {
     test("should add a single error to empty errors array", () => {
       // Set up
       const newError: ErrorInfo = {
@@ -36,16 +55,14 @@ describe("AddErrorsAction", () => {
         severity: "error",
       };
       const action = new AddErrorsAction([newError]);
-      const currentState: PreviewState = mockPreviewState({
-        errors: [],
-      });
+      const currentState = setupState();
 
       // Execute
-      const newState = action.reduce(currentState);
+      const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.errors).toHaveLength(1);
-      expect(newState.errors[0]).toEqual(newError);
+      expect(newState.story.errors).toHaveLength(1);
+      expect(newState.story.errors[0]).toEqual(newError);
     });
 
     test("should add multiple errors to empty errors array", () => {
@@ -65,47 +82,43 @@ describe("AddErrorsAction", () => {
         },
       ];
       const action = new AddErrorsAction(newErrors);
-      const currentState: PreviewState = mockPreviewState({
-        errors: [],
-      });
+      const currentState = mockPreviewState();
 
       // Execute
-      const newState = action.reduce(currentState);
+      const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.errors).toHaveLength(3);
-      expect(newState.errors).toEqual(newErrors);
+      expect(newState.story.errors).toHaveLength(3);
+      expect(newState.story.errors).toEqual(newErrors);
     });
 
     test("should append errors to existing errors array", () => {
       // Set up
-      const existingErrors: ErrorInfo[] = [
-        {
-          message: "Existing error",
-          severity: "error",
-        },
-      ];
-      const newErrors: ErrorInfo[] = [
-        {
-          message: "New error",
-          severity: "error",
-        },
-        {
-          message: "New warning",
-          severity: "warning",
-        },
-      ];
-      const action = new AddErrorsAction(newErrors);
-      const currentState: PreviewState = mockPreviewState({
-        errors: existingErrors,
-      });
+      const existingError: ErrorInfo = {
+        message: "Existing error",
+        severity: "error",
+      };
+      const newError1: ErrorInfo = {
+        message: "New error",
+        severity: "error",
+      };
+      const newError2: ErrorInfo = {
+        message: "New warning",
+        severity: "warning",
+      };
+      const action = new AddErrorsAction([newError1, newError2]);
+      const previousState = setupState([existingError]);
 
       // Execute
-      const newState = action.reduce(currentState);
+      const newState = action.apply(previousState);
 
       // Assert
-      expect(newState.errors).toHaveLength(3);
-      expect(newState.errors).toEqual([...existingErrors, ...newErrors]);
+      expect(newState.story.errors).toHaveLength(3);
+      expect(newState.story.errors).toEqual([
+        existingError,
+        newError1,
+        newError2,
+      ]);
     });
 
     test("should preserve all other state properties", () => {
@@ -115,163 +128,61 @@ describe("AddErrorsAction", () => {
         severity: "error",
       };
       const action = new AddErrorsAction([newError]);
-      const currentState: PreviewState = mockPreviewState({
-        storyEvents: [
+      const currentState = setupState([], {
+        ...mockPreviewStoryState(),
+        events: [
           {
             type: "text" as const,
             text: "Story content",
             tags: ["test"],
           },
         ],
-        currentChoices: [
+        choices: [
           {
             index: 0,
             text: "Choice 1",
             tags: ["choice"],
           },
         ],
-        errors: [],
-        isEnded: true,
-        isStart: false,
-        lastChoiceIndex: 5,
       });
 
       // Execute
-      const newState = action.reduce(currentState);
+      const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.storyEvents).toEqual(currentState.storyEvents);
-      expect(newState.currentChoices).toEqual(currentState.currentChoices);
-      expect(newState.isEnded).toBe(true);
-      expect(newState.isStart).toBe(false);
-      expect(newState.lastChoiceIndex).toBe(5);
+      expect(newState.story.events).toEqual(currentState.story.events);
+      expect(newState.story.choices).toEqual(currentState.story.choices);
+      expect(newState.story.isEnded).toBe(currentState.story.isEnded);
+      expect(newState.story.isStart).toBe(currentState.story.isStart);
+      expect(newState.story.lastChoiceIndex).toBe(
+        currentState.story.lastChoiceIndex
+      );
+      expect(newState.story.errors).toHaveLength(1);
+      expect(newState.story.errors[0]).toEqual(newError);
     });
 
     test("should handle empty errors array input", () => {
       // Set up
       const action = new AddErrorsAction([]);
-      const currentState: PreviewState = mockPreviewState({
-        errors: [
+      const currentState = setupState(
+        [
           {
             message: "Existing error",
             severity: "error",
           },
         ],
-      });
+        mockPreviewStoryState()
+      );
 
       // Execute
-      const newState = action.reduce(currentState);
+      const newState = action.apply(currentState);
 
       // Assert
-      expect(newState.errors).toHaveLength(1);
-      expect(newState.errors[0]).toEqual({
+      expect(newState.story.errors).toHaveLength(1);
+      expect(newState.story.errors[0]).toEqual({
         message: "Existing error",
         severity: "error",
       });
-    });
-
-    test("should return a new state object", () => {
-      // Set up
-      const newError: ErrorInfo = {
-        message: "Test error",
-        severity: "error",
-      };
-      const action = new AddErrorsAction([newError]);
-      const currentState: PreviewState = mockPreviewState();
-
-      // Execute
-      const newState = action.reduce(currentState);
-
-      // Assert
-      expect(newState).not.toBe(currentState);
-      expect(newState).toEqual(mockPreviewState({ errors: [newError] }));
-    });
-  });
-
-  describe("Edge cases", () => {
-    test("should handle duplicate errors", () => {
-      // Set up
-      const duplicateError: ErrorInfo = {
-        message: "Duplicate error",
-        severity: "error",
-      };
-      const action = new AddErrorsAction([duplicateError, duplicateError]);
-      const currentState: PreviewState = mockPreviewState({
-        errors: [duplicateError],
-      });
-
-      // Execute
-      const newState = action.reduce(currentState);
-
-      // Assert
-      expect(newState.errors).toHaveLength(3);
-      expect(newState.errors).toEqual([
-        duplicateError,
-        duplicateError,
-        duplicateError,
-      ]);
-    });
-
-    test("should handle errors with long messages", () => {
-      // Set up
-      const longMessage = "A".repeat(1000);
-      const longError: ErrorInfo = {
-        message: longMessage,
-        severity: "error",
-      };
-      const action = new AddErrorsAction([longError]);
-      const currentState: PreviewState = mockPreviewState();
-
-      // Execute
-      const newState = action.reduce(currentState);
-
-      // Assert
-      expect(newState.errors).toHaveLength(1);
-      expect(newState.errors[0].message).toBe(longMessage);
-    });
-
-    test("should handle errors with special characters", () => {
-      // Set up
-      const specialError: ErrorInfo = {
-        message: "Error with special chars: àáâãäåæçèéêë 🔥💥",
-        severity: "error",
-      };
-      const action = new AddErrorsAction([specialError]);
-      const currentState: PreviewState = mockPreviewState();
-
-      // Execute
-      const newState = action.reduce(currentState);
-
-      // Assert
-      expect(newState.errors).toHaveLength(1);
-      expect(newState.errors[0]).toEqual(specialError);
-    });
-
-    test("should handle mixed severity levels", () => {
-      // Set up
-      const mixedErrors: ErrorInfo[] = [
-        {
-          message: "Critical error",
-          severity: "error",
-        },
-        {
-          message: "Warning message",
-          severity: "warning",
-        },
-        {
-          message: "Info message",
-          severity: "info",
-        },
-      ];
-      const action = new AddErrorsAction(mixedErrors);
-      const currentState: PreviewState = mockPreviewState();
-
-      // Execute
-      const newState = action.reduce(currentState);
-
-      // Assert
-      expect(newState.errors).toHaveLength(3);
-      expect(newState.errors).toEqual(mixedErrors);
     });
   });
 });

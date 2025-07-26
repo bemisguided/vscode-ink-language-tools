@@ -22,75 +22,60 @@
  * SOFTWARE.
  */
 
-import { PreviewReducerAction } from "../PreviewAction";
-import { PreviewState } from "../PreviewState";
-import { StoryEvent } from "../PreviewState";
+import { PreviewAction } from "../PreviewAction";
+import { PreviewState, StoryEvent } from "../PreviewState";
+import { PreviewActionContext } from "../PreviewActionContext";
 
 /**
- * Action to add story events to the state.
- * Appends a list of new story events to the existing storyEvents array.
- * This allows for flexible addition of single events or multiple events at once.
+ * Action to add story events to the Story State.
  */
-export class AddStoryEventsAction extends PreviewReducerAction {
+export class AddStoryEventsAction implements PreviewAction {
   // Static Properties ================================================================================================
 
+  public static readonly actionType = "ADD_STORY_EVENTS";
+
+  // Public Properties ==============================================================================================
+
   /**
-   * The type identifier for this action.
-   * Used for action identification, filtering, and debugging.
+   * @inheritdoc
    */
-  public static readonly typeId = "ADD_STORY_EVENTS";
-
-  // Instance Properties ==============================================================================================
+  public readonly cursor = false;
 
   /**
-   * The type identifier for this action instance.
+   * @inheritdoc
    */
-  public readonly type = AddStoryEventsAction.typeId;
+  public readonly type = AddStoryEventsAction.actionType;
+
+  // Private Properties ===============================================================================================
 
   /**
-   * The list of story events to add to the state.
+   * The list of Story Events to be added to the Story.
    */
   private readonly events: StoryEvent[];
 
   // Constructor ======================================================================================================
 
-  /**
-   * Creates a new AddStoryEventsAction.
-   * @param events - The list of story events to add to the state
-   */
   constructor(events: StoryEvent[]) {
-    super();
     this.events = events;
   }
 
   // Public Methods ===================================================================================================
 
   /**
-   * Reduces the current state by appending new story events.
-   * Uses lastChoiceIndex to determine which events should be marked as current.
-   * Events with index >= lastChoiceIndex are marked as current (from the current turn).
-   * Events with index < lastChoiceIndex are marked as historical (from previous turns).
-   *
-   * @param state - The current preview state
-   * @returns New state with events appended and isCurrent flags set based on lastChoiceIndex
+   * @inheritdoc
    */
-  reduce(state: PreviewState): PreviewState {
-    // Combine existing events with new events
-    const allEvents = [...state.storyEvents, ...this.events];
+  public apply(state: PreviewState): PreviewState {
+    state.story.events.push(...this.events);
+    state.story.events.forEach((event, index) => {
+      event.isCurrent = index >= state.story.lastChoiceIndex;
+    });
+    return state;
+  }
 
-    // Set isCurrent based on lastChoiceIndex
-    const eventsWithCurrentFlags = allEvents.map((event, index) => ({
-      ...event,
-      isCurrent: index >= state.lastChoiceIndex,
-    }));
-
-    return {
-      ...state,
-      storyEvents: eventsWithCurrentFlags,
-      uiState: {
-        ...state.uiState,
-        rewind: state.lastChoiceIndex > 0,
-      },
-    };
+  /**
+   * @inheritdoc
+   */
+  public effect(context: PreviewActionContext): void {
+    // no-op
   }
 }

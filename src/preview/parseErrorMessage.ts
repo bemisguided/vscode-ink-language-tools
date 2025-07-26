@@ -22,38 +22,34 @@
  * SOFTWARE.
  */
 
-import { ErrorSeverity } from "./PreviewState";
+import { ErrorInfo, ErrorSeverity } from "./PreviewState";
 
 /**
- * Parses an error message to extract severity and clean message.
+ * Utility function to parse errors from the Ink Engine.
  * @param rawMessage - The raw error message
  * @returns Object with parsed message and severity
  */
-export function parseErrorMessage(rawMessage: string): {
-  message: string;
-  severity: ErrorSeverity | null;
-} {
+export function parseErrorMessage(message: string): ErrorInfo {
   // Default values
-  let message = rawMessage;
-  let severity: ErrorSeverity | null = null;
+  let severity: ErrorSeverity = "error";
 
   // Extract severity from common prefixes
-  if (rawMessage.startsWith("RUNTIME ERROR:")) {
+  if (message.startsWith("RUNTIME ERROR:")) {
     severity = "error";
-  } else if (rawMessage.startsWith("RUNTIME WARNING:")) {
+  } else if (message.startsWith("RUNTIME WARNING:")) {
     severity = "warning";
-  } else if (rawMessage.startsWith("Error:")) {
+  } else if (message.startsWith("Error:")) {
     severity = "error";
-  } else if (rawMessage.startsWith("Warning:")) {
+  } else if (message.startsWith("Warning:")) {
     severity = "warning";
   }
 
   // Find the first colon and extract message after it
-  const firstColonIndex = rawMessage.indexOf(":");
+  const firstColonIndex = message.indexOf(":");
 
   // If we have at least 1 colon, extract message after the first one
   if (firstColonIndex !== -1) {
-    message = rawMessage.substring(firstColonIndex + 1).trim();
+    message = message.substring(firstColonIndex + 1).trim();
   }
 
   return { message, severity };

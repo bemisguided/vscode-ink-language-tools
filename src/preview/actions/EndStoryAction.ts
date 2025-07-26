@@ -22,45 +22,44 @@
  * SOFTWARE.
  */
 
-import { PreviewReducerAction } from "../PreviewAction";
+import { PreviewAction } from "../PreviewAction";
 import { PreviewState } from "../PreviewState";
+import { PreviewActionContext } from "../PreviewActionContext";
 
 /**
- * Action to end the story.
- * Marks the story as ended and no longer starting.
+ * Action to mark the Story as ended in the Story State.
  */
-export class EndStoryAction extends PreviewReducerAction {
+export class EndStoryAction implements PreviewAction {
   // Static Properties ================================================================================================
 
-  /**
-   * The type identifier for this action.
-   * Used for action identification, filtering, and debugging.
-   */
-  public static readonly typeId = "END_STORY";
+  public static readonly actionType = "END_STORY";
 
-  // Instance Properties ==============================================================================================
+  // Public Properties ==============================================================================================
 
   /**
-   * The type identifier for this action instance.
+   * @inheritdoc
    */
-  public readonly type = EndStoryAction.typeId;
+  public readonly cursor = false;
+
+  /**
+   * @inheritdoc
+   */
+  public readonly type = EndStoryAction.actionType;
 
   // Public Methods ===================================================================================================
 
   /**
-   * Reduces the current state by marking the story as ended.
-   * This sets the isEnded flag to true, indicating that the story
-   * has reached a conclusion and no further progression is possible.
-   *
-   * @param state - The current preview state
-   * @returns New state with isEnded flag set to true
+   * @inheritdoc
    */
-  reduce(state: PreviewState): PreviewState {
-    return {
-      ...state,
-      isEnded: true,
-      isStart: false,
-      uiState: { ...state.uiState },
-    };
+  public apply(state: PreviewState): PreviewState {
+    state.story.isEnded = true;
+    return state;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public effect(context: PreviewActionContext): void {
+    // no-op
   }
 }

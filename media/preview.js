@@ -37,17 +37,8 @@ const outboundMessages = {
   /** Sent when Webview is ready to receive messages */
   ready: "ready",
 
-  /** Sent when player selects a choice */
-  selectChoice: "selectChoice",
-
-  /** Sent when player requests story restart */
-  restartStory: "restartStory",
-
-  /** Sent when player requests story rewind to last choice */
-  rewindStory: "rewindStory",
-
-  /** Sent for debug logging */
-  log: "log",
+  /** Sent when player performs any action */
+  action: "action",
 };
 
 /**
@@ -101,20 +92,22 @@ function createTagsContainer(tags) {
  * Utility function to log a message to the VSCode Extension.
  * @param {string} message - The message to log.
  */
-function log(message, isRemote = true) {
-  console.debug(`[preview.js] ${message}`);
-  if (isRemote) {
-    postMessage(inboundMessages.log, { message });
-  }
+function log(message, ...payload) {
+  console.info(`[preview.js] ${message}`, ...payload);
 }
 
-function logRemote(message) {
-  log(message, true);
-}
+// Action Dispatcher =================================================================================================
 
-function logLocal(message) {
-  log(message, false);
-}
+const actionDispatcher = {
+  /**
+   * Dispatches an action to the VSCode extension.
+   * @param {Object} action - The action to dispatch with type and optional payload
+   */
+  dispatch(action) {
+    log(`🎬 Dispatching action: ${action.type}`);
+    messageHandler.postMessage(outboundMessages.action, action);
+  },
+};
 
 // Message Handler ===================================================================================================
 
@@ -131,7 +124,7 @@ const messageHandler = {
    * @param {Object} payload - The payload to send with the command
    */
   postMessage(command, payload) {
-    logLocal(`[preview.js] 📤 Sending message: ${command}`, payload);
+    log(`📤 Sending message: ${command}`, payload);
     this.vscode.postMessage({ command, payload });
   },
 
@@ -167,9 +160,9 @@ const messageHandler = {
    */
   handle(event) {
     const message = event.data;
-    logLocal("[preview.js] 📥 Received message:" + JSON.stringify(message));
+    log("📥 Received message:" + JSON.stringify(message));
     if (!message || !message.command) {
-      logLocal("[preview.js] ❌ Invalid message format:", message);
+      log("❌ Invalid message format:", message);
       return;
     }
 
@@ -184,7 +177,7 @@ const messageHandler = {
    * This should be called when the webview is loaded.
    */
   initialize() {
-    logLocal("[preview.js] 📝 MessageHandler: Initializing");
+    log("📝 MessageHandler: Initializing");
 
     // Add new listener with a bound function
     this.handle = this.handle.bind(this);
@@ -236,7 +229,7 @@ const storyView = {
    * This should be called when the webview is loaded.
    */
   initialize() {
-    logLocal("[preview.js] 📝 View: Initializing");
+    log("📝 View: Initializing");
     this.initializeElements();
     this.reset();
     this.setupEventListeners();
@@ -376,7 +369,7 @@ const storyView = {
         this.hideErrorModal();
       });
     } else {
-      logLocal("[preview.js] ⚠️ Error modal overlay not found");
+      log("⚠️ Error modal overlay not found");
     }
   },
 
@@ -395,9 +388,6 @@ const storyView = {
     // Reset UI
     this.elements.storyContent.innerHTML = "";
     this.elements.choicesContainer.innerHTML = "";
-
-    // Reset rewind button to disabled state
-    this.updateRewindButton(false);
   },
 
   /**
@@ -579,7 +569,7 @@ const storyView = {
     };
     this.errors.push(error);
     this.updateErrorButton();
-    logLocal(`[preview.js] 📝 Error added: ${severity} - ${message}`);
+    log(`📝 Error added: ${severity} - ${message}`);
   },
 
   /**
@@ -659,7 +649,7 @@ const storyView = {
    * Shows the error modal with the list of errors.
    */
   showErrorModal() {
-    logLocal("[preview.js] 🔍 Showing error modal");
+    log("🔍 Showing error modal");
     this.renderErrorList();
     this.elements.errorModal.classList.remove("hidden");
     this.isErrorModalVisible = true;
@@ -669,7 +659,7 @@ const storyView = {
    * Hides the error modal.
    */
   hideErrorModal() {
-    logLocal("[preview.js] 🔍 Hiding error modal");
+    log("🔍 Hiding error modal");
     this.elements.errorModal.classList.add("hidden");
     this.isErrorModalVisible = false;
   },
@@ -747,11 +737,7 @@ const storyView = {
    */
   updateRewindButton(canRewind) {
     this.elements.rewindButton.disabled = !canRewind;
-    logLocal(
-      `[preview.js] 🔄 Rewind button state: ${
-        canRewind ? "enabled" : "disabled"
-      }`
-    );
+    log(`🔄 Rewind button state: ${canRewind ? "enabled" : "disabled"}`);
   },
 
   /**
@@ -810,7 +796,7 @@ const storyController = {
     if (this.isInitialized) {
       return;
     }
-    logLocal("[preview.js] 📝 Controller: Initializing");
+    log("📝 Controller: Initializing");
     this.setupEventListeners();
     messageHandler.postMessage(outboundMessages.ready, {});
     this.isInitialized = true;
@@ -832,63 +818,50 @@ const storyController = {
    * @param {number} choiceIndex - The index of the selected choice
    */
   actionSelectChoice(choiceIndex) {
-    logLocal(`Action: Selecting choice ${choiceIndex}`);
-    messageHandler.postMessage(outboundMessages.selectChoice, { choiceIndex });
+    log(`Action: Selecting choice ${choiceIndex}`);
+    actionDispatcher.dispatch({
+      type: "SELECT_CHOICE",
+      payload: { choiceIndex },
+    });
   },
 
   /**
    * Handles the player's request to restart the story.
    */
   actionRestartStory() {
-    logLocal("Action: Requesting story restart");
-    // Clear errors immediately when restart is requested
-    storyView.errors = [];
-    storyView.updateErrorButton();
-    storyView.hideErrorModal();
-    messageHandler.postMessage(outboundMessages.restartStory, {});
+    log("Action: Requesting story restart");
+    actionDispatcher.dispatch({ type: "START_STORY" });
   },
 
   actionRewindStory() {
-    logLocal("Action: Requesting story rewind");
-    messageHandler.postMessage(outboundMessages.rewindStory, {});
+    log("Action: Requesting story rewind");
+    actionDispatcher.dispatch({ type: "REWIND_STORY" });
   },
 
   /**
-   * Handles a complete state update from the extension.
-   * This implements the Full State Replacement Pattern where the entire state
-   * is sent and the UI is updated to match.
-   * @param {Object} state - The complete preview state
+   * Handles granular state updates from the extension.
+   * Supports both new granular format and legacy complete state format.
+   * @param {Object} payload - Either granular {category, state} or legacy complete state
    */
-  handleUpdateState(state) {
-    logLocal("Message: Updating complete state", state);
+  handleUpdateState(payload) {
+    log("Message: Updating state", payload);
 
-    // Clear existing state if this is a story start
-    if (state.isStart) {
-      storyView.reset();
-    }
+    const { story, ui } = payload.state;
 
     // Update errors - replace completely
-    storyView.errors = state.errors || [];
+    storyView.errors = story.errors || [];
     storyView.updateErrorButton();
 
-    // Update UI state
-    if (state.uiState) {
-      storyView.updateRewindButton(state.uiState.rewind);
-    }
-
-    // Update story content by directly rendering to maintain proper styling
-    this.renderCompleteStoryState(state);
+    // Render story content
+    this.renderCompleteStoryState(story);
 
     // Handle story end state
-    if (state.isEnded) {
+    if (story.isEnded) {
       storyView.renderStoryEnded();
     }
 
-    // Update metadata if needed (could be used for title updates)
-    if (state.metadata) {
-      // Currently no UI elements use metadata directly
-      // This is available for future enhancements
-    }
+    // Update UI state
+    storyView.updateRewindButton(ui.canRewind);
   },
 
   /**
@@ -899,23 +872,19 @@ const storyController = {
   renderCompleteStoryState(state) {
     const storyContent = storyView.elements.storyContent;
 
-    // If starting fresh, clear everything
-    if (state.isStart) {
-      storyContent.innerHTML = "";
-    }
+    // Clear existing content
+    storyContent.innerHTML = "";
 
     // If there are story events, render them using their isCurrent flags
-    if (state.storyEvents && state.storyEvents.length > 0) {
-      // Clear existing content
-      storyContent.innerHTML = "";
+    if (state.events && state.events.length > 0) {
 
       // Group events by their isCurrent status and render in order
-      this.renderEventsByCurrentStatus(state.storyEvents, storyContent);
+      this.renderEventsByCurrentStatus(state.events, storyContent);
     }
 
     // Always update choices (they can change without new events)
-    if (state.currentChoices && state.currentChoices.length > 0) {
-      storyView.renderChoices(state.currentChoices);
+    if (state.choices && state.choices.length > 0) {
+      storyView.renderChoices(state.choices);
     } else {
       // Clear choices if none exist
       storyView.elements.choicesContainer.innerHTML = "";

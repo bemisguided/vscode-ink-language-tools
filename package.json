@@ -206,6 +206,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "immer": "^10.1.1",
     "inkjs": "^2.2.0"
   }
 }

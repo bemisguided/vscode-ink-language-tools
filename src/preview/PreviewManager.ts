@@ -55,7 +55,6 @@ export class PreviewManager {
     }
 
     // Otherwise, create a new panel
-    console.log("[InkPreviewPanel] Creating new instance");
     PreviewManager.instance = new PreviewManager();
     return PreviewManager.instance;
   }
@@ -88,31 +87,19 @@ export class PreviewManager {
   // Public Methods ===================================================================================================
 
   public async preview(document: vscode.TextDocument) {
-    console.log(
-      "[InkPreviewPanel] Previewing document",
-      document.uri.fsPath,
-      this.uri?.fsPath,
-      this.version,
-      document.version
-    );
     if (
       this.uri &&
       this.uri === document.uri &&
       this.version === document.version
     ) {
-      console.log(
-        "[InkPreviewPanel] Document is the same as the current document"
-      );
       return;
     }
     this.uri = document.uri;
     this.version = document.version;
-    console.log("[InkPreviewPanel] Previewing controller");
     await this.controller.preview(document);
   }
 
   public dispose(): void {
-    console.log("[InkPreviewPanel] Disposing");
     this.controller.dispose();
     this.webviewPanel.dispose();
     PreviewManager.instance = undefined;

@@ -22,96 +22,63 @@
  * SOFTWARE.
  */
 
+import {
+  PreviewState,
+  PreviewStoryState,
+} from "../../../src/preview/PreviewState";
 import { StartStoryAction } from "../../../src/preview/actions/StartStoryAction";
-import { PreviewState } from "../../../src/preview/PreviewState";
-import { mockPreviewState } from "../../__mocks__/mockPreviewState";
+import { PreviewActionContext } from "../../../src/preview/PreviewActionContext";
+import { mockPreviewActionContext } from "../../__mocks__/mockPreviewActionContext";
+import {
+  mockPreviewState,
+  mockPreviewStoryState,
+} from "../../__mocks__/mockPreviewState";
+import { SetCurrentChoicesAction } from "../../../src/preview/actions/SetCurrentChoicesAction";
 
 describe("StartStoryAction", () => {
-  let action: StartStoryAction;
+  function setupState(
+    story: PreviewStoryState = mockPreviewStoryState()
+  ): PreviewState {
+    return {
+      ...mockPreviewState(),
+      story,
+    };
+  }
+  let mockContext: PreviewActionContext;
 
   beforeEach(() => {
-    action = new StartStoryAction();
+    mockContext = mockPreviewActionContext();
   });
 
-  describe("reduce", () => {
-    test("should reset state to initial starting state", () => {
-      // Set up
-      const currentState: PreviewState = mockPreviewState({
-        storyEvents: [
-          {
-            type: "text" as const,
-            text: "Some existing text",
-            tags: ["tag1"],
-          },
-        ],
-        currentChoices: [
-          {
-            index: 0,
-            text: "Choice 1",
-            tags: [],
-          },
-        ],
-        errors: [
-          {
-            message: "Some error",
-            severity: "error",
-          },
-        ],
-        isEnded: true,
-        isStart: false,
-        lastChoiceIndex: 0,
-      });
+  describe("apply()", () => {
+    test("should not mutate state", () => {
+      // Setup
+      const story: PreviewStoryState = mockPreviewStoryState();
+      const action = new StartStoryAction();
 
       // Execute
-      const newState = action.reduce(currentState);
+      action.apply(setupState(story));
 
       // Assert
-      expect(newState.storyEvents).toEqual([]);
-      expect(newState.currentChoices).toEqual([]);
-      expect(newState.errors).toEqual([]);
-      expect(newState.isEnded).toBe(false);
-      expect(newState.isStart).toBe(true);
+      expect(mockContext.getState().story).toEqual(story);
     });
+  });
 
-    test("should preserve existing state unchanged", () => {
-      // Set up
-      const currentState: PreviewState = mockPreviewState();
-
-      // Execute
-      const newState = action.reduce(currentState);
-
-      // Assert
-      expect(newState.storyEvents).toEqual([]);
-      expect(newState.currentChoices).toEqual([]);
-      expect(newState.errors).toEqual([]);
-      expect(newState.isEnded).toBe(false);
-      expect(newState.isStart).toBe(true);
-      expect(newState.lastChoiceIndex).toBe(0);
-    });
-
-    test("should reset lastChoiceIndex to 0", () => {
-      // Set up
-      const currentState: PreviewState = mockPreviewState({
-        lastChoiceIndex: 5,
-      });
+  describe("effect()", () => {
+    test("should reset the story state", () => {
+      // Setup
+      const action = new StartStoryAction();
+      const context = mockPreviewActionContext();
 
       // Execute
-      const newState = action.reduce(currentState);
+      action.effect(context);
 
       // Assert
-      expect(newState.lastChoiceIndex).toBe(0);
-    });
-
-    test("should return a new state object", () => {
-      // Set up
-      const currentState: PreviewState = mockPreviewState();
-
-      // Execute
-      const newState = action.reduce(currentState);
-
-      // Assert
-      expect(newState).not.toBe(currentState);
-      expect(newState).toEqual(mockPreviewState({ isStart: true }));
+      expect(context.storyManager.reset).toHaveBeenCalled();
+      expect(context.storyManager.continue).toHaveBeenCalled();
+      expect(context.dispatch).toHaveBeenCalledWith(
+        new SetCurrentChoicesAction([])
+      );
     });
   });
 });
