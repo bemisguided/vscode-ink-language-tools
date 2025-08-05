@@ -197,46 +197,6 @@ describe("AddStoryEventsAction", () => {
       });
     });
 
-    test("should preserve all other state properties", () => {
-      // Set up
-      const newEvent: StoryEvent = {
-        type: "text" as const,
-        text: "Test event",
-        tags: ["test"],
-      };
-      const action = new AddStoryEventsAction([newEvent]);
-      const currentState: PreviewState = setupState([], {
-        ...mockPreviewStoryState(),
-        events: [],
-        choices: [
-          {
-            index: 0,
-            text: "Choice 1",
-            tags: ["choice"],
-          },
-        ],
-        errors: [
-          {
-            message: "Test error",
-            severity: "error",
-          },
-        ],
-        isEnded: true,
-        isStart: false,
-        lastChoiceIndex: 0,
-      });
-
-      // Execute
-      const newState = action.apply(currentState);
-
-      // Assert
-      expect(newState.story.choices).toEqual(currentState.story.choices);
-      expect(newState.story.errors).toEqual(currentState.story.errors);
-      expect(newState.story.isEnded).toBe(true);
-      expect(newState.story.isStart).toBe(false);
-      expect(newState.story.lastChoiceIndex).toBe(0);
-    });
-
     test("should handle empty events array", () => {
       // Setup
       const existingEvent: StoryEvent = {

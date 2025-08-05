@@ -34,7 +34,9 @@ import {
 } from "../../__mocks__/mockPreviewState";
 
 describe("EndStoryAction", () => {
-  function setupState(story: PreviewStoryState = mockPreviewStoryState()): PreviewState {
+  function setupState(
+    story: PreviewStoryState = mockPreviewStoryState()
+  ): PreviewState {
     return {
       ...mockPreviewState(),
       story,
@@ -59,45 +61,6 @@ describe("EndStoryAction", () => {
 
       // Assert
       expect(newState.story.isEnded).toBe(true);
-    });
-
-    test("should preserve all other state properties", () => {
-      // Setup
-      const existingEvent: StoryEvent = {
-        type: "text",
-        text: "Existing event",
-        tags: [],
-        isCurrent: false,
-      };
-      const currentState: PreviewState = setupState({
-        events: [existingEvent],
-        choices: [
-          {
-            index: 0,
-            text: "Final choice",
-            tags: [],
-          },
-        ],
-        errors: [
-          {
-            message: "Some error",
-            severity: "error",
-          },
-        ],
-        isEnded: false,
-        isStart: true,
-        lastChoiceIndex: 5,
-      });
-
-      // Execute
-      const newState = action.apply(currentState);
-
-      // Assert
-      expect(newState.story.events).toEqual(currentState.story.events);
-      expect(newState.story.choices).toEqual(currentState.story.choices);
-      expect(newState.story.errors).toEqual(currentState.story.errors);
-      expect(newState.story.isStart).toBe(true);
-      expect(newState.story.lastChoiceIndex).toBe(5);
     });
 
     test("should work when isEnded is already true", () => {

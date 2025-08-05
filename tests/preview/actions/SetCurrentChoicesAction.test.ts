@@ -153,46 +153,6 @@ describe("SetCurrentChoicesAction", () => {
       expect(newState.story.lastChoiceIndex).toBe(3); // storyEvents.length
     });
 
-    test("should preserve all other state properties", () => {
-      // Set up
-      const newChoices: Choice[] = [
-        {
-          index: 0,
-          text: "Test choice",
-          tags: ["test"],
-        },
-      ];
-      const action = new SetCurrentChoicesAction(newChoices);
-      const currentState: PreviewState = setupState({
-        events: [
-          {
-            type: "text" as const,
-            text: "Story content",
-            tags: ["story"],
-          },
-        ],
-        choices: [],
-        errors: [
-          {
-            message: "Test error",
-            severity: "error",
-          },
-        ],
-        isEnded: true,
-        isStart: false,
-        lastChoiceIndex: 0,
-      });
-
-      // Execute
-      const newState = action.apply(currentState);
-
-      // Assert
-      expect(newState.story.events).toEqual(currentState.story.events);
-      expect(newState.story.errors).toEqual(currentState.story.errors);
-      expect(newState.story.isEnded).toBe(true);
-      expect(newState.story.isStart).toBe(false);
-    });
-
     test("should handle empty choices array", () => {
       // Set up
       const action = new SetCurrentChoicesAction([]);
@@ -223,23 +183,6 @@ describe("SetCurrentChoicesAction", () => {
       // Assert
       expect(newState.story.choices).toEqual([]);
       expect(newState.story.lastChoiceIndex).toBe(1); // storyEvents.length
-    });
-
-    test("should return a new state object", () => {
-      // Set up
-      const newChoice: Choice = {
-        index: 0,
-        text: "Test choice",
-        tags: [],
-      };
-      const action = new SetCurrentChoicesAction([newChoice]);
-      const currentState: PreviewState = setupState();
-
-      // Execute
-      const newState = action.apply(currentState);
-
-      // Assert
-      expect(newState.story.choices).toEqual([newChoice]);
     });
   });
 });

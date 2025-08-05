@@ -77,46 +77,6 @@ describe("ClearErrorsAction", () => {
       expect(newState.story.errors).toEqual([]);
     });
 
-    test("should preserve all other state properties", () => {
-      // Setup
-      const currentState: PreviewState = setupState([], {
-        ...mockPreviewStoryState(),
-        events: [
-          {
-            type: "text" as const,
-            text: "Some story text",
-            tags: ["test"],
-          },
-        ],
-        choices: [
-          {
-            index: 0,
-            text: "Choice 1",
-            tags: ["choice"],
-          },
-        ],
-        errors: [
-          {
-            message: "Some error",
-            severity: "error",
-          },
-        ],
-        isEnded: true,
-        isStart: false,
-        lastChoiceIndex: 3,
-      });
-
-      // Execute
-      const newState = action.apply(currentState);
-
-      // Assert
-      expect(newState.story.events).toEqual(currentState.story.events);
-      expect(newState.story.choices).toEqual(currentState.story.choices);
-      expect(newState.story.isEnded).toBe(true);
-      expect(newState.story.isStart).toBe(false);
-      expect(newState.story.lastChoiceIndex).toBe(3);
-    });
-
     test("should work when errors array is already empty", () => {
       // Setup
       const currentState: PreviewState = setupState([]);

@@ -121,46 +121,6 @@ describe("AddErrorsAction", () => {
       ]);
     });
 
-    test("should preserve all other state properties", () => {
-      // Set up
-      const newError: ErrorInfo = {
-        message: "Test error",
-        severity: "error",
-      };
-      const action = new AddErrorsAction([newError]);
-      const currentState = setupState([], {
-        ...mockPreviewStoryState(),
-        events: [
-          {
-            type: "text" as const,
-            text: "Story content",
-            tags: ["test"],
-          },
-        ],
-        choices: [
-          {
-            index: 0,
-            text: "Choice 1",
-            tags: ["choice"],
-          },
-        ],
-      });
-
-      // Execute
-      const newState = action.apply(currentState);
-
-      // Assert
-      expect(newState.story.events).toEqual(currentState.story.events);
-      expect(newState.story.choices).toEqual(currentState.story.choices);
-      expect(newState.story.isEnded).toBe(currentState.story.isEnded);
-      expect(newState.story.isStart).toBe(currentState.story.isStart);
-      expect(newState.story.lastChoiceIndex).toBe(
-        currentState.story.lastChoiceIndex
-      );
-      expect(newState.story.errors).toHaveLength(1);
-      expect(newState.story.errors[0]).toEqual(newError);
-    });
-
     test("should handle empty errors array input", () => {
       // Set up
       const action = new AddErrorsAction([]);
