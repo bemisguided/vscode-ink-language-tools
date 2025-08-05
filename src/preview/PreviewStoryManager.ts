@@ -30,10 +30,16 @@ import { parseErrorMessage } from "./parseErrorMessage";
 /**
  * Result of a single story continuation attempt.
  */
-interface ContinueResult {
+export interface ContinueResult {
   shouldContinue: boolean;
   error?: ErrorInfo;
 }
+
+/**
+ * Callback for handling errors from the Ink Story.
+ * @param error - The error to handle
+ */
+export type ErrorCallback = (error: ErrorInfo) => void;
 
 /**
  * Manages story progression operations and encapsulates all direct interaction with the Ink Story engine.
@@ -58,20 +64,11 @@ export class PreviewStoryManager {
   // Public Methods ===================================================================================================
 
   /**
-   * Resets the story to its initial state.
-   * This prepares the story for execution from the beginning.
+   * Checks if the story can continue.
+   * @returns True if the story can continue with more content
    */
-  reset(): void {
-    try {
-      this.story.ResetState();
-    } catch (error) {
-      console.error(
-        "[PreviewStoryManager] ❌ Failed to reset story state:",
-        error
-      );
-      // Note: We don't throw here to prevent breaking the action chain
-      // The story will remain in its previous state if reset fails
-    }
+  canContinue(): boolean {
+    return this.story.canContinue;
   }
 
   /**
@@ -120,6 +117,57 @@ export class PreviewStoryManager {
   }
 
   /**
+   * Gets the current available choices.
+   * @returns Array of current choices available to the player
+   */
+  getCurrentChoices(): Choice[] {
+    return this.story.currentChoices.map((choice: any, index: number) => ({
+      index,
+      text: choice.text,
+      tags: choice.tags || [],
+    }));
+  }
+
+  /**
+   * Checks if the story has reached an end state.
+   * @returns True if the story has ended (cannot continue and has no choices)
+   */
+  isEnded(): boolean {
+    return !this.story.canContinue && this.story.currentChoices.length === 0;
+  }
+
+  /**
+   * Registers an Error Callback for handling errors from the Ink Story.
+   * @param callback - The callback to register
+   */
+  onError(callback: ErrorCallback): void {
+    if (!this.story.onError) {
+      return;
+    }
+    this.story.onError = (error) => {
+      const { message, severity } = parseErrorMessage(error.toString());
+      callback({ message, severity: severity || "error" });
+    };
+  }
+
+  /**
+   * Resets the story to its initial state.
+   * This prepares the story for execution from the beginning.
+   */
+  reset(): void {
+    try {
+      this.story.ResetState();
+    } catch (error) {
+      console.error(
+        "[PreviewStoryManager] ❌ Failed to reset story state:",
+        error
+      );
+      // Note: We don't throw here to prevent breaking the action chain
+      // The story will remain in its previous state if reset fails
+    }
+  }
+
+  /**
    * Selects a choice and then continues the story until the next choice point or end.
    * Combines choice selection with story continuation in a single operation.
    * @param choiceIndex - The index of the choice to select
@@ -154,34 +202,6 @@ export class PreviewStoryManager {
         ],
       };
     }
-  }
-
-  /**
-   * Checks if the story has reached an end state.
-   * @returns True if the story has ended (cannot continue and has no choices)
-   */
-  isEnded(): boolean {
-    return !this.story.canContinue && this.story.currentChoices.length === 0;
-  }
-
-  /**
-   * Checks if the story can continue.
-   * @returns True if the story can continue with more content
-   */
-  canContinue(): boolean {
-    return this.story.canContinue;
-  }
-
-  /**
-   * Gets the current available choices.
-   * @returns Array of current choices available to the player
-   */
-  getCurrentChoices(): Choice[] {
-    return this.story.currentChoices.map((choice: any, index: number) => ({
-      index,
-      text: choice.text,
-      tags: choice.tags || [],
-    }));
   }
 
   // Private Methods ==================================================================================================

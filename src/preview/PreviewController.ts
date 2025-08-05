@@ -23,20 +23,15 @@
  */
 
 import * as vscode from "vscode";
-import path from "path";
 import { PreviewHtmlGenerator } from "./PreviewHtmlGenerator";
 import { PreviewStateManager } from "./PreviewStateManager";
 import { PreviewStoryManager } from "./PreviewStoryManager";
-import { ErrorInfo, ErrorSeverity, FunctionStoryEvent } from "./PreviewState";
+import { ErrorInfo, FunctionStoryEvent } from "./PreviewState";
 import { inboundMessages, Message } from "./PreviewMessages";
-import { BuildEngine } from "../build/BuildEngine";
 import { Deferred } from "../util/deferred";
-import { ISuccessfulBuildResult } from "../build/IBuildResult";
-// Import all actions
 import { AddErrorsAction } from "./actions/AddErrorsAction";
 import { AddStoryEventsAction } from "./actions/AddStoryEventsAction";
 import { StartStoryAction } from "./actions/StartStoryAction";
-import { parseErrorMessage } from "./parseErrorMessage";
 import { PreviewAction } from "./PreviewAction";
 import { SelectChoiceAction } from "./actions/SelectChoiceAction";
 import { RewindStoryAction } from "./actions/RewindStoryAction";
@@ -51,7 +46,6 @@ export class PreviewController {
   private readonly htmlGenerator: PreviewHtmlGenerator;
   private readonly disposables: vscode.Disposable[] = [];
   private stateManager: PreviewStateManager;
-  private document?: vscode.TextDocument;
   private isInitialized: boolean = false;
   private viewReadyDeferred: Deferred<void> | null = null;
 
@@ -72,24 +66,58 @@ export class PreviewController {
   // Public Methods ===================================================================================================
 
   /**
-   * Initializes the controller and sets up event handlers.
-   * This should be called after construction.
+   * Initializes the Preview Controller with a Preview Story Manager with a new Ink Story.
    */
-  public async preview(document: vscode.TextDocument): Promise<void> {
-    this.document = document;
+  public async initializeStory(
+    storyManager: PreviewStoryManager
+  ): Promise<void> {
+    this.stateManager.setStoryManager(storyManager);
+    this.stateManager.reset();
 
-    // Update the preview panel title with the current document name
-    this.setTitle(document.uri.fsPath);
-
-    if (this.isInitialized) {
-      await this.startStory();
-      return;
+    if (!this.isInitialized) {
+      this.isInitialized = true;
+      this.viewReadyDeferred = new Deferred<void>();
+      await this.viewReadyDeferred.promise;
     }
 
-    this.isInitialized = true;
-    this.viewReadyDeferred = new Deferred<void>();
-    await this.viewReadyDeferred.promise;
-    await this.startStory();
+    // Start the story
+    this.stateManager.dispatch(new StartStoryAction());
+  }
+
+  /**
+   * Refreshes the Preview Controller with a Preview Story Manager with an updated Ink Story.
+   */
+  public async refreshStory(storyManager: PreviewStoryManager): Promise<void> {
+    this.stateManager.setStoryManager(storyManager);
+    this.stateManager.replay();
+  }
+
+  /**
+   * Triggers the Preview Controller to show a compilation error in the Preview Webview.
+   */
+  public async showCompilationError(): Promise<void> {
+    this.stateManager.reset();
+    this.showErrors([
+      {
+        message:
+          "Story had errors and could not be compiled. Review the Problem Panel for more information.",
+        severity: "error",
+      },
+    ]);
+  }
+
+  /**
+   * Triggers the Preview Controller to show errors in the Preview Webview.
+   */
+  public showErrors(errors: ErrorInfo[]): void {
+    this.stateManager.dispatch(new AddErrorsAction(errors));
+  }
+
+  /**
+   * Triggers the Preview Controller to add a function event to the Preview State.
+   */
+  public addFunctionEvent(functionEvent: FunctionStoryEvent): void {
+    this.stateManager.dispatch(new AddStoryEventsAction([functionEvent]));
   }
 
   /**
@@ -107,13 +135,6 @@ export class PreviewController {
   }
 
   // Private Methods ==================================================================================================
-
-  private ensureDocument(): vscode.TextDocument {
-    if (!this.document) {
-      throw new Error("Document not initialized");
-    }
-    return this.document;
-  }
 
   /**
    * Creates an action instance from the given data.
@@ -205,118 +226,5 @@ export class PreviewController {
     this.webviewPanel.webview.html = this.htmlGenerator.generateHtml(
       this.webviewPanel.webview
     );
-  }
-
-  /**
-   * Sets the title of the webview panel.
-   */
-  private setTitle(fileName: string): void {
-    this.webviewPanel.title = `${path.basename(fileName)} (Preview)`;
-  }
-
-  /**
-   * Starts or restarts the story.
-   * This is called both on initial start and when the user requests a restart.
-   */
-  private async startStory(): Promise<void> {
-    const document = this.ensureDocument();
-    const engine = BuildEngine.getInstance();
-    const compiledStory = await engine.compileStory(document.uri);
-
-    if (!compiledStory.success) {
-      // Handle compilation failure by showing error
-      this.handleCompilationError(
-        "Story had errors and could not be compiled. Review the Problem Panel for more information."
-      );
-      return;
-    }
-
-    console.debug("[PreviewController] 📖 Starting story");
-
-    // Create PreviewStoryManager and PreviewStateManager with the compiled story
-    const storyManager = new PreviewStoryManager(compiledStory.story);
-    this.stateManager.storyManager = storyManager;
-    this.stateManager.reset();
-
-    // Set up story error handler
-    compiledStory.story.onError = (error) => {
-      const { message, severity } = parseErrorMessage(error.toString());
-      this.stateManager.dispatch(
-        new AddErrorsAction([{ message, severity: severity || "error" }])
-      );
-    };
-
-    // Bind external functions directly - no model needed
-    this.bindAllExternalFunctions(compiledStory);
-
-    // Start the story
-    this.stateManager.dispatch(new StartStoryAction());
-  }
-
-  /**
-   * Adds an error to the state.
-   * @param message - The error message
-   * @param severity - The error severity
-   */
-  private addErrorToState(message: string, severity: ErrorSeverity): void {
-    const error: ErrorInfo = { message, severity };
-    this.stateManager?.dispatch(new AddErrorsAction([error]));
-  }
-
-  /**
-   * Handles compilation errors by initializing state with error.
-   * @param message - The compilation error message
-   */
-  private handleCompilationError(message: string): void {
-    // Reset state manager for error handling (no story available)
-    this.stateManager.reset();
-
-    // Add compilation error to state
-    this.addErrorToState(message, "error");
-  }
-
-  /**
-   * Binds all external functions to the story.
-   * @param compiledStory - The compiled story result
-   */
-  private bindAllExternalFunctions(
-    compiledStory: ISuccessfulBuildResult
-  ): void {
-    if (!compiledStory.externalFunctionVM) {
-      return;
-    }
-
-    const availableFunctions =
-      compiledStory.externalFunctionVM.getFunctionNames();
-
-    if (availableFunctions.length === 0) {
-      return;
-    }
-
-    const failedBindings = compiledStory.externalFunctionVM.bindFunctions(
-      compiledStory.story,
-      availableFunctions,
-      (functionName, args, result) => {
-        // Dispatch AddStoryEventsAction immediately
-        const functionEvent: FunctionStoryEvent = {
-          type: "function",
-          functionName,
-          args,
-          result,
-          isCurrent: true,
-        };
-
-        this.stateManager?.dispatch(new AddStoryEventsAction([functionEvent]));
-      }
-    );
-
-    if (failedBindings.length > 0) {
-      const errors = failedBindings.map((funcName) => ({
-        message: `Failed to bind external function: ${funcName}`,
-        severity: "error" as const,
-      }));
-
-      this.stateManager?.dispatch(new AddErrorsAction(errors));
-    }
   }
 }

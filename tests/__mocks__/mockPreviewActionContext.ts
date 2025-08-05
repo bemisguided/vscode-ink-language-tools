@@ -58,6 +58,7 @@ export function mockPreviewActionContext(
 ): PreviewActionContext {
   const defaultContext: PreviewActionContext = {
     getState: jest.fn().mockReturnValue(mockPreviewState()),
+    cancel: jest.fn(),
     dispatch: jest.fn(),
     storyManager: {
       reset: jest.fn(),

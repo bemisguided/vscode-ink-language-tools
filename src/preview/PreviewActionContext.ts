@@ -37,6 +37,11 @@ export interface PreviewActionContext {
   getState(): PreviewState;
 
   /**
+   * Cancels the current Preview Action, preventing any further dispatch Preview Actions to be applied.
+   */
+  cancel(): void;
+
+  /**
    * Dispatches another Preview Action.
    * @param action - The Preview Action to dispatch
    */

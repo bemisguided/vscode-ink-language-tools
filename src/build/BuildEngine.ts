@@ -38,6 +38,13 @@ import { IPathResolutionStrategy } from "../util/paths/IPathResolutionStrategy";
 import { InkyDefaultPathResolutionStrategy } from "../util/paths/InkyDefaultPathResolutionStrategy";
 import { AdvancedPathResolutionStrategy } from "../util/paths/AdvancedPathResolutionStrategy";
 import { ExternalFunctionPreProcessor } from "./ExternalFunctionPreProcessor";
+import { ISuccessfulBuildResult } from "./IBuildResult";
+
+/**
+ * Callback for a Build Engine Listener which is called when an Ink Story is successfully compiled.
+ * @param result - The Successful Build Result
+ */
+export type BuildListener = (result: ISuccessfulBuildResult) => void;
 
 /**
  * The build engine for the Ink language.
@@ -66,6 +73,7 @@ export class BuildEngine {
   // Private Properties ===============================================================================================
 
   private processors: IPipelineProcessor[] = [];
+  private compilationListeners: Map<string, BuildListener> = new Map();
 
   // Constructors =====================================================================================================
 
@@ -131,6 +139,20 @@ export class BuildEngine {
       diagnosticsService.set(uri, diagnostics);
     }
   }
+
+  /**
+   * Notify all listeners of a successful compilation
+   * @param result - The successful build result
+   */
+  private notifyStoryCompiled(result: IBuildResult): void {
+    if (!result.success) {
+      return;
+    }
+    this.compilationListeners.forEach((callback) => {
+      callback(result as ISuccessfulBuildResult);
+    });
+  }
+
   /**
    * Register a pipeline processor.
    * @param processor The pipeline processor to register.
@@ -192,6 +214,26 @@ export class BuildEngine {
   // Public Methods ===================================================================================================
 
   /**
+   * Register a listener for successful story compilations
+   * @param listenerId - Unique identifier for this listener
+   * @param callback - Function to call when a story is successfully compiled
+   */
+  public onDidStoryCompile(
+    listenerId: string,
+    callback: (result: ISuccessfulBuildResult) => void
+  ): void {
+    this.compilationListeners.set(listenerId, callback);
+  }
+
+  /**
+   * Unregister a compilation listener
+   * @param listenerId - The listener identifier to remove
+   */
+  public offDidStoryCompile(listenerId: string): void {
+    this.compilationListeners.delete(listenerId);
+  }
+
+  /**
    * Expose the diagnostics service for lifecycle management.
    */
   public get diagnostics() {
@@ -209,7 +251,9 @@ export class BuildEngine {
   public async compileStory(uri: vscode.Uri): Promise<IBuildResult> {
     console.log("[BuildEngine] 🏗️ Compiling story:", uri.fsPath);
     const context = await this.processFile(uri);
-    return this.toBuildResult(context);
+    const result = this.toBuildResult(context);
+    this.notifyStoryCompiled(result);
+    return result;
   }
 
   /**
@@ -229,7 +273,9 @@ export class BuildEngine {
     for (const uri of toRecompile) {
       console.log("[BuildEngine] 🏗️ Recompiling story:", uri.fsPath);
       const context = await this.processFile(uri);
-      results.push(this.toBuildResult(context));
+      const result = this.toBuildResult(context);
+      results.push(result);
+      this.notifyStoryCompiled(result);
     }
 
     return new BuildResults(results);

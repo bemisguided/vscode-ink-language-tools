@@ -38,7 +38,7 @@ export class MockWebviewPanel {
   public readonly onDidDispose: vscode.Event<void>;
   public readonly onDidChangeViewState: vscode.Event<vscode.WebviewPanelOnDidChangeViewStateEvent>;
   public readonly options: vscode.WebviewPanelOptions;
-  public readonly viewColumn?: vscode.ViewColumn;
+  public viewColumn: vscode.ViewColumn;
   public active: boolean = true;
   public visible: boolean = true;
 

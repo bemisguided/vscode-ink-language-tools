@@ -34,6 +34,7 @@ export class MockWebview {
   public html: string = "";
   public options: vscode.WebviewOptions = {};
   public onDidReceiveMessage: vscode.Event<any>;
+  public cspSource: string = "self";
 
   // Private Properties ===============================================================================================
 

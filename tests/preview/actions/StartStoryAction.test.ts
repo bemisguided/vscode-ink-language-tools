@@ -25,6 +25,9 @@
 import {
   PreviewState,
   PreviewStoryState,
+  StoryEvent,
+  Choice,
+  ErrorInfo,
 } from "../../../src/preview/PreviewState";
 import { StartStoryAction } from "../../../src/preview/actions/StartStoryAction";
 import { PreviewActionContext } from "../../../src/preview/PreviewActionContext";
@@ -34,6 +37,10 @@ import {
   mockPreviewStoryState,
 } from "../../__mocks__/mockPreviewState";
 import { SetCurrentChoicesAction } from "../../../src/preview/actions/SetCurrentChoicesAction";
+import { AddStoryEventsAction } from "../../../src/preview/actions/AddStoryEventsAction";
+import { AddErrorsAction } from "../../../src/preview/actions/AddErrorsAction";
+import { EndStoryAction } from "../../../src/preview/actions/EndStoryAction";
+import { StoryProgressResult } from "../../../src/preview/StoryProgressResult";
 
 describe("StartStoryAction", () => {
   function setupState(
@@ -51,21 +58,36 @@ describe("StartStoryAction", () => {
   });
 
   describe("apply()", () => {
-    test("should not mutate state", () => {
+    test("should reset all story state properties", () => {
       // Setup
-      const story: PreviewStoryState = mockPreviewStoryState();
       const action = new StartStoryAction();
+      const currentState = setupState({
+        ...mockPreviewStoryState(),
+        events: [{ type: "text", text: "Previous text", tags: [] }],
+        choices: [{ index: 0, text: "Previous choice", tags: [] }],
+        errors: [{ message: "Previous error", severity: "error" }],
+        isEnded: true,
+        lastChoiceIndex: 5,
+        isStart: false,
+      });
+      currentState.ui.canRewind = true;
 
       // Execute
-      action.apply(setupState(story));
+      const newState = action.apply(currentState);
 
       // Assert
-      expect(mockContext.getState().story).toEqual(story);
+      expect(newState.story.events).toEqual([]);
+      expect(newState.story.choices).toEqual([]);
+      expect(newState.story.errors).toEqual([]);
+      expect(newState.story.isEnded).toBe(false);
+      expect(newState.story.lastChoiceIndex).toBe(0);
+      expect(newState.story.isStart).toBe(true);
+      expect(newState.ui.canRewind).toBe(false);
     });
   });
 
   describe("effect()", () => {
-    test("should reset the story state", () => {
+    test("should reset story manager and call continue", () => {
       // Setup
       const action = new StartStoryAction();
       const context = mockPreviewActionContext();
@@ -76,9 +98,182 @@ describe("StartStoryAction", () => {
       // Assert
       expect(context.storyManager.reset).toHaveBeenCalled();
       expect(context.storyManager.continue).toHaveBeenCalled();
+    });
+
+    test("should dispatch SetCurrentChoicesAction with result choices", () => {
+      // Setup
+      const choices: Choice[] = [
+        { index: 0, text: "New choice", tags: ["test"] },
+      ];
+      const result: StoryProgressResult = {
+        events: [],
+        choices,
+        isEnded: false,
+        errors: [],
+      };
+      const action = new StartStoryAction();
+      const context = mockPreviewActionContext();
+      context.storyManager.continue = jest.fn().mockReturnValue(result);
+
+      // Execute
+      action.effect(context);
+
+      // Assert
       expect(context.dispatch).toHaveBeenCalledWith(
-        new SetCurrentChoicesAction([])
+        new SetCurrentChoicesAction(choices)
       );
+    });
+
+    test("should dispatch AddStoryEventsAction when events present", () => {
+      // Setup
+      const events: StoryEvent[] = [
+        { type: "text", text: "Story begins", tags: [] },
+      ];
+      const result: StoryProgressResult = {
+        events,
+        choices: [],
+        isEnded: false,
+        errors: [],
+      };
+      const action = new StartStoryAction();
+      const context = mockPreviewActionContext();
+      context.storyManager.continue = jest.fn().mockReturnValue(result);
+
+      // Execute
+      action.effect(context);
+
+      // Assert
+      expect(context.dispatch).toHaveBeenCalledWith(
+        new AddStoryEventsAction(events)
+      );
+    });
+
+    test("should dispatch AddErrorsAction when errors present", () => {
+      // Setup
+      const errors: ErrorInfo[] = [
+        { message: "Story error", severity: "error" },
+      ];
+      const result: StoryProgressResult = {
+        events: [],
+        choices: [],
+        isEnded: false,
+        errors,
+      };
+      const action = new StartStoryAction();
+      const context = mockPreviewActionContext();
+      context.storyManager.continue = jest.fn().mockReturnValue(result);
+
+      // Execute
+      action.effect(context);
+
+      // Assert
+      expect(context.dispatch).toHaveBeenCalledWith(
+        new AddErrorsAction(errors)
+      );
+    });
+
+    test("should dispatch EndStoryAction when story ends", () => {
+      // Setup
+      const result: StoryProgressResult = {
+        events: [],
+        choices: [],
+        isEnded: true,
+        errors: [],
+      };
+      const action = new StartStoryAction();
+      const context = mockPreviewActionContext();
+      context.storyManager.continue = jest.fn().mockReturnValue(result);
+
+      // Execute
+      action.effect(context);
+
+      // Assert
+      expect(context.dispatch).toHaveBeenCalledWith(new EndStoryAction());
+    });
+
+    test("should handle empty events array", () => {
+      // Setup
+      const result: StoryProgressResult = {
+        events: [],
+        choices: [{ index: 0, text: "Choice", tags: [] }],
+        isEnded: false,
+        errors: [],
+      };
+      const action = new StartStoryAction();
+      const context = mockPreviewActionContext();
+      context.storyManager.continue = jest.fn().mockReturnValue(result);
+
+      // Execute
+      action.effect(context);
+
+      // Assert
+      expect(context.dispatch).toHaveBeenCalledTimes(1);
+      expect(context.dispatch).toHaveBeenCalledWith(
+        new SetCurrentChoicesAction(result.choices)
+      );
+    });
+
+    test("should handle empty errors array", () => {
+      // Setup
+      const result: StoryProgressResult = {
+        events: [{ type: "text", text: "Story", tags: [] }],
+        choices: [],
+        isEnded: false,
+        errors: [],
+      };
+      const action = new StartStoryAction();
+      const context = mockPreviewActionContext();
+      context.storyManager.continue = jest.fn().mockReturnValue(result);
+
+      // Execute
+      action.effect(context);
+
+      // Assert
+      expect(context.dispatch).toHaveBeenCalledTimes(2);
+      expect(context.dispatch).toHaveBeenCalledWith(
+        new AddStoryEventsAction(result.events)
+      );
+      expect(context.dispatch).toHaveBeenCalledWith(
+        new SetCurrentChoicesAction(result.choices)
+      );
+    });
+
+    test("should handle complete story progression with all dispatches", () => {
+      // Setup
+      const events: StoryEvent[] = [
+        { type: "text", text: "Final story text", tags: ["ending"] },
+      ];
+      const errors: ErrorInfo[] = [
+        { message: "Warning message", severity: "warning" },
+      ];
+      const choices: Choice[] = [
+        { index: 0, text: "Final choice", tags: ["final"] },
+      ];
+      const result: StoryProgressResult = {
+        events,
+        choices,
+        isEnded: true,
+        errors,
+      };
+      const action = new StartStoryAction();
+      const context = mockPreviewActionContext();
+      context.storyManager.continue = jest.fn().mockReturnValue(result);
+
+      // Execute
+      action.effect(context);
+
+      // Assert
+      expect(context.dispatch).toHaveBeenCalledTimes(4);
+      expect(context.dispatch).toHaveBeenCalledWith(
+        new AddErrorsAction(errors)
+      );
+      expect(context.dispatch).toHaveBeenCalledWith(
+        new AddStoryEventsAction(events)
+      );
+      expect(context.dispatch).toHaveBeenCalledWith(
+        new SetCurrentChoicesAction(choices)
+      );
+      expect(context.dispatch).toHaveBeenCalledWith(new EndStoryAction());
     });
   });
 });

@@ -22,18 +22,18 @@
  * SOFTWARE.
  */
 
-import { PreviewAction } from "../PreviewAction";
 import { PreviewActionContext } from "../PreviewActionContext";
-import { AddStoryEventsAction } from "./AddStoryEventsAction";
-import { EndStoryAction } from "./EndStoryAction";
-import { SetCurrentChoicesAction } from "./SetCurrentChoicesAction";
 import { AddErrorsAction } from "./AddErrorsAction";
 import { PreviewState } from "../PreviewState";
+import { StoryProgressAction } from "./StoryProgressAction";
+
+const messageChoiceNoLongerAvailable =
+  "The choice that was originally selected, is no longer available after live refreshing the story.  The story has rewound to where the choice was originally selected.";
 
 /**
  * Action to select a Choice in the Story, continue the Story, triggering updates to the Story State.
  */
-export class SelectChoiceAction implements PreviewAction {
+export class SelectChoiceAction extends StoryProgressAction {
   // Static Properties ================================================================================================
 
   public static readonly actionType = "SELECT_CHOICE";
@@ -60,6 +60,7 @@ export class SelectChoiceAction implements PreviewAction {
   // Constructor ======================================================================================================
 
   constructor(choiceIndex: number) {
+    super();
     this.choiceIndex = choiceIndex;
   }
 
@@ -79,19 +80,19 @@ export class SelectChoiceAction implements PreviewAction {
    */
   public effect(context: PreviewActionContext): void {
     const storyManager = context.storyManager;
+    const choiceCount = storyManager.getCurrentChoices().length;
+    if (this.choiceIndex >= choiceCount) {
+      context.dispatch(
+        new AddErrorsAction([
+          {
+            message: messageChoiceNoLongerAvailable,
+            severity: "info",
+          },
+        ])
+      );
+      return;
+    }
     const result = storyManager.selectChoice(this.choiceIndex);
-    if (result.errors.length > 0) {
-      context.dispatch(new AddErrorsAction(result.errors));
-    }
-
-    if (result.events.length > 0) {
-      context.dispatch(new AddStoryEventsAction(result.events));
-    }
-
-    context.dispatch(new SetCurrentChoicesAction(result.choices));
-
-    if (result.isEnded) {
-      context.dispatch(new EndStoryAction());
-    }
+    this.applyStoryProgress(result, context);
   }
 }

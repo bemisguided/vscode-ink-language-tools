@@ -22,18 +22,14 @@
  * SOFTWARE.
  */
 
-import { PreviewAction } from "../PreviewAction";
 import { PreviewState } from "../PreviewState";
 import { PreviewActionContext } from "../PreviewActionContext";
-import { SetCurrentChoicesAction } from "./SetCurrentChoicesAction";
-import { AddErrorsAction } from "./AddErrorsAction";
-import { AddStoryEventsAction } from "./AddStoryEventsAction";
-import { EndStoryAction } from "./EndStoryAction";
+import { StoryProgressAction } from "./StoryProgressAction";
 
 /**
  * Action to starts or restarts the Story and resets the Story State.
  */
-export class StartStoryAction implements PreviewAction {
+export class StartStoryAction extends StoryProgressAction {
   // Static Properties ================================================================================================
 
   public static readonly actionType = "START_STORY";
@@ -71,17 +67,7 @@ export class StartStoryAction implements PreviewAction {
    */
   public effect(context: PreviewActionContext): void {
     context.storyManager.reset();
-    const storyManager = context.storyManager;
-    const result = storyManager.continue();
-    if (result.errors.length > 0) {
-      context.dispatch(new AddErrorsAction(result.errors));
-    }
-    if (result.events.length > 0) {
-      context.dispatch(new AddStoryEventsAction(result.events));
-    }
-    context.dispatch(new SetCurrentChoicesAction(result.choices));
-    if (result.isEnded) {
-      context.dispatch(new EndStoryAction());
-    }
+    const result = context.storyManager.continue();
+    this.applyStoryProgress(result, context);
   }
 }

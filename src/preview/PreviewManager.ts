@@ -23,7 +23,12 @@
  */
 
 import * as vscode from "vscode";
+import path from "path";
 import { PreviewController } from "./PreviewController";
+import { PreviewStoryManager } from "./PreviewStoryManager";
+import { BuildEngine } from "../build/BuildEngine";
+import { IBuildResult, ISuccessfulBuildResult } from "../build/IBuildResult";
+import { FunctionStoryEvent } from "./PreviewState";
 import { VSCodeServiceLocator } from "../services/VSCodeServiceLocator";
 
 export class PreviewManager {
@@ -34,12 +39,10 @@ export class PreviewManager {
   // Private Properties ===============================================================================================
 
   private readonly webviewPanel: vscode.WebviewPanel;
-
   private readonly controller: PreviewController;
-
   private uri: vscode.Uri | undefined;
-
   private version: number = 0;
+  private storyManager?: PreviewStoryManager;
 
   // Public Static Methods ============================================================================================
 
@@ -82,11 +85,17 @@ export class PreviewManager {
     this.controller = new PreviewController(this.webviewPanel);
 
     this.webviewPanel.onDidDispose(() => this.dispose());
+
+    // Register for compilation events
+    this.registerForCompilationEvents();
   }
 
   // Public Methods ===================================================================================================
 
-  public async preview(document: vscode.TextDocument) {
+  /**
+   * Main preview method - now handles compilation and setup
+   */
+  public async preview(document: vscode.TextDocument): Promise<void> {
     if (
       this.uri &&
       this.uri === document.uri &&
@@ -94,14 +103,130 @@ export class PreviewManager {
     ) {
       return;
     }
+
     this.uri = document.uri;
     this.version = document.version;
-    await this.controller.preview(document);
+
+    // Update the preview panel title
+    this.setTitle(document.uri.fsPath);
+
+    // Compile the story
+    const buildResult = await this.compileStory(document.uri);
+    if (!buildResult.success) {
+      await this.controller.showCompilationError();
+      return;
+    }
+
+    // Set up story management
+    await this.initializeStoryPreview(buildResult as ISuccessfulBuildResult);
   }
 
   public dispose(): void {
+    console.debug("[PreviewManager] 🗑️ Disposing manager");
+
+    // Unregister from compilation events
+    const engine = BuildEngine.getInstance();
+    engine.offDidStoryCompile("preview-manager");
+
     this.controller.dispose();
     this.webviewPanel.dispose();
     PreviewManager.instance = undefined;
+  }
+
+  // Private Methods ==================================================================================================
+
+  /**
+   * Compile story using BuildEngine
+   */
+  private async compileStory(uri: vscode.Uri): Promise<IBuildResult> {
+    const engine = BuildEngine.getInstance();
+    return await engine.compileStory(uri);
+  }
+
+  /**
+   * Initializes the Preview Manager with a Preview Story Manager with a new Ink Story.
+   */
+  private async initializeStoryPreview(
+    compiledStory: ISuccessfulBuildResult
+  ): Promise<void> {
+    this.storyManager = new PreviewStoryManager(compiledStory.story);
+    this.setupExternalFunctions(compiledStory);
+    await this.controller.initializeStory(this.storyManager);
+  }
+
+  /**
+   * Register for BuildEngine compilation events
+   */
+  private registerForCompilationEvents(): void {
+    const engine = BuildEngine.getInstance();
+    engine.onDidStoryCompile("preview-manager", (result) => {
+      this.handleStoryRecompiled(result);
+    });
+  }
+
+  /**
+   * Handle story recompilation from BuildEngine events
+   */
+  private async handleStoryRecompiled(
+    result: ISuccessfulBuildResult
+  ): Promise<void> {
+    // Only handle if this is for our currently previewed file
+    if (!this.uri || result.uri.toString() !== this.uri.toString()) {
+      return;
+    }
+
+    console.debug("[PreviewManager] 🔄 Story recompiled, triggering replay");
+
+    // Set up new story with recompiled result
+    this.storyManager = new PreviewStoryManager(result.story);
+    this.setupExternalFunctions(result);
+
+    // Simply update the story manager and replay existing history
+    await this.controller.refreshStory(this.storyManager);
+  }
+
+  /**
+   * Set up external functions (moved from PreviewController)
+   */
+  private setupExternalFunctions(compiledStory: ISuccessfulBuildResult): void {
+    if (!compiledStory.externalFunctionVM || !this.storyManager) {
+      return;
+    }
+
+    const availableFunctions =
+      compiledStory.externalFunctionVM.getFunctionNames();
+    if (availableFunctions.length === 0) {
+      return;
+    }
+
+    const failedBindings = compiledStory.externalFunctionVM.bindFunctions(
+      compiledStory.story,
+      availableFunctions,
+      (functionName, args, result) => {
+        const functionEvent: FunctionStoryEvent = {
+          type: "function",
+          functionName,
+          args,
+          result,
+          isCurrent: true,
+        };
+        this.controller.addFunctionEvent(functionEvent);
+      }
+    );
+
+    if (failedBindings.length > 0) {
+      const errors = failedBindings.map((funcName) => ({
+        message: `Failed to bind external function: ${funcName}`,
+        severity: "error" as const,
+      }));
+      this.controller.showErrors(errors);
+    }
+  }
+
+  /**
+   * Sets the title of the webview panel.
+   */
+  private setTitle(fileName: string): void {
+    this.webviewPanel.title = `${path.basename(fileName)} (Preview)`;
   }
 }

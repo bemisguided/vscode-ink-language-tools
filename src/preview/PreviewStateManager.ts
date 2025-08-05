@@ -27,17 +27,7 @@ import { PreviewState } from "./PreviewState";
 import { PreviewAction } from "./PreviewAction";
 import { PreviewStoryManager } from "./PreviewStoryManager";
 import { PreviewActionContext } from "./PreviewActionContext";
-
-/**
- * Represents a single entry in the action history.
- * Generic to support both story and UI state tracking.
- */
-export interface HistoryEntry {
-  action: PreviewAction;
-  timestamp: number;
-  stateBefore: PreviewState;
-  stateAfter: PreviewState;
-}
+import { AddErrorsAction } from "./actions/AddErrorsAction";
 
 /**
  * Represents a callback function for state changes.
@@ -54,6 +44,8 @@ export type StateChangeCallback = (state: PreviewState) => void;
 export class PreviewStateManager {
   // Private Properties ===============================================================================================
 
+  private cancelDispatch: boolean = false;
+
   private dispatchCount: number = 0;
 
   private history: PreviewAction[] = [];
@@ -62,9 +54,7 @@ export class PreviewStateManager {
 
   private onStateChange?: StateChangeCallback;
 
-  // Public Properties ================================================================================================
-
-  public storyManager!: PreviewStoryManager;
+  private storyManager!: PreviewStoryManager;
 
   // Constructor ======================================================================================================
 
@@ -126,6 +116,23 @@ export class PreviewStateManager {
   }
 
   /**
+   * Gets the story manager.
+   * @returns The story manager
+   */
+  public getStoryManager(): PreviewStoryManager {
+    return this.storyManager;
+  }
+
+  /**
+   * Sets the story manager.
+   * @param storyManager - The story manager
+   */
+  public setStoryManager(storyManager: PreviewStoryManager): void {
+    this.storyManager = storyManager;
+    this.registerErrorHandler();
+  }
+
+  /**
    * Replays the history up to a specific point.
    * This is useful for undo operations.
    *
@@ -141,6 +148,9 @@ export class PreviewStateManager {
       throw new Error(`Invalid replay index: ${endIndex}`);
     }
 
+    // Reset cancel flag
+    this.disableCancel();
+
     // Clone the history
     const history = [...this.history.slice(0, endIndex)];
 
@@ -150,6 +160,10 @@ export class PreviewStateManager {
     // Replay actions up to the target index
     for (let i = 0; i < endIndex; i++) {
       const action = history[i];
+      if (this.cancelDispatch) {
+        this.disableCancel();
+        break;
+      }
       this.dispatch(action);
     }
 
@@ -237,6 +251,9 @@ export class PreviewStateManager {
   private createContext(): PreviewActionContext {
     return {
       getState: () => this.getState(),
+      cancel: () => {
+        this.enableCancel();
+      },
       dispatch: (action: PreviewAction) => {
         this.dispatch(action);
       },
@@ -265,5 +282,19 @@ export class PreviewStateManager {
       isStart: true,
       lastChoiceIndex: 0,
     };
+  }
+
+  private enableCancel(): void {
+    this.cancelDispatch = true;
+  }
+
+  private disableCancel(): void {
+    this.cancelDispatch = false;
+  }
+
+  private registerErrorHandler(): void {
+    this.storyManager.onError((error) => {
+      this.dispatch(new AddErrorsAction([error]));
+    });
   }
 }

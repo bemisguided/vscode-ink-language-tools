@@ -74,6 +74,7 @@ const createMockStoryManager = (): jest.Mocked<PreviewStoryManager> => {
     isEnded: jest.fn().mockReturnValue(false),
     canContinue: jest.fn().mockReturnValue(true),
     getCurrentChoices: jest.fn().mockReturnValue([]),
+    onError: jest.fn(),
   } as any; // Use 'as any' to bypass strict type checking for the mock
 };
 
@@ -85,7 +86,7 @@ describe("PreviewStateManager", () => {
     // Setup: Create fresh state manager and mock story manager for each test
     mockStoryManager = createMockStoryManager();
     stateManager = new PreviewStateManager();
-    stateManager.storyManager = mockStoryManager;
+    stateManager.setStoryManager(mockStoryManager);
   });
 
   afterEach(() => {
@@ -162,7 +163,6 @@ describe("PreviewStateManager", () => {
           getState: expect.any(Function),
           dispatch: expect.any(Function),
           storyManager: mockStoryManager,
-          sendStoryState: expect.any(Function),
           undo: expect.any(Function),
         })
       );
@@ -423,6 +423,96 @@ describe("PreviewStateManager", () => {
       expect(() => stateManager.replay(-1)).toThrow("Invalid replay index: -1");
       expect(() => stateManager.replay(5)).toThrow("Invalid replay index: 5");
     });
+
+    test("should stop replay when cancel is called during action effect", () => {
+      // Setup
+      const action1 = createMockAction("ACTION_1");
+      const cancelAction = createMockAction(
+        "CANCEL_ACTION",
+        true,
+        undefined,
+        jest.fn().mockImplementation((context) => {
+          context.cancel();
+        })
+      );
+      const action3 = createMockAction("ACTION_3");
+
+      // Dispatch actions to build history
+      stateManager.dispatch(action1);
+      stateManager.dispatch(cancelAction);
+      stateManager.dispatch(action3);
+
+      // Clear mocks for replay test
+      action1.apply.mockClear();
+      cancelAction.apply.mockClear();
+      action3.apply.mockClear();
+
+      // Execute replay - cancelAction will call cancel during its effect
+      stateManager.replay();
+
+      // Assert - verify cancel mechanism works during replay
+      expect(action1.apply).toHaveBeenCalledTimes(1); // Should execute before cancel
+      expect(cancelAction.apply).toHaveBeenCalledTimes(1); // Should execute and call cancel
+      expect(action3.apply).not.toHaveBeenCalled(); // Should NOT execute due to cancel
+    });
+
+    test("should continue normal operations after cancelled replay", () => {
+      // Setup
+      const initialAction = createMockAction("INITIAL_ACTION");
+      const cancelAction = createMockAction(
+        "CANCEL_ACTION",
+        true,
+        undefined,
+        jest.fn().mockImplementation((context) => {
+          context.cancel();
+        })
+      );
+      const finalAction = createMockAction("FINAL_ACTION");
+
+      stateManager.dispatch(initialAction);
+      stateManager.dispatch(cancelAction);
+
+      // Clear call counts and replay (will be cancelled)
+      initialAction.apply.mockClear();
+      cancelAction.apply.mockClear();
+      stateManager.replay();
+
+      // Execute - dispatch new action after cancelled replay
+      stateManager.dispatch(finalAction);
+
+      // Assert
+      expect(finalAction.apply).toHaveBeenCalledTimes(1);
+      expect(finalAction.effect).toHaveBeenCalledTimes(1);
+    });
+
+    test("should reset cancel state for subsequent operations after cancelled replay", () => {
+      // Setup
+      const cancelAction = createMockAction(
+        "CANCEL_ACTION",
+        true,
+        undefined,
+        jest.fn().mockImplementation((context) => {
+          context.cancel();
+        })
+      );
+      const normalAction = createMockAction("NORMAL_ACTION");
+
+      stateManager.dispatch(cancelAction);
+      stateManager.dispatch(normalAction);
+
+      // Clear call counts and replay (will be cancelled at cancelAction)
+      cancelAction.apply.mockClear();
+      normalAction.apply.mockClear();
+      stateManager.replay();
+
+      // Execute - dispatch new action after cancelled replay to verify cancel state is reset
+      const newAction = createMockAction("NEW_ACTION");
+      stateManager.dispatch(newAction);
+
+      // Assert - new action should execute normally, proving cancel state was reset
+      expect(newAction.apply).toHaveBeenCalledTimes(1);
+      expect(newAction.effect).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe(".undo()", () => {
@@ -453,6 +543,37 @@ describe("PreviewStateManager", () => {
 
       // Assert
       expect(undoState).toEqual(stateManager.getState());
+    });
+
+    test("should handle cancel during undo replay", () => {
+      // Setup
+      const action1 = createMockAction("ACTION_1");
+      const cancelAction = createMockAction(
+        "CANCEL_ACTION",
+        true,
+        undefined,
+        jest.fn().mockImplementation((context) => {
+          context.cancel();
+        })
+      );
+      const action3 = createMockAction("ACTION_3");
+
+      stateManager.dispatch(action1);
+      stateManager.dispatch(cancelAction);
+      stateManager.dispatch(action3);
+
+      // Clear call counts for undo test
+      action1.apply.mockClear();
+      cancelAction.apply.mockClear();
+      action3.apply.mockClear();
+
+      // Execute - undo should replay first two actions but stop at cancel
+      stateManager.undo();
+
+      // Assert
+      expect(action1.apply).toHaveBeenCalledTimes(1);
+      expect(cancelAction.apply).toHaveBeenCalledTimes(1);
+      expect(action3.apply).not.toHaveBeenCalled(); // Should not be replayed in undo
     });
   });
 
@@ -496,6 +617,40 @@ describe("PreviewStateManager", () => {
       // Assert - should replay to beginning (index 0)
       expect(action1.apply).not.toHaveBeenCalled();
       expect(undoState).toEqual(stateManager.getState());
+    });
+
+    test("should handle cancel during undoToLast replay", () => {
+      // Setup
+      const action1 = createMockAction("START_STORY");
+      const cancelAction = createMockAction(
+        "CANCEL_ACTION",
+        true,
+        undefined,
+        jest.fn().mockImplementation((context) => {
+          context.cancel();
+        })
+      );
+      const action3 = createMockAction("ADD_STORY_EVENTS");
+      const action4 = createMockAction("ADD_STORY_EVENTS");
+
+      stateManager.dispatch(action1);
+      stateManager.dispatch(cancelAction);
+      stateManager.dispatch(action3);
+      stateManager.dispatch(action4);
+
+      // Clear call counts for undo test
+      [action1, cancelAction, action3, action4].forEach((a) =>
+        a.apply.mockClear()
+      );
+
+      // Execute - undoToLast should replay up to last ADD_STORY_EVENTS but stop at cancel
+      stateManager.undoToLast("ADD_STORY_EVENTS");
+
+      // Assert
+      expect(action1.apply).toHaveBeenCalledTimes(1);
+      expect(cancelAction.apply).toHaveBeenCalledTimes(1);
+      expect(action3.apply).not.toHaveBeenCalled(); // Should not be called due to cancel
+      expect(action4.apply).not.toHaveBeenCalled(); // Should not be included anyway (last occurrence)
     });
   });
 
@@ -611,6 +766,88 @@ describe("PreviewStateManager", () => {
         stateManager.dispose();
         stateManager.dispose();
       }).not.toThrow();
+    });
+  });
+
+  describe("cancel behavior", () => {
+    describe("context.cancel()", () => {
+      test("should provide cancel method in action context", () => {
+        // Setup
+        const mockAction = createMockAction(
+          "TEST_ACTION",
+          true,
+          undefined,
+          jest.fn().mockImplementation((context) => {
+            expect(context.cancel).toBeDefined();
+            expect(typeof context.cancel).toBe("function");
+          })
+        );
+
+        // Execute
+        stateManager.dispatch(mockAction);
+
+        // Assert
+        expect(mockAction.effect).toHaveBeenCalledTimes(1);
+      });
+
+      test("should allow actions to call cancel method without errors", () => {
+        // Setup
+        const mockAction = createMockAction(
+          "CANCEL_ACTION",
+          true,
+          undefined,
+          jest.fn().mockImplementation((context) => {
+            context.cancel();
+          })
+        );
+
+        // Execute & Assert
+        expect(() => stateManager.dispatch(mockAction)).not.toThrow();
+        expect(mockAction.effect).toHaveBeenCalledTimes(1);
+      });
+
+      test("should not affect single action execution when cancel is called", () => {
+        // Setup
+        const mockAction = createMockAction(
+          "CANCEL_ACTION",
+          true,
+          jest.fn().mockImplementation((draft) => {
+            draft.story.isStart = false;
+          }),
+          jest.fn().mockImplementation((context) => {
+            context.cancel();
+          })
+        );
+
+        // Execute
+        const resultState = stateManager.dispatch(mockAction);
+
+        // Assert
+        expect(mockAction.apply).toHaveBeenCalledTimes(1);
+        expect(mockAction.effect).toHaveBeenCalledTimes(1);
+        expect(resultState.story.isStart).toBe(false);
+      });
+
+      test("should not affect state change notifications when cancel is called", () => {
+        // Setup
+        const stateChangeCallback = jest.fn();
+        stateManager.setOnStateChange(stateChangeCallback);
+        const mockAction = createMockAction(
+          "CANCEL_ACTION",
+          true,
+          undefined,
+          jest.fn().mockImplementation((context) => {
+            context.cancel();
+          })
+        );
+
+        // Execute
+        const resultState = stateManager.dispatch(mockAction);
+
+        // Assert
+        expect(stateChangeCallback).toHaveBeenCalledTimes(1);
+        expect(stateChangeCallback).toHaveBeenCalledWith(resultState);
+      });
     });
   });
 });

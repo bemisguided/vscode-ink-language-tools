@@ -297,7 +297,7 @@
 }
 
 .error-icon-info {
-  background-color: var(--vscode-infoForeground);
+  background-color: var(--vscode-infoForeground, #0078d4);
   mask-image: url("./info-icon.svg");
   -webkit-mask-image: url("./info-icon.svg");
 }
