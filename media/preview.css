@@ -269,12 +269,12 @@
 .live-update-control {
   display: flex;
   align-items: center;
-  padding: 0em .75em;
 }
 
 .checkbox-container {
   display: flex;
   align-items: center;
+  padding: 0em 0.75em;
   cursor: pointer;
   font-size: 0.9em;
   color: var(--vscode-foreground);
@@ -308,7 +308,7 @@
 }
 
 .checkbox-container input[type="checkbox"]:checked + .checkmark::after {
-  content: '';
+  content: "";
   position: absolute;
   left: 2.5px;
   top: 0px;
