@@ -125,6 +125,11 @@ The preview supports both mouse and keyboard navigation for ease of use:
 - **Restart**: Begins the story from the very beginning, clearing all history
 - **Rewind**: Returns to the most recent choice point, preserving the story history up to that point
 
+**Live Update Toggle:**
+- Check or uncheck the "Live update" checkbox in the toolbar to enable or disable automatic story updates when the source file changes
+- When enabled (default), the preview will automatically refresh to reflect changes as you edit your story
+- When disabled, the preview will remain static until you manually restart or rewind the story
+
 When the story is restarted, the extension will automatically recompile any changes that have occurred since the preview was last started.
 
 ### Linking External JavaScript Files
