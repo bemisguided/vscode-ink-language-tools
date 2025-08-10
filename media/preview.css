@@ -269,6 +269,7 @@
 .live-update-control {
   display: flex;
   align-items: center;
+  padding: 0em .75em;
 }
 
 .checkbox-container {

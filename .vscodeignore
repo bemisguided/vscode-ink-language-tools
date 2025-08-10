@@ -1,15 +1,27 @@
+# Source files
+src/**
+test/**
+
+# Configuration files
 .vscode/**
 .vscode-test/**
-src/**
 .gitignore
 .yarnrc
-vsc-extension-quickstart.md
+jest.*.js
 **/tsconfig.json
 **/.eslintrc.json
 **/*.map
 **/*.ts
+
+# Exclude all node_modules except dependencies
 **/node_modules/**
 !**/node_modules/inkjs/**
 !**/node_modules/immer/**
+
+# MacOS and Windows system files
 **/.DS_Store
 **/Thumbs.db 
+
+# LLM files
+.cursor/
+CLAUDE.md
