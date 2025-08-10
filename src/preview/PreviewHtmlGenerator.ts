@@ -78,6 +78,13 @@ export class PreviewHtmlGenerator {
               <span class="rewind-icon icon"></span>
               Rewind
             </button>
+            <div class="live-update-control">
+              <label class="checkbox-container">
+                <input type="checkbox" id="live-update-checkbox" checked>
+                <span class="checkmark"></span>
+                <span class="checkbox-label">Live update</span>
+              </label>
+            </div>
           </div>
           <div id="error-indicators" class="error-indicators">
             <button id="button-errors-error" class="btn btn-toolbar error-indicator" style="display: none;">

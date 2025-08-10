@@ -204,6 +204,7 @@ const storyView = {
     choicesContainer: null,
     restartButton: null,
     debugContainer: null,
+    liveUpdateCheckbox: null,
     // Error elements
     errorIndicators: null,
     errorButtonError: null,
@@ -247,6 +248,7 @@ const storyView = {
     this.elements.choicesContainer =
       document.getElementById("choices-container");
     this.elements.debugContainer = document.getElementById("debug-container");
+    this.elements.liveUpdateCheckbox = document.getElementById("live-update-checkbox");
 
     // Initialize error elements
     this.elements.errorIndicators = document.getElementById("error-indicators");
@@ -276,6 +278,7 @@ const storyView = {
   setupEventListeners() {
     this.setupRestartButton();
     this.setupRewindButton();
+    this.setupLiveUpdateToggle();
     this.setupKeyboardShortcuts();
     this.setupErrorHandlers();
   },
@@ -295,6 +298,15 @@ const storyView = {
   setupRewindButton() {
     this.elements.rewindButton.addEventListener("click", () => {
       storyController.actionRewindStory();
+    });
+  },
+
+  /**
+   * Sets up the live update checkbox handler.
+   */
+  setupLiveUpdateToggle() {
+    this.elements.liveUpdateCheckbox.addEventListener("change", (e) => {
+      storyController.actionToggleLiveUpdate(e.target.checked);
     });
   },
 
@@ -741,6 +753,17 @@ const storyView = {
   },
 
   /**
+   * Updates the live update checkbox state.
+   * @param {boolean} enabled - Whether live update is enabled
+   */
+  updateLiveUpdateToggle(enabled) {
+    const checkbox = this.elements.liveUpdateCheckbox;
+    if (checkbox && checkbox.checked !== enabled) {
+      checkbox.checked = enabled;
+    }
+  },
+
+  /**
    * Escapes HTML special characters in a string.
    * @param {string} text - The text to escape
    * @returns {string} The escaped text
@@ -839,6 +862,18 @@ const storyController = {
   },
 
   /**
+   * Handles toggling the live update setting.
+   * @param {boolean} enabled - Whether live update should be enabled
+   */
+  actionToggleLiveUpdate(enabled) {
+    log(`Action: ${enabled ? 'Enabling' : 'Disabling'} live update`);
+    actionDispatcher.dispatch({ 
+      type: "TOGGLE_LIVE_UPDATE", 
+      payload: { enabled } 
+    });
+  },
+
+  /**
    * Handles granular state updates from the extension.
    * Supports both new granular format and legacy complete state format.
    * @param {Object} payload - Either granular {category, state} or legacy complete state
@@ -862,6 +897,7 @@ const storyController = {
 
     // Update UI state
     storyView.updateRewindButton(ui.canRewind);
+    storyView.updateLiveUpdateToggle(ui.liveUpdateEnabled);
   },
 
   /**

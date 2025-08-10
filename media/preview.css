@@ -264,6 +264,70 @@
   -webkit-mask-position: center;
 }
 
+/* Live Update Control ============================================================================================ */
+
+.live-update-control {
+  display: flex;
+  align-items: center;
+}
+
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 0.9em;
+  color: var(--vscode-foreground);
+  user-select: none;
+  gap: 6px;
+}
+
+.checkbox-container input[type="checkbox"] {
+  display: none;
+}
+
+.checkmark {
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--vscode-checkbox-border);
+  background-color: var(--vscode-checkbox-background);
+  border-radius: 2px;
+  position: relative;
+  transition: all 0.1s ease;
+  flex-shrink: 0;
+}
+
+.checkmark:hover {
+  background-color: var(--vscode-checkbox-selectBackground);
+  border-color: var(--vscode-checkbox-selectBorder);
+}
+
+.checkbox-container input[type="checkbox"]:checked + .checkmark {
+  background-color: var(--vscode-checkbox-selectBackground);
+  border-color: var(--vscode-checkbox-selectBorder);
+}
+
+.checkbox-container input[type="checkbox"]:checked + .checkmark::after {
+  content: '';
+  position: absolute;
+  left: 2.5px;
+  top: 0px;
+  width: 3px;
+  height: 5px;
+  border: solid var(--vscode-checkbox-foreground);
+  border-width: 0 1px 1px 0;
+  transform: rotate(45deg);
+}
+
+.checkbox-label {
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.checkbox-container:focus-within .checkmark {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 2px;
+}
+
 /* Error Indicators =============================================================================================== */
 
 .error-indicators {

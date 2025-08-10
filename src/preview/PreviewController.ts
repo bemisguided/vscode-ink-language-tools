@@ -26,7 +26,7 @@ import * as vscode from "vscode";
 import { PreviewHtmlGenerator } from "./PreviewHtmlGenerator";
 import { PreviewStateManager } from "./PreviewStateManager";
 import { PreviewStoryManager } from "./PreviewStoryManager";
-import { ErrorInfo, FunctionStoryEvent } from "./PreviewState";
+import { ErrorInfo, FunctionStoryEvent, PreviewState } from "./PreviewState";
 import { inboundMessages, Message } from "./PreviewMessages";
 import { Deferred } from "../util/deferred";
 import { AddErrorsAction } from "./actions/AddErrorsAction";
@@ -35,6 +35,7 @@ import { StartStoryAction } from "./actions/StartStoryAction";
 import { PreviewAction } from "./PreviewAction";
 import { SelectChoiceAction } from "./actions/SelectChoiceAction";
 import { RewindStoryAction } from "./actions/RewindStoryAction";
+import { ToggleLiveUpdateUIAction } from "./actions/ToggleLiveUpdateUIAction";
 
 /**
  * Controller for the Preview Webview that coordinates Preview State with the Webview.
@@ -121,6 +122,14 @@ export class PreviewController {
   }
 
   /**
+   * Gets the current preview state.
+   * @returns The current preview state
+   */
+  public getState(): PreviewState {
+    return this.stateManager.getState();
+  }
+
+  /**
    * Disposes of the controller and cleans up all resources.
    */
   public dispose(): void {
@@ -150,6 +159,9 @@ export class PreviewController {
     }
     if (data.type === RewindStoryAction.actionType) {
       return new RewindStoryAction();
+    }
+    if (data.type === ToggleLiveUpdateUIAction.actionType) {
+      return new ToggleLiveUpdateUIAction(data.payload.enabled);
     }
     throw new Error(`Unknown action type: ${data.type}`);
   }

@@ -47,6 +47,7 @@ export function mockPreviewUIState(
 ): PreviewUIState {
   return {
     canRewind: false,
+    liveUpdateEnabled: true,
     ...overrides,
   };
 }

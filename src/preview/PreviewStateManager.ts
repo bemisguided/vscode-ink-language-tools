@@ -267,6 +267,7 @@ export class PreviewStateManager {
       story: this.createDefaultStoryState(),
       ui: {
         canRewind: false,
+        liveUpdateEnabled: true,
       },
     };
 

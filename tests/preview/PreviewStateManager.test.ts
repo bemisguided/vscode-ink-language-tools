@@ -105,6 +105,17 @@ describe("PreviewStateManager", () => {
       expect(state).toEqual(mockPreviewState());
     });
 
+    test("should initialize UI state with live update enabled", () => {
+      // Setup: Default constructor
+
+      // Execute
+      const state = stateManager.getState();
+
+      // Assert
+      expect(state.ui.liveUpdateEnabled).toBe(true);
+      expect(state.ui.canRewind).toBe(false);
+    });
+
     test("should initialize empty history", () => {
       // Setup: Default constructor
 

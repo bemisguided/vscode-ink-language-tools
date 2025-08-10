@@ -29,6 +29,7 @@ import { MockBuildEngine } from "../__mocks__/MockBuildEngine";
 import { MockWebviewPanel } from "../__mocks__/MockWebviewPanel";
 import { mockVSCodeDocument } from "../__mocks__/mockVSCodeDocument";
 import { createMockSuccessfulBuildResult } from "../__mocks__/mockBuildResult";
+import { mockPreviewState } from "../__mocks__/mockPreviewState";
 
 // Mock dependencies
 jest.mock("../../src/build/BuildEngine");
@@ -286,6 +287,39 @@ describe("PreviewController", () => {
 
       // Assert: Should trigger state update
       expect(postMessageSpy).toHaveBeenCalled();
+    });
+
+    test("should handle live update toggle", () => {
+      // Execute
+      mockWebviewPanel.webview.simulateMessage({
+        command: "action",
+        payload: {
+          type: "TOGGLE_LIVE_UPDATE",
+          payload: { enabled: false },
+        },
+      });
+
+      // Assert
+      expect(postMessageSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          command: "updateState",
+        })
+      );
+    });
+  });
+
+  describe(".getState()", () => {
+    test("should return current state from state manager", () => {
+      // Setup
+      const expectedState = mockPreviewState({ isEnded: true }, { canRewind: true });
+      jest.spyOn(controller['stateManager'], 'getState').mockReturnValue(expectedState);
+
+      // Execute
+      const result = controller.getState();
+
+      // Assert
+      expect(result).toBe(expectedState);
+      expect(controller['stateManager'].getState).toHaveBeenCalledTimes(1);
     });
   });
 

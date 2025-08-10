@@ -119,6 +119,11 @@ export interface PreviewUIState {
    * Indicates whether the Story can be rewound.
    */
   canRewind: boolean;
+
+  /**
+   * Indicates whether live-update is enabled for this preview.
+   */
+  liveUpdateEnabled: boolean;
 }
 
 /**

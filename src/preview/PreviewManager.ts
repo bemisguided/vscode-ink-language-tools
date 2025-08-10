@@ -175,6 +175,12 @@ export class PreviewManager {
       return;
     }
 
+    // Check if live-update is enabled
+    const currentState = this.controller.getState();
+    if (!currentState.ui.liveUpdateEnabled) {
+      return;
+    }
+
     console.debug("[PreviewManager] 🔄 Story recompiled, triggering replay");
 
     // Set up new story with recompiled result
