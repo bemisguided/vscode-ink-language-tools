@@ -58,6 +58,10 @@ export class PreviewHtmlGenerator {
       webview,
       "rewind-icon.svg"
     );
+    const debugIconUrl = extensionService.getWebviewMediaUri(
+      webview,
+      "debug-icon.svg"
+    );
 
     return `<!DOCTYPE html>
       <html lang="en">
@@ -85,6 +89,10 @@ export class PreviewHtmlGenerator {
                 <span class="checkbox-label">Live update</span>
               </label>
             </div>
+            <button id="button-debug" class="btn btn-toolbar" title="Toggle debug panel">
+              <span class="debug-icon icon"></span>
+              Debug
+            </button>
           </div>
           <div id="error-indicators" class="error-indicators">
             <button id="button-errors-error" class="btn btn-toolbar error-indicator" style="display: none;">
@@ -116,6 +124,28 @@ export class PreviewHtmlGenerator {
               </div>
             </div>
           </div>
+          <div id="debug-panel" class="debug-panel hidden">
+            <div class="debug-panel-header">
+              <div class="debug-panel-tabs">
+                <button id="debug-tab-variables" class="debug-tab active">Variables</button>
+                <button id="debug-tab-console" class="debug-tab">Console</button>
+              </div>
+              <button id="close-debug-panel" class="btn btn-list close-button" title="Close debug panel">×</button>
+            </div>
+            <div class="debug-panel-content">
+              <div id="debug-variables" class="debug-tab-content active">
+                <div class="debug-variables-list">
+                  <!-- Variables populated dynamically -->
+                </div>
+              </div>
+              <div id="debug-console" class="debug-tab-content">
+                <div class="debug-console-list">
+                  <!-- Console messages populated dynamically -->
+                </div>
+              </div>
+            </div>
+            <div class="debug-panel-resize-handle"></div>
+          </div>
         </div>
         <script>
           window.svgIcons = {
@@ -123,7 +153,8 @@ export class PreviewHtmlGenerator {
             warning: "${warningIconUrl}",
             info: "${infoIconUrl}",
             restart: "${restartIconUrl}",
-            rewind: "${rewindIconUrl}"
+            rewind: "${rewindIconUrl}",
+            debug: "${debugIconUrl}"
           };
         </script>
         <script src="${jsUrl}"></script>

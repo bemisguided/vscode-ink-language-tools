@@ -805,6 +805,383 @@ const storyView = {
   },
 };
 
+// Debug Panel Controller ============================================================================================
+
+const debugPanel = {
+  // DOM Elements ===================================================================================================
+  elements: {
+    debugButton: null,
+    debugPanel: null,
+    closeButton: null,
+    variablesTab: null,
+    consoleTab: null,
+    variablesContent: null,
+    consoleContent: null,
+    variablesList: null,
+    consoleList: null,
+    resizeHandle: null,
+  },
+
+  // State ==========================================================================================================
+  isVisible: false,
+  activeTab: 'variables',
+  panelHeight: 200,
+  isResizing: false,
+
+  // Data ===========================================================================================================
+  variables: new Map(),
+  consoleMessages: [],
+
+  /**
+   * Initializes the debug panel by setting up DOM elements and event listeners.
+   */
+  initialize() {
+    log("📝 Debug Panel: Initializing");
+    this.initializeElements();
+    this.setupEventListeners();
+    this.initializePosition();
+  },
+
+  /**
+   * Initializes the debug panel position based on choices container height.
+   */
+  initializePosition() {
+    // Wait for DOM to be ready, then set initial position
+    setTimeout(() => {
+      this.updatePosition();
+    }, 100);
+  },
+
+  /**
+   * Updates the debug panel position based on current choices container height.
+   * Should be called when choices change or panel is resized.
+   */
+  updatePosition() {
+    const choicesContainer = document.getElementById("choices-container");
+    if (choicesContainer) {
+      const choicesHeight = choicesContainer.offsetHeight;
+      this.elements.debugPanel.style.bottom = `${choicesHeight}px`;
+      log(`🐛 Debug Panel: Positioned at ${choicesHeight}px from bottom`);
+    }
+  },
+
+  /**
+   * Initializes references to DOM elements used by the debug panel.
+   */
+  initializeElements() {
+    this.elements.debugButton = document.getElementById("button-debug");
+    this.elements.debugPanel = document.getElementById("debug-panel");
+    this.elements.closeButton = document.getElementById("close-debug-panel");
+    this.elements.variablesTab = document.getElementById("debug-tab-variables");
+    this.elements.consoleTab = document.getElementById("debug-tab-console");
+    this.elements.variablesContent = document.getElementById("debug-variables");
+    this.elements.consoleContent = document.getElementById("debug-console");
+    this.elements.variablesList = document.querySelector(".debug-variables-list");
+    this.elements.consoleList = document.querySelector(".debug-console-list");
+    this.elements.resizeHandle = document.querySelector(".debug-panel-resize-handle");
+  },
+
+  /**
+   * Sets up event listeners for debug panel interactions.
+   */
+  setupEventListeners() {
+    // Debug button toggle
+    this.elements.debugButton.addEventListener("click", () => {
+      this.toggle();
+    });
+
+    // Close button
+    this.elements.closeButton.addEventListener("click", () => {
+      this.hide();
+    });
+
+    // Tab switching
+    this.elements.variablesTab.addEventListener("click", () => {
+      this.switchTab('variables');
+    });
+
+    this.elements.consoleTab.addEventListener("click", () => {
+      this.switchTab('console');
+    });
+
+    // Keyboard shortcut (F12)
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "F12") {
+        e.preventDefault();
+        this.toggle();
+      }
+      // Escape key to close when panel is open
+      if (e.key === "Escape" && this.isVisible) {
+        e.preventDefault();
+        this.hide();
+      }
+    });
+
+    // Panel resizing
+    this.setupResizing();
+  },
+
+  /**
+   * Sets up panel resize functionality.
+   */
+  setupResizing() {
+    let startY = 0;
+    let startHeight = 0;
+
+    this.elements.resizeHandle.addEventListener("mousedown", (e) => {
+      this.isResizing = true;
+      startY = e.clientY;
+      startHeight = this.panelHeight;
+      document.body.style.cursor = "ns-resize";
+      e.preventDefault();
+    });
+
+    document.addEventListener("mousemove", (e) => {
+      if (!this.isResizing) return;
+
+      const deltaY = startY - e.clientY;
+      const newHeight = Math.max(100, Math.min(400, startHeight + deltaY));
+      this.setPanelHeight(newHeight);
+    });
+
+    document.addEventListener("mouseup", () => {
+      if (this.isResizing) {
+        this.isResizing = false;
+        document.body.style.cursor = "";
+      }
+    });
+  },
+
+  /**
+   * Sets the debug panel height.
+   * @param {number} height - The new height in pixels
+   */
+  setPanelHeight(height) {
+    this.panelHeight = height;
+    this.elements.debugPanel.style.height = `${height}px`;
+  },
+
+
+  /**
+   * Toggles the debug panel visibility.
+   */
+  toggle() {
+    if (this.isVisible) {
+      this.hide();
+    } else {
+      this.show();
+    }
+  },
+
+  /**
+   * Shows the debug panel.
+   */
+  show() {
+    log("🐛 Debug Panel: Showing");
+    this.isVisible = true;
+    this.elements.debugPanel.classList.remove("hidden");
+    this.elements.debugButton.classList.add("active");
+    document.body.classList.add("debug-panel-open");
+    
+    // Add some sample data for demonstration
+    this.addSampleData();
+    
+    // Render current tab
+    if (this.activeTab === 'variables') {
+      this.renderVariables();
+    } else {
+      this.renderConsole();
+    }
+  },
+
+  /**
+   * Adds sample debug data for demonstration.
+   */
+  addSampleData() {
+    if (this.variables.size === 0) {
+      // Add sample variables
+      this.updateVariable("health", 85);
+      this.updateVariable("gold", 150);
+      this.updateVariable("level", 3);
+      this.updateVariable("playerName", "Adventurer");
+      this.updateVariable("inventory", ["sword", "potion", "key"]);
+    }
+    
+    if (this.consoleMessages.length === 0) {
+      // Add sample console messages
+      this.addConsoleMessage("Game started", "log");
+      this.addConsoleMessage("Player entered the forest", "log");
+      this.addConsoleMessage("Warning: Health is getting low", "warn");
+      this.addConsoleMessage("Player found treasure", "log");
+    }
+  },
+
+  /**
+   * Hides the debug panel.
+   */
+  hide() {
+    log("🐛 Debug Panel: Hiding");
+    this.isVisible = false;
+    this.elements.debugPanel.classList.add("hidden");
+    this.elements.debugButton.classList.remove("active");
+    document.body.classList.remove("debug-panel-open");
+  },
+
+  /**
+   * Switches between tabs in the debug panel.
+   * @param {string} tabName - The tab to switch to ('variables' or 'console')
+   */
+  switchTab(tabName) {
+    log(`🐛 Debug Panel: Switching to ${tabName} tab`);
+    
+    // Update active tab
+    this.activeTab = tabName;
+    
+    // Update tab buttons
+    this.elements.variablesTab.classList.toggle("active", tabName === "variables");
+    this.elements.consoleTab.classList.toggle("active", tabName === "console");
+    
+    // Update tab content
+    this.elements.variablesContent.classList.toggle("active", tabName === "variables");
+    this.elements.consoleContent.classList.toggle("active", tabName === "console");
+  },
+
+  /**
+   * Updates a variable value and tracks changes.
+   * @param {string} name - Variable name
+   * @param {any} value - New variable value
+   */
+  updateVariable(name, value) {
+    const previousValue = this.variables.get(name);
+    const hasChanged = previousValue !== undefined && previousValue !== value;
+    
+    this.variables.set(name, value);
+    
+    if (this.isVisible && this.activeTab === 'variables') {
+      this.renderVariables();
+    }
+    
+    if (hasChanged) {
+      log(`🐛 Variable changed: ${name} = ${value} (was ${previousValue})`);
+    }
+  },
+
+  /**
+   * Adds a console message.
+   * @param {string} message - The console message
+   * @param {string} type - Message type ('log', 'warn', 'error')
+   */
+  addConsoleMessage(message, type = 'log') {
+    const timestamp = new Date().toLocaleTimeString();
+    this.consoleMessages.push({
+      message,
+      type,
+      timestamp
+    });
+    
+    // Limit console messages to prevent memory issues
+    if (this.consoleMessages.length > 100) {
+      this.consoleMessages.shift();
+    }
+    
+    if (this.isVisible && this.activeTab === 'console') {
+      this.renderConsole();
+    }
+    
+    log(`🐛 Console ${type}: ${message}`);
+  },
+
+  /**
+   * Renders the variables list.
+   */
+  renderVariables() {
+    if (!this.elements.variablesList) return;
+    
+    this.elements.variablesList.innerHTML = "";
+    
+    if (this.variables.size === 0) {
+      this.elements.variablesList.innerHTML = "<p>No variables to display.</p>";
+      return;
+    }
+    
+    const fragment = document.createDocumentFragment();
+    
+    this.variables.forEach((value, name) => {
+      const variableElement = createElement("div", "debug-variable");
+      
+      const nameElement = createElement("div", "debug-variable-name");
+      nameElement.textContent = name;
+      
+      const valueElement = createElement("div", "debug-variable-value");
+      valueElement.textContent = JSON.stringify(value);
+      
+      const changeElement = createElement("div", "debug-variable-change unchanged");
+      changeElement.textContent = "—";
+      
+      variableElement.appendChild(nameElement);
+      variableElement.appendChild(valueElement);
+      variableElement.appendChild(changeElement);
+      
+      fragment.appendChild(variableElement);
+    });
+    
+    this.elements.variablesList.appendChild(fragment);
+  },
+
+  /**
+   * Renders the console messages list.
+   */
+  renderConsole() {
+    if (!this.elements.consoleList) return;
+    
+    this.elements.consoleList.innerHTML = "";
+    
+    if (this.consoleMessages.length === 0) {
+      this.elements.consoleList.innerHTML = "<p>No console messages to display.</p>";
+      return;
+    }
+    
+    const fragment = document.createDocumentFragment();
+    
+    this.consoleMessages.forEach((msg) => {
+      const messageElement = createElement("div", `debug-console-message ${msg.type}`);
+      
+      const timestampElement = createElement("div", "debug-console-timestamp");
+      timestampElement.textContent = msg.timestamp;
+      
+      const contentElement = createElement("div", "debug-console-content");
+      contentElement.textContent = msg.message;
+      
+      messageElement.appendChild(timestampElement);
+      messageElement.appendChild(contentElement);
+      
+      fragment.appendChild(messageElement);
+    });
+    
+    this.elements.consoleList.appendChild(fragment);
+    
+    // Scroll to bottom
+    this.elements.consoleList.scrollTop = this.elements.consoleList.scrollHeight;
+  },
+
+  /**
+   * Clears all console messages.
+   */
+  clearConsole() {
+    this.consoleMessages = [];
+    if (this.isVisible && this.activeTab === 'console') {
+      this.renderConsole();
+    }
+  },
+
+  /**
+   * Cleans up the debug panel.
+   */
+  cleanup() {
+    // Cleanup is handled by individual event listeners
+  },
+};
+
 // Story Controller ==================================================================================================
 
 const storyController = {
@@ -1015,6 +1392,7 @@ const storyController = {
 document.addEventListener("DOMContentLoaded", () => {
   messageHandler.initialize();
   storyView.initialize();
+  debugPanel.initialize();
   storyController.initialize();
 });
 
@@ -1023,5 +1401,6 @@ document.addEventListener("DOMContentLoaded", () => {
 window.addEventListener("unload", () => {
   storyController.cleanup();
   storyView.cleanup();
+  debugPanel.cleanup();
   messageHandler.cleanup();
 });

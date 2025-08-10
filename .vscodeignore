@@ -1,6 +1,7 @@
 # Source files
 src/**
 test/**
+docs/**
 
 # Configuration files
 .vscode/**
